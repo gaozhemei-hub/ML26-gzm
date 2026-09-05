@@ -4,3 +4,6 @@ pandas
 mljar-supervised
 jupyterlab
 matplotlib
+pytest
+jinja2
+
