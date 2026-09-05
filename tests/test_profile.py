@@ -625,3 +625,147 @@ class TestRenderReport:
             html = render_profile_report(profile)
             assert isinstance(html, str)
             assert len(html) > 0
+
+
+# ─────────────────────────────────────────────────────────────
+# 新增：偏度检测 compute_skewness
+# ─────────────────────────────────────────────────────────────
+
+class TestComputeSkewness:
+    def test_symmetric_distribution(self):
+        """对称分布（正态）的 |skew| 接近 0。"""
+        rng = np.random.default_rng(42)
+        col = pd.Series(rng.normal(0, 1, 1000))
+        s = ProfileUtils.compute_skewness(col)
+        assert s is not None
+        assert abs(s) < 0.3
+
+    def test_right_skewed(self):
+        """右偏分布 skew > 0。"""
+        col = pd.Series([1, 2, 3, 4, 5, 6, 7, 8, 9, 100])
+        s = ProfileUtils.compute_skewness(col)
+        assert s is not None
+        assert s > 1
+
+    def test_too_few_samples(self):
+        """样本太少时返回 None。"""
+        col = pd.Series([1.0, 2.0])
+        assert ProfileUtils.compute_skewness(col) is None
+
+
+# ─────────────────────────────────────────────────────────────
+# 新增：skewed 标签检测
+# ─────────────────────────────────────────────────────────────
+
+class TestSkewedTag:
+    def test_skewed_column_tagged(self):
+        """偏度 > 1 的数值列标记 skewed。"""
+        col = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 100.0], name="x")
+        fact = build_column_fact(col)
+        assert "skewed" in fact.tags
+        assert "numeric" in fact.tags
+        assert fact.skewness is not None
+
+    def test_symmetric_column_not_skewed(self):
+        """对称分布列不标记 skewed。"""
+        rng = np.random.default_rng(42)
+        col = pd.Series(rng.normal(0, 1, 500), name="x")
+        fact = build_column_fact(col)
+        assert "skewed" not in fact.tags
+
+    def test_non_numeric_not_skewed(self):
+        """非数值列不标记 skewed。"""
+        col = pd.Series(["a", "b", "c", "a", "b"], name="x")
+        fact = build_column_fact(col)
+        assert "skewed" not in fact.tags
+
+
+# ─────────────────────────────────────────────────────────────
+# 新增：high_cardinality 标签检测
+# ─────────────────────────────────────────────────────────────
+
+class TestHighCardinalityTag:
+    def test_high_cardinality_tagged(self):
+        """类别列 unique > 50 标记 high_cardinality。"""
+        values = [f"cat_{i}" for i in range(60)]
+        col = pd.Series(values, name="x")
+        fact = build_column_fact(col)
+        assert "high_cardinality" in fact.tags
+        assert "categorical" in fact.tags
+
+    def test_low_cardinality_not_tagged(self):
+        """类别列 unique ≤ 50 不标记 high_cardinality。"""
+        values = [f"cat_{i}" for i in range(20)]
+        col = pd.Series(values, name="x")
+        fact = build_column_fact(col)
+        assert "high_cardinality" not in fact.tags
+
+    def test_numeric_not_high_cardinality(self):
+        """数值列不标记 high_cardinality。"""
+        col = pd.Series(range(100), name="x")
+        fact = build_column_fact(col)
+        assert "high_cardinality" not in fact.tags
+
+
+# ─────────────────────────────────────────────────────────────
+# 新增：imbalanced 标签检测
+# ─────────────────────────────────────────────────────────────
+
+class TestImbalancedTag:
+    def test_balanced_target_no_tag(self):
+        """平衡分类任务不标记 imbalanced。"""
+        y = pd.Series([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+        fact = build_target_fact(y)
+        assert "imbalanced" not in fact.tags
+
+    def test_imbalanced_target_tagged(self):
+        """不平衡分类任务标记 imbalanced。"""
+        y = pd.Series([0] * 95 + [1] * 5)
+        fact = build_target_fact(y)
+        assert "imbalanced" in fact.tags
+        # 应包含不平衡证据
+        assert any(ev.metric == "imbalanced" for ev in fact.evidences)
+
+    def test_regression_no_imbalanced(self):
+        """回归任务不标记 imbalanced。"""
+        y = pd.Series([float(i) for i in range(100)])
+        fact = build_target_fact(y)
+        assert "imbalanced" not in fact.tags
+
+
+# ─────────────────────────────────────────────────────────────
+# 新增：skewness 字段写入 ColumnFact 的验证
+# ─────────────────────────────────────────────────────────────
+
+class TestColumnFactSkewnessField:
+    def test_skewness_in_numeric(self):
+        """数值列的 skewness 字段被正确填充。"""
+        col = pd.Series([1.0, 2.0, 3.0, 4.0, 100.0], name="x")
+        fact = build_column_fact(col)
+        assert fact.skewness is not None
+        assert isinstance(fact.skewness, float)
+
+    def test_skewness_none_for_non_numeric(self):
+        """非数值列 skewness 为 None。"""
+        col = pd.Series(["a", "b", "c"], name="x")
+        fact = build_column_fact(col)
+        assert fact.skewness is None
+
+
+# ─────────────────────────────────────────────────────────────
+# 新增：TargetFact.tags 必须存在（回归兼容）
+# ─────────────────────────────────────────────────────────────
+
+class TestTargetFactTags:
+    def test_target_fact_has_tags_attr(self):
+        """TargetFact 必须有 tags 字段（回归兼容）。"""
+        y = pd.Series([0, 1, 0, 1, 0, 1])
+        fact = build_target_fact(y)
+        assert hasattr(fact, "tags")
+        assert isinstance(fact.tags, list)
+
+    def test_column_fact_has_skewness_attr(self):
+        """ColumnFact 必须有 skewness 字段（回归兼容）。"""
+        col = pd.Series([1.0, 2.0, 3.0], name="x")
+        fact = build_column_fact(col)
+        assert hasattr(fact, "skewness")
