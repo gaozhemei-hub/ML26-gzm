@@ -347,3 +347,126 @@ class TestBuildProfile:
         assert profile.n_rows == 4
         assert profile.n_cols == 0
         assert profile.columns == []
+
+
+# ─────────────────────────────────────────────────────────────
+# reports —— 报告渲染（jinja2 模板 → HTML 字符串）
+# ─────────────────────────────────────────────────────────────
+
+class TestRenderReport:
+    """测试 reports.py 的模板渲染功能（纯函数，无 IO）。"""
+
+    def test_render_profile_html(self):
+        """渲染 DataProfile → HTML，应包含关键信息。"""
+        from tabularx.reports import ReportType, render_report
+
+        data = load_breast_cancer(as_frame=True)
+        profile = build_profile(data.data, data.target)
+        html = render_report(ReportType.PROFILE, profile)
+
+        # 基础结构
+        assert html.startswith("<!DOCTYPE html>")
+        assert "TabularX 数据概况报告" in html
+        # 关键数据出现在 HTML 中
+        assert "569" in html                       # n_rows
+        assert "30" in html                        # n_cols
+        assert "binary" in html                    # task_type
+        assert "mean radius" in html               # 第一列列名
+        assert profile.fingerprint in html         # 数据指纹
+        # 表头结构
+        assert "<table>" in html
+        assert "列名" in html
+
+    def test_render_profile_returns_str(self):
+        """返回值必须是字符串（供上层写文件）。"""
+        from tabularx.reports import render_profile_report
+
+        data = load_breast_cancer(as_frame=True)
+        profile = build_profile(data.data, data.target)
+        html = render_profile_report(profile)
+        assert isinstance(html, str)
+        assert len(html) > 100
+
+    def test_render_deterministic(self):
+        """相同输入 → 相同输出（纯函数特性）。"""
+        from tabularx.reports import render_report, ReportType
+
+        data = load_breast_cancer(as_frame=True)
+        profile = build_profile(data.data, data.target)
+        h1 = render_report(ReportType.PROFILE, profile)
+        h2 = render_report(ReportType.PROFILE, profile)
+        assert h1 == h2
+
+    def test_render_regression_profile(self):
+        """回归任务的 profile 也能正常渲染（无 n_classes/class_balance 的分支）。"""
+        from tabularx.reports import render_profile_report
+
+        data = load_diabetes(as_frame=True)
+        profile = build_profile(data.data, data.target)
+        html = render_profile_report(profile)
+        assert "regression" in html
+        # 回归分支显示均值/标准差，不显示类别数/类别分布
+        assert "n_classes" not in html
+        assert "class_balance" not in html
+
+    def test_render_injected_template_dir(self):
+        """支持注入自定义模板目录（可测性：不依赖包内模板）。"""
+        import tempfile
+        from pathlib import Path
+
+        from tabularx.reports import render_template
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            custom_template = Path(tmpdir) / "custom.html.jinja2"
+            custom_template.write_text(
+                "<p>n_rows={{ data.n_rows }}</p>", encoding="utf-8"
+            )
+            data = load_breast_cancer(as_frame=True)
+            profile = build_profile(data.data, data.target)
+            # 用底层 render_template + 注入目录
+            html = render_template("custom.html.jinja2", profile, template_dir=tmpdir)
+            assert "<p>n_rows=569</p>" in html
+
+    def test_template_not_found_raises(self):
+        """模板不存在时抛 TemplateNotFound。"""
+        import tempfile
+
+        from tabularx.reports import render_template
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data = load_breast_cancer(as_frame=True)
+            profile = build_profile(data.data, data.target)
+            with pytest.raises(Exception):
+                render_template("missing.html.jinja2", profile, template_dir=tmpdir)
+
+    def test_autoescape_prevents_html_injection(self):
+        """autoescape 开启：数据中的 HTML 不被执行。"""
+        import tempfile
+        from pathlib import Path
+
+        from tabularx.reports import render_template
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            custom_template = Path(tmpdir) / "x.html.jinja2"
+            custom_template.write_text(
+                "<p>{{ data.name }}</p>", encoding="utf-8"
+            )
+            # 模拟恶意列名
+            html = render_template(
+                "x.html.jinja2",
+                {"name": "<script>alert('xss')</script>"},
+                template_dir=tmpdir,
+            )
+            assert "<script>alert('xss')</script>" not in html
+            assert "&lt;script&gt;" in html
+
+    def test_profile_report_end_to_end(self):
+        """端到端：build_profile → render_profile_report，全流程无异常。"""
+        from tabularx.reports import render_profile_report
+
+        for loader in (load_breast_cancer, load_iris, load_diabetes):
+            data = loader(as_frame=True)
+            profile = build_profile(data.data, data.target)
+            html = render_profile_report(profile)
+            assert isinstance(html, str)
+            assert len(html) > 0

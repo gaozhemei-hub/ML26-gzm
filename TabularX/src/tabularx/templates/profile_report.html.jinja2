@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>TabularX 数据概况报告</title>
+  <style>
+    body { font-family: "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; margin: 2rem; color: #333; }
+    h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: .5rem; }
+    h2 { color: #34495e; margin-top: 2rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ddd; padding: .5rem .75rem; text-align: left; font-size: .9rem; }
+    th { background: #f5f6fa; font-weight: 600; }
+    tr:nth-child(even) td { background: #fafbfc; }
+    .badge { display: inline-block; background: #ecf0f1; border-radius: 3px; padding: .1rem .5rem; margin: .1rem .2rem; font-size: .8rem; }
+    .badge-warn { background: #fef3cd; color: #856404; }
+    .summary { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .card { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; min-width: 140px; }
+    .card .num { font-size: 1.5rem; font-weight: 700; color: #2c3e50; word-break: break-all; }
+    .card .label { font-size: .8rem; color: #7f8c8d; }
+    footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #95a5a6; font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <h1>TabularX 数据概况报告</h1>
+
+  <section>
+    <h2>数据集概览</h2>
+    <div class="summary">
+      <div class="card"><div class="num">{{ data.n_rows }}</div><div class="label">行数</div></div>
+      <div class="card"><div class="num">{{ data.n_cols }}</div><div class="label">列数</div></div>
+      <div class="card"><div class="num">{{ data.fingerprint }}</div><div class="label">数据指纹</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>目标变量</h2>
+    <table>
+      <tr><th>任务类型</th><td>{{ data.target.task_type }}</td></tr>
+      {% if data.target.task_type == "regression" %}
+        <tr><th>均值</th><td>{{ "%.4f"|format(data.target.mean) if data.target.mean is not none else "—" }}</td></tr>
+        <tr><th>标准差</th><td>{{ "%.4f"|format(data.target.std) if data.target.std is not none else "—" }}</td></tr>
+      {% else %}
+        <tr><th>类别数</th><td>{{ data.target.n_classes if data.target.n_classes is not none else "—" }}</td></tr>
+        <tr><th>类别分布</th>
+          <td>
+            {% for cls, ratio in data.target.class_balance.items() %}
+              <span class="badge">{{ cls }}: {{ "%.1f"|format(ratio * 100) }}%</span>
+            {% endfor %}
+          </td>
+        </tr>
+      {% endif %}
+      <tr><th>缺失率</th><td>{{ "%.2f"|format(data.target.missing_rate * 100) }}%</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>特征列</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>列名</th><th>类型</th><th>dtype</th><th>缺失数</th><th>缺失率</th>
+          <th>唯一值</th><th>标签</th><th>均值</th><th>标准差</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for col in data.columns %}
+        <tr>
+          <td>{{ col.col_name }}</td>
+          <td>{{ col.tags[0] if col.tags else "—" }}</td>
+          <td>{{ col.dtype }}</td>
+          <td>{{ col.n_missing }}</td>
+          <td>{{ "%.2f"|format(col.missing_rate * 100) }}%</td>
+          <td>{{ col.n_unique }}</td>
+          <td>
+            {% for tag in col.tags %}
+              <span class="badge {{ 'badge-warn' if tag == 'has_missing' or tag == 'scale_needed' else '' }}">{{ tag }}</span>
+            {% endfor %}
+          </td>
+          <td>{{ "%.4f"|format(col.mean) if col.mean is not none else "—" }}</td>
+          <td>{{ "%.4f"|format(col.std) if col.std is not none else "—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    <p>由 TabularX 自动生成 · 数据指纹 {{ data.fingerprint }}</p>
+  </footer>
+</body>
+</html>
