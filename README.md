@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ML26-qyr
 
 TabularX 机器学习与 Python 应用项目库
@@ -10,3 +11,8 @@ TabularX 机器学习与 Python 应用项目库
   
 如果您的成果中引用了本平台，也欢迎在下述开源项目中提交您的成果信息：
 https://openi.pcl.ac.cn/OpenIOSSG/references
+=======
+# README
+
+something
+>>>>>>> 03f9c0b (init commit)
