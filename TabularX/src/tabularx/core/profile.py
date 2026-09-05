@@ -35,14 +35,21 @@ class ProfileUtils:
         """判断列的类型（MLJAR 式逐列分析）。
 
         规则（参考 MLJAR PreprocessingUtils.get_type）：
-        1. datetime → "datetime"
-        2. bool     → "boolean"
-        3. object / category → 看唯一值数量：
+        1. 全空列 → "categorical"（保守标记，build_column_fact 会加 empty_column 标记）
+        2. datetime → "datetime"
+        3. bool     → "boolean"
+        4. object / str / category → 看唯一值数量：
            - >200 且 >50% 行唯一 → "text"
            - 否则 → "categorical"
-        4. int / uint → "categorical"（如果唯一值 ≤ 20） 否则 → "numeric"
-        5. float → "numeric"
+        5. int / uint → "categorical"（如果唯一值 ≤ 20） 否则 → "numeric"
+        6. float → "numeric"
         """
+        col_clean = col.dropna()
+
+        # 全空列：无法判断类型，保守标记为 categorical
+        if col_clean.empty:
+            return ProfileUtils.CATEGORICAL
+
         if pd.api.types.is_datetime64_any_dtype(col):
             return ProfileUtils.DATETIME
 
@@ -50,10 +57,14 @@ class ProfileUtils:
             return ProfileUtils.BOOLEAN
 
         dtype = col.dtype
-        col_clean = col.dropna()
 
-        # 类别型 / 文本型
-        if pd.api.types.is_object_dtype(col) or pd.api.types.is_categorical_dtype(col):
+        # 类别型 / 文本型（pandas 3.0 字符串 dtype 为 StringDtype/str，不再是 object）
+        is_string_like = (
+            pd.api.types.is_object_dtype(col)
+            or pd.api.types.is_string_dtype(col)
+            or isinstance(dtype, pd.CategoricalDtype)
+        )
+        if is_string_like:
             unique_cnt = col_clean.nunique()
             if unique_cnt > 200 and unique_cnt > int(0.5 * len(col_clean)):
                 return ProfileUtils.TEXT
@@ -79,7 +90,7 @@ class ProfileUtils:
             return False
         abs_mean = abs(np.mean(col_clean))
         std = np.std(col_clean)
-        return abs_mean > 0.5 or std > 1.5
+        return bool(abs_mean > 0.5 or std > 1.5)
 
     # ── 任务类型推断 ─────────────────────────────────────────
 
@@ -241,7 +252,7 @@ def build_profile(X: pd.DataFrame, y: pd.Series) -> DataProfile:
     fingerprint = ProfileUtils.compute_fingerprint(X, y)
 
     return DataProfile(
-        n_rows=len(X),
+        n_rows=len(X) if len(X.columns) > 0 else len(y),
         n_cols=len(X.columns),
         columns=columns,
         target=target,
