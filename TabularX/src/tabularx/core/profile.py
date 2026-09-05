@@ -12,6 +12,13 @@ import numpy as np
 import pandas as pd
 from sklearn.utils.multiclass import type_of_target
 
+from tabularx.exceptions import (
+    EmptyDataError,
+    EmptyTargetError,
+    InvalidDataError,
+    MismatchedLengthError,
+    TaskTypeError,
+)
 from tabularx.schema.profile import (
     ColumnFact,
     DataProfile,
@@ -107,7 +114,7 @@ class ProfileUtils:
         y_clean = y.dropna()
 
         if y_clean.empty:
-            raise ValueError("y 为空，无法推断任务类型")
+            raise EmptyTargetError("y 为空，无法推断任务类型")
 
         # ── 第 1 层：type_of_target 直接能判定的 ──────────────
         raw = type_of_target(y_clean)
@@ -140,9 +147,10 @@ class ProfileUtils:
             return "multiclass"
 
         # ── 第 4 层：兜底 ────────────────────────────────────
-        raise ValueError(
+        raise TaskTypeError(
             f"无法推断任务类型，type_of_target 返回: {raw}，"
-            f"dtype={y_clean.dtype}，unique_cnt={y_clean.nunique()}"
+            f"dtype={y_clean.dtype}，unique_cnt={y_clean.nunique()}。"
+            "建议：使用 build_profile(X, y, task_type=...) 手动指定。"
         )
 
     # ── 统计量 ──────────────────────────────────────────────
@@ -272,8 +280,9 @@ def build_target_fact(y: pd.Series, task_type: str = "auto") -> TargetFact:
             手动指定时跳过自动推断（classification 会继续细分 binary/multiclass）。
     """
     if task_type not in ("auto", "classification", "regression"):
-        raise ValueError(
-            f"task_type 必须是 'auto'/'classification'/'regression'，收到 {task_type!r}"
+        raise TaskTypeError(
+            f"task_type 必须是 'auto'/'classification'/'regression'，收到 {task_type!r}。"
+            "建议：使用 'auto'（自动推断）或 'classification'/'regression'（手动指定）。"
         )
 
     y_clean = y.dropna()
@@ -347,16 +356,31 @@ def build_profile(
         DataProfile：包含所有列和目标的观测事实。
     """
     if not isinstance(X, pd.DataFrame):
-        raise TypeError(f"X 必须是 pd.DataFrame，收到 {type(X)}")
+        raise InvalidDataError(f"X 必须是 pd.DataFrame，收到 {type(X)}。建议：使用 pd.DataFrame(X, columns=[...]) 转换。")
     if not isinstance(y, pd.Series):
-        raise TypeError(f"y 必须是 pd.Series，收到 {type(y)}")
+        raise InvalidDataError(f"y 必须是 pd.Series，收到 {type(y)}。建议：使用 pd.Series(y) 转换。")
+
+    # 数据非空检查
+    if len(X) == 0 or len(X.columns) == 0:
+        raise EmptyDataError(
+            f"X 为空（shape={X.shape}）。请提供至少 1 行 1 列的特征数据。"
+        )
+    if len(y) == 0:
+        raise EmptyDataError("y 为空。请提供至少 1 个样本的目标值。")
+
+    # X 与 y 长度对齐检查
+    if len(X) != len(y):
+        raise MismatchedLengthError(
+            f"X 行数（{len(X)}）与 y 长度（{len(y)}）不一致。"
+            "请确保 X 与 y 对应同一批样本。"
+        )
 
     columns = [build_column_fact(X[col]) for col in X.columns]
     target = build_target_fact(y, task_type=task_type)
     fingerprint = ProfileUtils.compute_fingerprint(X, y)
 
     return DataProfile(
-        n_rows=len(X) if len(X.columns) > 0 else len(y),
+        n_rows=len(X),
         n_cols=len(X.columns),
         columns=columns,
         target=target,

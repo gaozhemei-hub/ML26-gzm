@@ -2,13 +2,34 @@
 
 from tabularx.core.profile import build_profile, build_column_fact, build_target_fact, ProfileUtils
 from tabularx.schema.profile import DataProfile, ColumnFact, TargetFact
+from tabularx.exceptions import (
+    TabularXError,
+    DataError,
+    ProfileError,
+    InvalidDataError,
+    EmptyDataError,
+    MismatchedLengthError,
+    EmptyTargetError,
+    TaskTypeError,
+)
 
 __all__ = [
+    # 核心函数
     "build_profile",
     "build_column_fact",
     "build_target_fact",
     "ProfileUtils",
+    # schema 类型
     "DataProfile",
     "ColumnFact",
     "TargetFact",
+    # 异常
+    "TabularXError",
+    "DataError",
+    "ProfileError",
+    "InvalidDataError",
+    "EmptyDataError",
+    "MismatchedLengthError",
+    "EmptyTargetError",
+    "TaskTypeError",
 ]

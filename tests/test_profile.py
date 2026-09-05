@@ -147,7 +147,9 @@ class TestInferTaskType:
         assert ProfileUtils.infer_task_type(y) == "binary"
 
     def test_empty_y_raises(self):
-        with pytest.raises(ValueError):
+        from tabularx.exceptions import EmptyTargetError
+
+        with pytest.raises(EmptyTargetError):
             ProfileUtils.infer_task_type(pd.Series([], dtype=float))
 
     def test_standard_datasets(self):
@@ -333,20 +335,35 @@ class TestBuildProfile:
         assert p1.fingerprint == p2.fingerprint
 
     def test_invalid_X_type(self):
-        with pytest.raises(TypeError):
+        from tabularx.exceptions import InvalidDataError
+
+        with pytest.raises(InvalidDataError):
             build_profile(np.zeros((10, 3)), pd.Series([0] * 10))
 
     def test_invalid_y_type(self):
-        with pytest.raises(TypeError):
+        from tabularx.exceptions import InvalidDataError
+
+        with pytest.raises(InvalidDataError):
             build_profile(pd.DataFrame({"a": [1] * 10}), np.zeros(10))
 
-    def test_empty_dataframe(self):
-        X = pd.DataFrame()
-        y = pd.Series([0, 1, 0, 1])
-        profile = build_profile(X, y)
-        assert profile.n_rows == 4
-        assert profile.n_cols == 0
-        assert profile.columns == []
+    def test_mismatched_length(self):
+        from tabularx.exceptions import MismatchedLengthError
+
+        with pytest.raises(MismatchedLengthError):
+            build_profile(pd.DataFrame({"a": [1, 2, 3]}), pd.Series([0, 1]))
+
+    def test_empty_X_raises(self):
+        from tabularx.exceptions import EmptyDataError
+
+        with pytest.raises(EmptyDataError):
+            build_profile(pd.DataFrame(), pd.Series([0, 1, 0, 1]))
+
+    def test_empty_dataframe_no_longer_silent(self):
+        """空 DataFrame 现在显式报错（不再静默返回空 profile）。"""
+        from tabularx.exceptions import EmptyDataError
+
+        with pytest.raises(EmptyDataError):
+            build_profile(pd.DataFrame(), pd.Series([0, 1, 0, 1]))
 
 
 # ─────────────────────────────────────────────────────────────
@@ -402,9 +419,11 @@ class TestManualTaskType:
         assert fact.task_type == "multiclass"
 
     def test_invalid_task_type_raises(self):
-        """非法 task_type 抛 ValueError。"""
+        """非法 task_type 抛 TaskTypeError。"""
+        from tabularx.exceptions import TaskTypeError
+
         y = pd.Series([0, 1, 0, 1])
-        with pytest.raises(ValueError):
+        with pytest.raises(TaskTypeError):
             build_target_fact(y, task_type="invalid")
 
     def test_manual_task_type_in_profile(self):
