@@ -86,28 +86,51 @@
     <h3>2.1 判断流程图</h3>
     <div class="mermaid">
 flowchart TD
-  Start([开始：接收 X, y]) --> TaskCheck{任务类型判断}
+  Start([开始：接收 X, y]) --> InputCheck{输入类型检查}
+  InputCheck -->|X 不是 DataFrame 或 y 不是 Series| InvalidInput[失败：InvalidDataError]
+  InputCheck -->|类型正确| ShapeCheck{数据非空检查}
+  ShapeCheck -->|X 无行/无列，或 y 无样本| EmptyData[失败：EmptyDataError]
+  ShapeCheck -->|数据非空| AlignCheck{X/y 长度检查}
+  AlignCheck -->|行数不一致| LengthError[失败：MismatchedLengthError]
+  AlignCheck -->|长度一致| TaskCheck{任务类型判断}
+  TaskCheck -->|y 全为空| EmptyTarget[失败：EmptyTargetError]
+  TaskCheck -->|task_type 非法或无法推断| TaskError[失败：TaskTypeError]
   TaskCheck -->|唯一值 = 2| Binary[二分类任务]
   TaskCheck -->|唯一值 3~20| Multi[多分类任务]
-  TaskCheck -->|浮点且唯一值 > 20| Reg[回归任务]
+  TaskCheck -->|连续值或浮点且唯一值 > 20| Reg[回归任务]
   Binary --> ColLoop[逐列分析]
   Multi --> ColLoop
   Reg --> ColLoop
-  ColLoop --> ColType{列类型判断}
-  ColType -->|float64 等浮点| Num[数值列]
-  ColType -->|object/str| Cat{唯一值数量}
-  Cat -->|≤ 200| Cate[类别列]
-  Cat -->|> 200 且 >50% 行唯一| Text[文本列]
+  ColLoop --> EmptyColCheck{是否全空列？}
+  EmptyColCheck -->|是：非缺失值 = 0| EmptyColumn[标记 empty_column]
+  EmptyColCheck -->|否| ConstantCheck{是否常数列？}
+  ConstantCheck -->|是：唯一值 = 1| ConstantColumn[标记 constant_column]
+  ConstantCheck -->|否| ColType{列类型判断}
+  EmptyColumn --> Done([完成：输出 DataProfile])
+  ConstantColumn --> Done
+  ColType -->|datetime| DateTime[日期时间列]
+  ColType -->|boolean| Boolean[布尔列]
+  ColType -->|整数且唯一值 ≤ 20| Cate[类别列]
+  ColType -->|整数且唯一值 > 20 或浮点| Num[数值列]
+  ColType -->|object/str/category| Cat{唯一值与行唯一率}
+  Cat -->|唯一值 > 200 且 >50% 行唯一| Text[文本列]
+  Cat -->|其他| Cate
   Num --> Scale{scale 判据}
-  Scale -->|‖mean‖>0.5 或 std>1.5| ScaleYes[需标准化]
+  Scale -->|‖mean‖>0.5 或 std>1.5| ScaleYes[标记 scale_needed]
   Scale -->|否则| ScaleNo[无需标准化]
   ScaleYes --> Miss{缺失值检查}
   ScaleNo --> Miss
+  DateTime --> Miss
+  Boolean --> Miss
   Cate --> Miss
   Text --> Miss
   Miss -->|n_missing > 0| MissYes[标记 has_missing]
-  Miss -->|无缺失| Done([完成：输出 DataProfile])
+  Miss -->|无缺失| Done
   MissYes --> Done
+  classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
+  classDef warning fill:#fff3cd,stroke:#856404,stroke-width:1px;
+  class InvalidInput,EmptyData,LengthError,EmptyTarget,TaskError error;
+  class EmptyColumn,ConstantColumn,MissYes,ScaleYes warning;
     </div>
     <div class="mermaid-note">↑ 完整判断流程。详见 docs/SOP.mmd（含后续阶段 Split/Preprocess/Search 的占位）。</div>
 
