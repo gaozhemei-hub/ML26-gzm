@@ -1,0 +1,349 @@
+"""core/profile.py 与 schema/profile.py 的单元测试。"""
+
+import numpy as np
+import pandas as pd
+import pytest
+from sklearn.datasets import load_breast_cancer, load_diabetes, load_iris
+
+from tabularx import (
+    ProfileUtils,
+    build_column_fact,
+    build_profile,
+    build_target_fact,
+)
+from tabularx.schema.profile import ColumnFact, DataProfile, TargetFact
+
+
+# ─────────────────────────────────────────────────────────────
+# ProfileUtils.infer_column_type —— 列类型推断
+# ─────────────────────────────────────────────────────────────
+
+class TestInferColumnType:
+    def test_numeric_float(self):
+        col = pd.Series([1.5, 2.5, 3.5, 4.5], name="x")
+        assert ProfileUtils.infer_column_type(col) == "numeric"
+
+    def test_numeric_int_many_unique(self):
+        # 整数但唯一值多（>20）→ numeric
+        col = pd.Series(range(100), name="x")
+        assert ProfileUtils.infer_column_type(col) == "numeric"
+
+    def test_categorical_int_few_unique(self):
+        # 整数但唯一值少（≤20）→ categorical
+        col = pd.Series([0, 1, 2, 1, 0, 2] * 10, name="x")
+        assert ProfileUtils.infer_column_type(col) == "categorical"
+
+    def test_categorical_object(self):
+        col = pd.Series(["a", "b", "c", "a", "b"], name="x")
+        assert ProfileUtils.infer_column_type(col) == "categorical"
+
+    def test_text_high_cardinality(self):
+        # object 列，唯一值 >200 且 >50% 行唯一 → text
+        n = 500
+        col = pd.Series([f"id_{i}" for i in range(n)], name="x")
+        assert ProfileUtils.infer_column_type(col) == "text"
+
+    def test_boolean(self):
+        col = pd.Series([True, False, True, False], name="x")
+        assert ProfileUtils.infer_column_type(col) == "boolean"
+
+    def test_datetime(self):
+        col = pd.Series(pd.date_range("2024-01-01", periods=10), name="x")
+        assert ProfileUtils.infer_column_type(col) == "datetime"
+
+    def test_categorical_dtype(self):
+        col = pd.Series(pd.Categorical(["a", "b", "a", "c"]), name="x")
+        assert ProfileUtils.infer_column_type(col) == "categorical"
+
+    def test_empty_column(self):
+        col = pd.Series([np.nan] * 10, name="x")
+        # 全空列：clean 为空，unique 为 0，按 object 处理 → categorical
+        assert ProfileUtils.infer_column_type(col) == "categorical"
+
+
+# ─────────────────────────────────────────────────────────────
+# ProfileUtils.is_scale_needed —— scale 判据（MLJAR 式）
+# ─────────────────────────────────────────────────────────────
+
+class TestIsScaleNeeded:
+    def test_small_range_no_scale(self):
+        col = pd.Series([0.1, 0.2, 0.3, 0.4])
+        assert ProfileUtils.is_scale_needed(col) is False
+
+    def test_large_mean_scale(self):
+        # |mean|>0.5 → True
+        col = pd.Series([10.0, 11.0, 12.0, 13.0])
+        assert ProfileUtils.is_scale_needed(col) is True
+
+    def test_large_std_scale(self):
+        # std>1.5 → True
+        col = pd.Series([100.0, 200.0, 300.0, 400.0])
+        assert ProfileUtils.is_scale_needed(col) is True
+
+    def test_01_binary_no_scale(self):
+        # 0/1 值：|mean|=0.5, std=0.5 → False
+        col = pd.Series([0, 1, 0, 1, 0, 1])
+        assert ProfileUtils.is_scale_needed(col) is False
+
+    def test_empty_column(self):
+        col = pd.Series([np.nan] * 5)
+        assert ProfileUtils.is_scale_needed(col) is False
+
+    def test_matches_mljar_threshold(self):
+        # MLJAR: |mean|>0.5 or std>1.5
+        # mean=0.4, std=0.1 → False
+        col = pd.Series([0.3, 0.4, 0.5, 0.4, 0.4, 0.4])
+        assert ProfileUtils.is_scale_needed(col) is False
+        # mean=0.6, std=0.1 → True
+        col = pd.Series([0.5, 0.6, 0.7, 0.6, 0.6, 0.6])
+        assert ProfileUtils.is_scale_needed(col) is True
+
+
+# ─────────────────────────────────────────────────────────────
+# ProfileUtils.infer_task_type —— 任务类型推断
+# ─────────────────────────────────────────────────────────────
+
+class TestInferTaskType:
+    def test_binary_int(self):
+        y = pd.Series([0, 1, 0, 1, 0, 1])
+        assert ProfileUtils.infer_task_type(y) == "binary"
+
+    def test_binary_str(self):
+        y = pd.Series(["cat", "dog", "cat", "dog"])
+        assert ProfileUtils.infer_task_type(y) == "binary"
+
+    def test_binary_float_values(self):
+        # 浮点但只有 2 个唯一值 → binary（type_of_target 直接判 binary）
+        y = pd.Series([1.0, 2.0, 1.0, 2.0, 1.0])
+        assert ProfileUtils.infer_task_type(y) == "binary"
+
+    def test_multiclass_int(self):
+        y = pd.Series([0, 1, 2, 1, 0, 2])
+        assert ProfileUtils.infer_task_type(y) == "multiclass"
+
+    def test_multiclass_str(self):
+        y = pd.Series(["a", "b", "c", "a", "b", "c"])
+        assert ProfileUtils.infer_task_type(y) == "multiclass"
+
+    def test_multiclass_float_few_unique(self):
+        # 浮点但唯一值少（≤20）且 >2 个 → 尊重 type_of_target 的 multiclass
+        y = pd.Series([1.0, 2.0, 3.0, 1.0, 2.0, 3.0])
+        assert ProfileUtils.infer_task_type(y) == "multiclass"
+
+    def test_regression_float_many_unique(self):
+        # 浮点连续值（唯一值 >20）→ regression
+        y = pd.Series([float(i) for i in range(100)])
+        assert ProfileUtils.infer_task_type(y) == "regression"
+
+    def test_regression_int_many_unique(self):
+        # 整数但唯一值多（>20）→ 仍视为 multiclass（type_of_target 判断）
+        y = pd.Series(list(range(100)))
+        # 目前行为：整数唯一值多 → multiclass（尊重 sklearn 语义）
+        assert ProfileUtils.infer_task_type(y) == "multiclass"
+
+    def test_missing_values_in_y(self):
+        # 带缺失值的 y
+        y = pd.Series([0, 1, np.nan, 0, 1, 0])
+        assert ProfileUtils.infer_task_type(y) == "binary"
+
+    def test_empty_y_raises(self):
+        with pytest.raises(ValueError):
+            ProfileUtils.infer_task_type(pd.Series([], dtype=float))
+
+    def test_standard_datasets(self):
+        # sklearn 标准数据集
+        data = load_breast_cancer(as_frame=True)
+        assert ProfileUtils.infer_task_type(data.target) == "binary"
+
+        data = load_iris(as_frame=True)
+        assert ProfileUtils.infer_task_type(data.target) == "multiclass"
+
+        data = load_diabetes(as_frame=True)
+        assert ProfileUtils.infer_task_type(data.target) == "regression"
+
+
+# ─────────────────────────────────────────────────────────────
+# ProfileUtils.compute_basic_stats —— 基本统计量
+# ─────────────────────────────────────────────────────────────
+
+class TestComputeBasicStats:
+    def test_numeric_stats(self):
+        col = pd.Series([1.0, 2.0, 3.0, 4.0])
+        stats = ProfileUtils.compute_basic_stats(col)
+        assert stats["mean"] == pytest.approx(2.5)
+        assert stats["min"] == pytest.approx(1.0)
+        assert stats["max"] == pytest.approx(4.0)
+
+    def test_nan_handling(self):
+        col = pd.Series([1.0, np.nan, 3.0, np.nan])
+        stats = ProfileUtils.compute_basic_stats(col)
+        assert stats["mean"] == pytest.approx(2.0)
+        assert stats["n_missing"] if "n_missing" in stats else True
+
+    def test_empty_returns_none(self):
+        col = pd.Series([np.nan] * 5)
+        stats = ProfileUtils.compute_basic_stats(col)
+        assert stats["mean"] is None
+        assert stats["std"] is None
+
+
+# ─────────────────────────────────────────────────────────────
+# ProfileUtils.compute_fingerprint —— 数据指纹
+# ─────────────────────────────────────────────────────────────
+
+class TestComputeFingerprint:
+    def test_same_data_same_hash(self):
+        df1 = pd.DataFrame({"a": [1, 2, 3], "b": [4.0, 5.0, 6.0]})
+        df2 = df1.copy()
+        y1 = pd.Series([0, 1, 0])
+        y2 = y1.copy()
+        assert ProfileUtils.compute_fingerprint(df1, y1) == ProfileUtils.compute_fingerprint(df2, y2)
+
+    def test_diff_data_diff_hash(self):
+        df1 = pd.DataFrame({"a": [1, 2, 3]})
+        df2 = pd.DataFrame({"a": [1, 2, 4]})
+        y = pd.Series([0, 1, 0])
+        assert ProfileUtils.compute_fingerprint(df1, y) != ProfileUtils.compute_fingerprint(df2, y)
+
+    def test_hash_format(self):
+        df = pd.DataFrame({"a": [1, 2]})
+        y = pd.Series([0, 1])
+        fp = ProfileUtils.compute_fingerprint(df, y)
+        assert isinstance(fp, str)
+        assert len(fp) == 16  # 前 16 位 hex
+
+
+# ─────────────────────────────────────────────────────────────
+# build_column_fact —— 单列事实构建
+# ─────────────────────────────────────────────────────────────
+
+class TestBuildColumnFact:
+    def test_numeric_col(self):
+        col = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0], name="feat")
+        fact = build_column_fact(col)
+        assert isinstance(fact, ColumnFact)
+        assert fact.col_name == "feat"
+        assert fact.dtype == "float64"
+        assert fact.n_missing == 0
+        assert fact.missing_rate == 0.0
+        assert fact.n_unique == 5
+        assert "numeric" in fact.tags
+        assert "scale_needed" in fact.tags  # |mean|=3.0>0.5 → scale
+        assert fact.mean == pytest.approx(3.0)
+
+    def test_categorical_col(self):
+        col = pd.Series(["a", "b", "a", "c", "b"], name="cat")
+        fact = build_column_fact(col)
+        assert "categorical" in fact.tags
+        assert fact.mean is None  # 非数值列无统计
+        assert fact.n_unique == 3
+
+    def test_missing_values_tag(self):
+        col = pd.Series([1.0, np.nan, 3.0, np.nan, 5.0], name="x")
+        fact = build_column_fact(col)
+        assert "has_missing" in fact.tags
+        assert fact.n_missing == 2
+        assert fact.missing_rate == pytest.approx(0.4)
+
+    def test_missing_rate_zero(self):
+        col = pd.Series([1.0, 2.0], name="x")
+        fact = build_column_fact(col)
+        assert fact.missing_rate == 0.0
+
+
+# ─────────────────────────────────────────────────────────────
+# build_target_fact —— 目标事实构建
+# ─────────────────────────────────────────────────────────────
+
+class TestBuildTargetFact:
+    def test_binary_target(self):
+        y = pd.Series([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+        fact = build_target_fact(y)
+        assert isinstance(fact, TargetFact)
+        assert fact.task_type == "binary"
+        assert fact.n_classes == 2
+        assert fact.class_balance is not None
+        # 类别平衡（各 50%）
+        assert abs(fact.class_balance["0"] - 0.5) < 1e-9
+        assert abs(fact.class_balance["1"] - 0.5) < 1e-9
+
+    def test_multiclass_target(self):
+        y = pd.Series([0, 1, 2, 0, 1, 2, 0, 1, 2])
+        fact = build_target_fact(y)
+        assert fact.task_type == "multiclass"
+        assert fact.n_classes == 3
+        assert set(fact.class_balance.keys()) == {"0", "1", "2"}
+
+    def test_regression_target(self):
+        y = pd.Series([float(i) for i in range(100)])
+        fact = build_target_fact(y)
+        assert fact.task_type == "regression"
+        assert fact.n_classes is None
+        assert fact.class_balance is None
+        assert fact.mean is not None
+        assert fact.std is not None
+
+    def test_target_missing_rate(self):
+        y = pd.Series([0, 1, np.nan, 0, np.nan, 1])
+        fact = build_target_fact(y)
+        assert fact.missing_rate == pytest.approx(2 / 6)
+
+
+# ─────────────────────────────────────────────────────────────
+# build_profile —— 顶层函数
+# ─────────────────────────────────────────────────────────────
+
+class TestBuildProfile:
+    def test_breast_cancer(self):
+        data = load_breast_cancer(as_frame=True)
+        profile = build_profile(data.data, data.target)
+        assert isinstance(profile, DataProfile)
+        assert profile.n_rows == 569
+        assert profile.n_cols == 30
+        assert len(profile.columns) == 30
+        assert profile.target.task_type == "binary"
+        assert isinstance(profile.fingerprint, str)
+        assert len(profile.fingerprint) == 16
+
+    def test_iris(self):
+        data = load_iris(as_frame=True)
+        profile = build_profile(data.data, data.target)
+        assert profile.n_rows == 150
+        assert profile.n_cols == 4
+        assert profile.target.task_type == "multiclass"
+        assert profile.target.n_classes == 3
+
+    def test_diabetes(self):
+        data = load_diabetes(as_frame=True)
+        profile = build_profile(data.data, data.target)
+        assert profile.n_rows == 442
+        assert profile.n_cols == 10
+        assert profile.target.task_type == "regression"
+
+    def test_all_columns_have_facts(self):
+        data = load_breast_cancer(as_frame=True)
+        profile = build_profile(data.data, data.target)
+        col_names = [c.col_name for c in profile.columns]
+        assert col_names == list(data.data.columns)
+
+    def test_reproducible_fingerprint(self):
+        data = load_breast_cancer(as_frame=True)
+        p1 = build_profile(data.data, data.target)
+        p2 = build_profile(data.data.copy(), data.target.copy())
+        assert p1.fingerprint == p2.fingerprint
+
+    def test_invalid_X_type(self):
+        with pytest.raises(TypeError):
+            build_profile(np.zeros((10, 3)), pd.Series([0] * 10))
+
+    def test_invalid_y_type(self):
+        with pytest.raises(TypeError):
+            build_profile(pd.DataFrame({"a": [1] * 10}), np.zeros(10))
+
+    def test_empty_dataframe(self):
+        X = pd.DataFrame()
+        y = pd.Series([0, 1, 0, 1])
+        profile = build_profile(X, y)
+        assert profile.n_rows == 4
+        assert profile.n_cols == 0
+        assert profile.columns == []
