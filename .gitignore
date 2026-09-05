@@ -3,3 +3,9 @@
 
 # ide
 .cursor/
+
+# 缓存
+__pycache__/
+
+# 测试
+.pytest_cache/
