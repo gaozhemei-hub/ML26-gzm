@@ -1,0 +1,1 @@
+"""TabularX core 模块 - 纯函数逻辑，零 IO。"""
