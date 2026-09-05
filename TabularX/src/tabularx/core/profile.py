@@ -168,6 +168,14 @@ class ProfileUtils:
             "max": float(np.max(col_clean)),
         }
 
+    @staticmethod
+    def compute_skewness(col: pd.Series) -> float | None:
+        """计算数值列的偏度（Fisher-Pearson 系数，>1 表示偏斜明显）。"""
+        col_clean = col.dropna()
+        if len(col_clean) < 3:  # 样本太少，无法计算偏度
+            return None
+        return float(col_clean.skew())
+
     # ── 数据指纹 ─────────────────────────────────────────────
 
     @staticmethod
@@ -229,6 +237,18 @@ def build_column_fact(col: pd.Series) -> ColumnFact:
 
     # 确定标签 tags
     tags = [col_type]
+
+    # 高基数类别检测
+    if col_type == ProfileUtils.CATEGORICAL and n_unique > 50:
+        tags.append("high_cardinality")
+        evidences.append(
+            Evidence(
+                "n_unique",
+                n_unique,
+                f"唯一值数量为 {n_unique}，基数较高，建议使用目标编码或频率编码",
+            )
+        )
+
     if col_type == ProfileUtils.NUMERIC:
         scale_needed = ProfileUtils.is_scale_needed(col)
         if scale_needed:
@@ -250,6 +270,17 @@ def build_column_fact(col: pd.Series) -> ColumnFact:
                     f"std={float(np.std(col_clean)):.4f}，不满足判据 → 无需 scale",
                 )
             )
+        # 偏度检测
+        skewness = ProfileUtils.compute_skewness(col)
+        if skewness is not None and abs(skewness) > 1:
+            tags.append("skewed")
+            evidences.append(
+                Evidence(
+                    "skewness",
+                    round(skewness, 4),
+                    f"偏度 = {skewness:.4f}，|skew| > 1，分布偏斜明显，建议评估 log 变换或缩尾处理",
+                )
+            )
     if n_missing > 0:
         tags.append("has_missing")
         evidences.append(
@@ -258,6 +289,8 @@ def build_column_fact(col: pd.Series) -> ColumnFact:
 
     # 数值列额外统计
     stats = ProfileUtils.compute_basic_stats(col) if col_type == ProfileUtils.NUMERIC else {}
+    if col_type == ProfileUtils.NUMERIC:
+        stats["skewness"] = ProfileUtils.compute_skewness(col)
 
     return ColumnFact(
         col_name=col.name if col.name is not None else "",
@@ -319,6 +352,21 @@ def build_target_fact(y: pd.Series, task_type: str = "auto") -> TargetFact:
     if inferred in ("binary", "multiclass"):
         value_counts = y_clean.value_counts(normalize=True)
         class_balance = {str(k): float(v) for k, v in value_counts.items()}
+
+        # 类别不平衡检测
+        min_ratio = min(class_balance.values())
+        if min_ratio < 0.1:
+            target_tags = ["imbalanced"]
+            evidences.append(
+                Evidence(
+                    "imbalanced",
+                    f"{min_ratio:.2%}",
+                    f"最小类别占比 {min_ratio:.2%} < 10%，类别不平衡。建议使用 F1/ROC-AUC 评估，并考虑 class_weight 参数。",
+                )
+            )
+        else:
+            target_tags = []
+
         return TargetFact(
             task_type=inferred,  # type: ignore[arg-type]
             n_classes=n_unique,
@@ -326,6 +374,7 @@ def build_target_fact(y: pd.Series, task_type: str = "auto") -> TargetFact:
             mean=None,
             std=None,
             missing_rate=missing_rate,
+            tags=target_tags,
             evidences=evidences,
         )
     else:
@@ -337,6 +386,7 @@ def build_target_fact(y: pd.Series, task_type: str = "auto") -> TargetFact:
             mean=float(np.mean(y_clean)) if not y_clean.empty else None,
             std=float(np.std(y_clean)) if not y_clean.empty else None,
             missing_rate=missing_rate,
+            tags=[],
             evidences=evidences,
         )
 

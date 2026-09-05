@@ -61,18 +61,22 @@
 
     <h3>关键发现</h3>
     <ul>
-      {% set ns = namespace(n_scale=0, n_missing=0, n_constant=0, n_empty=0, n_text=0) %}
+      {% set ns = namespace(n_scale=0, n_missing=0, n_constant=0, n_empty=0, n_text=0, n_skewed=0, n_highcard=0) %}
       {% for col in data.columns %}
         {% if "scale_needed" in col.tags %}{% set ns.n_scale = ns.n_scale + 1 %}{% endif %}
         {% if "has_missing" in col.tags %}{% set ns.n_missing = ns.n_missing + 1 %}{% endif %}
         {% if "constant_column" in col.tags %}{% set ns.n_constant = ns.n_constant + 1 %}{% endif %}
         {% if "empty_column" in col.tags %}{% set ns.n_empty = ns.n_empty + 1 %}{% endif %}
         {% if "text" in col.tags %}{% set ns.n_text = ns.n_text + 1 %}{% endif %}
+        {% if "skewed" in col.tags %}{% set ns.n_skewed = ns.n_skewed + 1 %}{% endif %}
+        {% if "high_cardinality" in col.tags %}{% set ns.n_highcard = ns.n_highcard + 1 %}{% endif %}
       {% endfor %}
       <li>{{ ns.n_scale }} 列建议标准化（scale_needed）</li>
       <li>{{ ns.n_missing }} 列存在缺失值（has_missing）</li>
       <li>{{ ns.n_constant }} 列为常数列、{{ ns.n_empty }} 列为全空列（预处理器将丢弃）</li>
       <li>{{ ns.n_text }} 列为高基数文本列</li>
+      <li>{{ ns.n_skewed }} 列分布偏斜（skewed，建议 log 变换或缩尾）</li>
+      <li>{{ ns.n_highcard }} 列高基数类别（high_cardinality，建议目标编码）</li>
     </ul>
   </section>
 
@@ -98,9 +102,13 @@ flowchart TD
   TaskCheck -->|唯一值 = 2| Binary[二分类任务]
   TaskCheck -->|唯一值 3~20| Multi[多分类任务]
   TaskCheck -->|连续值或浮点且唯一值 > 20| Reg[回归任务]
-  Binary --> ColLoop[逐列分析]
-  Multi --> ColLoop
-  Reg --> ColLoop
+  Binary --> Imbalance{类别不平衡检测}
+  Multi --> Imbalance
+  Reg --> ColLoop[逐列分析]
+  Imbalance -->|最小类别占比 < 10%| Imbalanced[标记 imbalanced]
+  Imbalance -->|否则| Balanced[类别分布较均衡]
+  Imbalanced --> ColLoop
+  Balanced --> ColLoop
   ColLoop --> EmptyColCheck{是否全空列？}
   EmptyColCheck -->|是：非缺失值 = 0| EmptyColumn[标记 empty_column]
   EmptyColCheck -->|否| ConstantCheck{是否常数列？}
@@ -115,14 +123,22 @@ flowchart TD
   ColType -->|object/str/category| Cat{唯一值与行唯一率}
   Cat -->|唯一值 > 200 且 >50% 行唯一| Text[文本列]
   Cat -->|其他| Cate
+  Cate --> HighCard{基数检测}
+  HighCard -->|unique > 50| HighCardYes[标记 high_cardinality]
+  HighCard -->|unique ≤ 50| LowCard[基数正常]
+  HighCardYes --> Miss{缺失值检查}
+  LowCard --> Miss
   Num --> Scale{scale 判据}
   Scale -->|‖mean‖>0.5 或 std>1.5| ScaleYes[标记 scale_needed]
   Scale -->|否则| ScaleNo[无需标准化]
-  ScaleYes --> Miss{缺失值检查}
-  ScaleNo --> Miss
+  ScaleYes --> Skew{偏度检测}
+  ScaleNo --> Skew
+  Skew -->|‖skew‖ > 1| Skewed[标记 skewed]
+  Skew -->|否则| NoSkew[分布风险较低]
+  Skewed --> Miss{缺失值检查}
+  NoSkew --> Miss
   DateTime --> Miss
   Boolean --> Miss
-  Cate --> Miss
   Text --> Miss
   Miss -->|n_missing > 0| MissYes[标记 has_missing]
   Miss -->|无缺失| Done
@@ -130,9 +146,9 @@ flowchart TD
   classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
   classDef warning fill:#fff3cd,stroke:#856404,stroke-width:1px;
   class InvalidInput,EmptyData,LengthError,EmptyTarget,TaskError error;
-  class EmptyColumn,ConstantColumn,MissYes,ScaleYes warning;
+  class EmptyColumn,ConstantColumn,MissYes,ScaleYes,Skewed,HighCardYes,Imbalanced warning;
     </div>
-    <div class="mermaid-note">↑ 完整判断流程。详见 docs/SOP.mmd（含后续阶段 Split/Preprocess/Search 的占位）。</div>
+    <div class="mermaid-note">↑ profile 阶段完整判断流程。后续阶段：Split → Preprocess → Model Search。</div>
 
     <!-- 2.2 目标变量判断依据 -->
     <h3>2.2 目标变量判断依据</h3>
@@ -148,6 +164,14 @@ flowchart TD
       <div class="rule">规则：唯一值 ≤2 → 二分类；3~20 → 多分类；浮点连续且唯一值 &gt;20 → 回归</div>
     </div>
 
+    {% if "imbalanced" in data.target.tags %}
+    <div class="evidence" style="border-left-color: #e74c3c;">
+      <b>⚠ 类别不平衡</b>
+      <br>最小类别占比 {{ "%.2f"|format(data.target.class_balance.values() | min * 100) }}%
+      <div class="rule">建议：模型搜索时使用 F1 或 ROC-AUC 作为评估指标，考虑 class_weight="balanced"</div>
+    </div>
+    {% endif %}
+
     <!-- 2.3 特征列判断依据（仅列特殊情况的列） -->
     <h3>2.3 特征列判断依据（仅列特殊情况）</h3>
     {% set shown = namespace(count=0) %}
@@ -155,7 +179,7 @@ flowchart TD
       {% if col.evidences | length > 1 or "constant_column" in col.tags or "empty_column" in col.tags %}
       <div class="evidence">
         <b>{{ col.col_name }}</b>
-        <span class="badge {{ 'badge-warn' if 'scale_needed' in col.tags or 'has_missing' in col.tags or 'constant_column' in col.tags or 'empty_column' in col.tags else '' }}">{{ col.tags | join(', ') }}</span>
+        <span class="badge {{ 'badge-warn' if 'scale_needed' in col.tags or 'has_missing' in col.tags or 'constant_column' in col.tags or 'empty_column' in col.tags or 'skewed' in col.tags or 'high_cardinality' in col.tags else '' }}">{{ col.tags | join(', ') }}</span>
         <ul style="margin: .5rem 0 0 0;">
           {% for ev in col.evidences %}
             <li><b>{{ ev.metric }}</b> = <code>{{ ev.value }}</code>
@@ -171,6 +195,12 @@ flowchart TD
         {% endif %}
         {% if "empty_column" in col.tags %}
           <div class="rule">规则：非缺失值 = 0 → 全空列，预处理器将丢弃</div>
+        {% endif %}
+        {% if "skewed" in col.tags %}
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        {% endif %}
+        {% if "high_cardinality" in col.tags %}
+          <div class="rule">规则：唯一值 &gt; 50 → 高基数类别，建议使用目标编码或频率编码</div>
         {% endif %}
       </div>
       {% set shown.count = shown.count + 1 %}
@@ -225,7 +255,7 @@ flowchart TD
           <td>{{ col.n_unique }}</td>
           <td>
             {% for tag in col.tags %}
-              <span class="badge {{ 'badge-warn' if tag == 'has_missing' or tag == 'scale_needed' or tag == 'constant_column' or tag == 'empty_column' else 'badge-ok' if tag == 'numeric' else '' }}">{{ tag }}</span>
+              <span class="badge {{ 'badge-warn' if tag == 'has_missing' or tag == 'scale_needed' or tag == 'constant_column' or tag == 'empty_column' or tag == 'skewed' or tag == 'high_cardinality' else 'badge-ok' if tag == 'numeric' else '' }}">{{ tag }}</span>
             {% endfor %}
           </td>
           <td>{{ "%.4f"|format(col.mean) if col.mean is not none else "—" }}</td>

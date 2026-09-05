@@ -30,6 +30,7 @@ class ColumnFact:
     std: float | None = None
     min: float | None = None
     max: float | None = None
+    skewness: float | None = None  # 偏度，|skew|>1 表示偏斜明显
     # 判断依据数据快照
     evidences: list[Evidence] = field(default_factory=list)
 
@@ -44,6 +45,7 @@ class TargetFact:
     mean: float | None = None  # 回归时
     std: float | None = None
     missing_rate: float = 0.0
+    tags: list[str] = field(default_factory=list)  # 如 ["imbalanced"]
     # 判断依据数据快照
     evidences: list[Evidence] = field(default_factory=list)
 
