@@ -9,3 +9,6 @@ __pycache__/
 
 # 测试
 .pytest_cache/
+
+# 部署
+tabularx.egg-info
