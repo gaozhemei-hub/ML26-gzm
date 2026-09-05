@@ -1,0 +1,90 @@
+flowchart TD
+  %% ============================================================
+  %% 阶段 0：Profile —— 数据观测，零决策
+  %% ============================================================
+
+  subgraph Profile["阶段 0: Profile（数据观测，只报事实不做决策）"]
+    direction TB
+
+    P0["P0: 接收 X: DataFrame, y: Series"] 
+
+    P0 --> P1["P1: 校验输入类型"]
+    P1 --> P1a["X 必须是 DataFrame"]
+    P1 --> P1b["y 必须是 Series"]
+
+    P1 --> P2["P2: 数据概况"]
+    P2 --> P2a["n_rows, n_cols"]
+    P2 --> P2b["数据指纹（sha256：X+y）"]
+
+    P2 --> P3["P3: 逐列观测（ColumnFact）"]
+    P3 --> P3a["列类型推断"]
+    P3a --> P3a1["is_datetime64_any_dtype → datetime"]
+    P3a --> P3a2["is_bool_dtype → boolean"]
+    P3a --> P3a3["is_object/is_string/is_categorical → 看唯一值"]
+    P3a3 --> P3a3a["unique>200 且 >50% 行唯一 → text"]
+    P3a3 --> P3a3b["否则 → categorical"]
+    P3a --> P3a4["is_integer → 看唯一值"]
+    P3a4 --> P3a4a["unique≤20 → categorical"]
+    P3a4 --> P3a4b["unique>20 → numeric"]
+    P3a --> P3a5["float → numeric"]
+
+    P3 --> P3b["缺失值检测"]
+    P3b --> P3b1["n_missing>0 → has_missing"]
+    P3b --> P3b2["n_missing=0 → 无标记"]
+
+    P3 --> P3c["scale 判据（仅 numeric 列）"]
+    P3c --> P3c1["|mean|>0.5 or std>1.5 → scale_needed"]
+    P3c --> P3c2["否则 → 不标记"]
+
+    P3 --> P3d["基本统计量"]
+    P3d --> P3d1["numeric 列: mean/std/min/max/n_unique"]
+    P3d --> P3d2["非 numeric 列: n_unique"]
+
+    P3 --> P3e["证据收集（Evidence）"]
+    P3e --> P3e1["列类型: type, dtype, unique_cnt"]
+    P3e --> P3e2["scale: mean, std"]
+    P3e --> P3e3["缺失: n_missing, missing_rate"]
+
+    P2 --> P4["P4: 目标观测（TargetFact）"]
+    P4 --> P4a["任务类型推断"]
+    P4a --> P4a1["type_of_target == continuous → regression"]
+    P4a --> P4a2["type_of_target == binary → binary"]
+    P4a --> P4a3["type_of_target == multiclass + 浮点"]
+    P4a3 --> P4a3a["unique>20 → regression"]
+    P4a3 --> P4a3b["unique≤20 → multiclass"]
+    P4a --> P4a4["type_of_target == multiclass + 整数"]
+    P4a4 --> P4a4a["unique≤20 → binary/multiclass"]
+    P4a4 --> P4a4b["unique>20 → multiclass"]
+
+    P4 --> P4b["分类统计"]
+    P4b --> P4b1["n_classes"]
+    P4b --> P4b2["class_balance（各类占比）"]
+
+    P4 --> P4c["回归统计"]
+    P4c --> P4c1["mean, std"]
+
+    P4 --> P4d["缺失率"]
+    P4 --> P4e["证据收集"]
+    P4e --> P4e1["任务类型: n_unique, dtype"]
+    P4e --> P4e2["分类: class_balance"]
+    P4e --> P4e3["回归: mean, std"]
+  end
+
+  %% ============================================================
+  %% 后续阶段占位（预留箭头）
+  %% ============================================================
+
+  Profile --> SPLIT["阶段 1: Split（数据划分）"]
+  Profile --> PREPROCESS["阶段 2: Preprocess（预处理）"]
+  Profile --> SEARCH["阶段 3: Model Search（Optuna 搜索）"]
+
+  %% 样式定义
+  classDef default fill:#f5f6fa,stroke:#333,stroke-width:1px;
+  classDef decision fill:#fff3cd,stroke:#856404,stroke-width:1px;
+  classDef evidence fill:#d4edda,stroke:#155724,stroke-width:1px;
+  classDef output fill:#cce5ff,stroke:#004085,stroke-width:2px;
+  classDef future fill:#e2e3e5,stroke:#383d41,stroke-width:1px,stroke-dasharray: 5 5;
+
+  class P3a,P3b,P3c,P4a,P4a1,P4a2,P4a3,P4a4,P4a3a,P4a3b,P4a4a,P4a4b,P3a1,P3a2,P3a3,P3a4,P3a5,P3a3a,P3a3b,P3a4a,P3a4b,P3c1,P3c2,P3b1,P3b2 decision;
+  class P3e,P4e,P3e1,P3e2,P3e3,P4e1,P4e2,P4e3 evidence;
+  class SPLIT,PREPROCESS,SEARCH future;
