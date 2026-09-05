@@ -15,8 +15,12 @@ from sklearn.utils.multiclass import type_of_target
 from tabularx.schema.profile import (
     ColumnFact,
     DataProfile,
+    Evidence,
     TargetFact,
 )
+
+# 合法的任务类型取值
+TASK_TYPES = ("binary", "multiclass", "regression")
 
 
 class ProfileUtils:
@@ -175,19 +179,74 @@ class ProfileUtils:
 
 def build_column_fact(col: pd.Series) -> ColumnFact:
     """构建单列的事实记录。"""
-    col_type = ProfileUtils.infer_column_type(col)
+    col_clean = col.dropna()
     n_missing = int(col.isna().sum())
     missing_rate = n_missing / len(col) if len(col) > 0 else 0.0
-    col_clean = col.dropna()
     n_unique = int(col_clean.nunique())
+    evidences: list[Evidence] = []
+
+    # 全空列：保守标记 categorical，并记录证据
+    if col_clean.empty:
+        evidences.append(
+            Evidence("n_non_missing", 0, "非缺失值数量为 0，判定为全空列")
+        )
+        return ColumnFact(
+            col_name=col.name if col.name is not None else "",
+            dtype=str(col.dtype),
+            n_missing=n_missing,
+            missing_rate=missing_rate,
+            n_unique=0,
+            tags=["categorical", "empty_column"],
+            evidences=evidences,
+        )
+
+    # 常数列：所有值相同，对下游无信息量，preprocess 阶段应丢弃
+    if n_unique == 1:
+        evidences.append(Evidence("n_unique", 1, "仅 1 个唯一值，判定为常数列"))
+        return ColumnFact(
+            col_name=col.name if col.name is not None else "",
+            dtype=str(col.dtype),
+            n_missing=n_missing,
+            missing_rate=missing_rate,
+            n_unique=n_unique,
+            tags=["constant_column"],
+            evidences=evidences,
+        )
+
+    # 正常列：推断列类型
+    col_type = ProfileUtils.infer_column_type(col)
+    evidences.append(
+        Evidence("col_type", col_type, f"列类型判定为 {col_type}")
+    )
 
     # 确定标签 tags
     tags = [col_type]
     if col_type == ProfileUtils.NUMERIC:
-        if ProfileUtils.is_scale_needed(col):
+        scale_needed = ProfileUtils.is_scale_needed(col)
+        if scale_needed:
             tags.append("scale_needed")
+            evidences.append(
+                Evidence(
+                    "scale_rule",
+                    "|mean|>0.5 or std>1.5",
+                    f"|mean|={abs(float(np.mean(col_clean))):.4f}, "
+                    f"std={float(np.std(col_clean)):.4f}，满足判据 → scale_needed",
+                )
+            )
+        else:
+            evidences.append(
+                Evidence(
+                    "scale_rule",
+                    "|mean|>0.5 or std>1.5",
+                    f"|mean|={abs(float(np.mean(col_clean))):.4f}, "
+                    f"std={float(np.std(col_clean)):.4f}，不满足判据 → 无需 scale",
+                )
+            )
     if n_missing > 0:
         tags.append("has_missing")
+        evidences.append(
+            Evidence("n_missing", n_missing, f"存在 {n_missing} 个缺失值（{missing_rate:.2%}）")
+        )
 
     # 数值列额外统计
     stats = ProfileUtils.compute_basic_stats(col) if col_type == ProfileUtils.NUMERIC else {}
@@ -199,26 +258,66 @@ def build_column_fact(col: pd.Series) -> ColumnFact:
         missing_rate=missing_rate,
         n_unique=n_unique,
         tags=tags,
+        evidences=evidences,
         **stats,
     )
 
 
-def build_target_fact(y: pd.Series) -> TargetFact:
-    """构建目标变量的事实记录。"""
-    task_type = ProfileUtils.infer_task_type(y)
+def build_target_fact(y: pd.Series, task_type: str = "auto") -> TargetFact:
+    """构建目标变量的事实记录。
+
+    Args:
+        y: 目标 Series。
+        task_type: "auto"（自动推断）| "classification" | "regression"。
+            手动指定时跳过自动推断（classification 会继续细分 binary/multiclass）。
+    """
+    if task_type not in ("auto", "classification", "regression"):
+        raise ValueError(
+            f"task_type 必须是 'auto'/'classification'/'regression'，收到 {task_type!r}"
+        )
+
     y_clean = y.dropna()
     missing_rate = (len(y) - len(y_clean)) / len(y) if len(y) > 0 else 0.0
+    n_unique = int(y_clean.nunique())
+    evidences: list[Evidence] = []
 
-    if task_type in ("binary", "multiclass"):
+    # 确定任务类型
+    if task_type == "regression":
+        inferred = "regression"
+        evidences.append(Evidence("task_type_source", "user", "用户手动指定为回归任务"))
+    elif task_type == "classification":
+        # 已知分类，细分 binary / multiclass
+        inferred = "binary" if n_unique == 2 else "multiclass"
+        evidences.append(
+            Evidence(
+                "task_type_source",
+                "user+auto",
+                f"用户手动指定分类任务；按唯一值数 {n_unique} 细分为 "
+                f"{inferred}",
+            )
+        )
+    else:  # auto
+        inferred = ProfileUtils.infer_task_type(y_clean)
+        evidences.append(
+            Evidence(
+                "task_type_source",
+                "auto",
+                f"自动推断：唯一值 {n_unique} 个，dtype={y_clean.dtype}，"
+                f"type_of_target 判定为 {inferred}",
+            )
+        )
+
+    if inferred in ("binary", "multiclass"):
         value_counts = y_clean.value_counts(normalize=True)
         class_balance = {str(k): float(v) for k, v in value_counts.items()}
         return TargetFact(
-            task_type=task_type,
-            n_classes=int(y_clean.nunique()),
+            task_type=inferred,  # type: ignore[arg-type]
+            n_classes=n_unique,
             class_balance=class_balance,
             mean=None,
             std=None,
             missing_rate=missing_rate,
+            evidences=evidences,
         )
     else:
         # 回归
@@ -229,15 +328,20 @@ def build_target_fact(y: pd.Series) -> TargetFact:
             mean=float(np.mean(y_clean)) if not y_clean.empty else None,
             std=float(np.std(y_clean)) if not y_clean.empty else None,
             missing_rate=missing_rate,
+            evidences=evidences,
         )
 
 
-def build_profile(X: pd.DataFrame, y: pd.Series) -> DataProfile:
+def build_profile(
+    X: pd.DataFrame, y: pd.Series, task_type: str = "auto"
+) -> DataProfile:
     """纯观测，零决策：构建数据集的完整事实记录。
 
     Args:
         X: 特征 DataFrame，必须有列名。
         y: 目标 Series。
+        task_type: "auto"（默认，自动推断）| "classification" | "regression"。
+            手动指定时跳过自动推断。
 
     Returns:
         DataProfile：包含所有列和目标的观测事实。
@@ -248,7 +352,7 @@ def build_profile(X: pd.DataFrame, y: pd.Series) -> DataProfile:
         raise TypeError(f"y 必须是 pd.Series，收到 {type(y)}")
 
     columns = [build_column_fact(X[col]) for col in X.columns]
-    target = build_target_fact(y)
+    target = build_target_fact(y, task_type=task_type)
     fingerprint = ProfileUtils.compute_fingerprint(X, y)
 
     return DataProfile(

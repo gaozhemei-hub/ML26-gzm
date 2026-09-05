@@ -7,6 +7,15 @@ from typing import Literal
 
 
 @dataclass
+class Evidence:
+    """判断依据的运行时数据快照（规则文本在模板中，此处只存数据）。"""
+
+    metric: str  # 证据名，如 "n_unique"
+    value: float | int | str  # 证据值，如 2
+    note: str | None = None  # 补充说明，如 "目标列去空后的唯一值个数"
+
+
+@dataclass
 class ColumnFact:
     """单列的事实记录（只描述，不决策）。"""
 
@@ -21,6 +30,8 @@ class ColumnFact:
     std: float | None = None
     min: float | None = None
     max: float | None = None
+    # 判断依据数据快照
+    evidences: list[Evidence] = field(default_factory=list)
 
 
 @dataclass
@@ -33,6 +44,8 @@ class TargetFact:
     mean: float | None = None  # 回归时
     std: float | None = None
     missing_rate: float = 0.0
+    # 判断依据数据快照
+    evidences: list[Evidence] = field(default_factory=list)
 
 
 @dataclass

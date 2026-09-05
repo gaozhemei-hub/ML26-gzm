@@ -350,6 +350,142 @@ class TestBuildProfile:
 
 
 # ─────────────────────────────────────────────────────────────
+# 新增：常数列检测 + 手动 task_type + Evidence 证据收集
+# ─────────────────────────────────────────────────────────────
+
+class TestConstantColumn:
+    def test_constant_column_tagged(self):
+        """所有值相同的列标记为 constant_column。"""
+        col = pd.Series([5, 5, 5, 5, 5], name="const")
+        fact = build_column_fact(col)
+        assert "constant_column" in fact.tags
+        assert fact.n_unique == 1
+
+    def test_constant_column_evidences(self):
+        """常数列的证据记录了唯一值数。"""
+        col = pd.Series(["x"] * 10, name="const")
+        fact = build_column_fact(col)
+        assert any(ev.metric == "n_unique" and ev.value == 1 for ev in fact.evidences)
+
+    def test_constant_numeric_has_no_scale_tag(self):
+        """常数列不再判断 scale。"""
+        col = pd.Series([7.0] * 10, name="const")
+        fact = build_column_fact(col)
+        assert "scale_needed" not in fact.tags
+
+    def test_empty_column_has_evidences(self):
+        """全空列的证据记录了非缺失值数。"""
+        col = pd.Series([np.nan] * 5, name="empty")
+        fact = build_column_fact(col)
+        assert "empty_column" in fact.tags
+        assert any(ev.metric == "n_non_missing" and ev.value == 0 for ev in fact.evidences)
+
+
+class TestManualTaskType:
+    def test_manual_regression(self):
+        """手动指定 regression 覆盖自动推断。"""
+        # 这个数据自动推断会是 binary，但手动指定为 regression
+        y = pd.Series([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+        fact = build_target_fact(y, task_type="regression")
+        assert fact.task_type == "regression"
+
+    def test_manual_classification_binary(self):
+        """手动指定 classification，自动细分 binary。"""
+        y = pd.Series([0, 1, 0, 1, 0, 1])
+        fact = build_target_fact(y, task_type="classification")
+        assert fact.task_type == "binary"
+
+    def test_manual_classification_multiclass(self):
+        """手动指定 classification，自动细分 multiclass。"""
+        y = pd.Series([0, 1, 2, 0, 1, 2, 0, 1, 2])
+        fact = build_target_fact(y, task_type="classification")
+        assert fact.task_type == "multiclass"
+
+    def test_invalid_task_type_raises(self):
+        """非法 task_type 抛 ValueError。"""
+        y = pd.Series([0, 1, 0, 1])
+        with pytest.raises(ValueError):
+            build_target_fact(y, task_type="invalid")
+
+    def test_manual_task_type_in_profile(self):
+        """build_profile 支持手动传入 task_type。"""
+        data = load_iris(as_frame=True)
+        # iris 自动推断是 multiclass，手动强制为 regression 验证覆盖
+        profile = build_profile(data.data, data.target, task_type="regression")
+        assert profile.target.task_type == "regression"
+
+
+class TestEvidenceCollection:
+    def test_numeric_col_has_scale_evidence(self):
+        """数值列的 scale 证据存在。"""
+        col = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0], name="feat")
+        fact = build_column_fact(col)
+        assert any(ev.metric == "scale_rule" for ev in fact.evidences)
+        # 证据里有 mean/std 数值
+        scale_ev = [ev for ev in fact.evidences if ev.metric == "scale_rule"][0]
+        assert "mean" in scale_ev.note and "std" in scale_ev.note
+
+    def test_target_has_task_type_evidence(self):
+        """目标的 task_type 证据存在。"""
+        y = pd.Series([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+        fact = build_target_fact(y)
+        assert any(ev.metric == "task_type_source" for ev in fact.evidences)
+
+    def test_missing_col_has_missing_evidence(self):
+        """含缺失值的列有缺失证据。"""
+        col = pd.Series([1.0, np.nan, 3.0, np.nan, 5.0], name="x")
+        fact = build_column_fact(col)
+        assert any(ev.metric == "n_missing" and ev.value == 2 for ev in fact.evidences)
+
+
+class TestReportThreeLayerStructure:
+    """报告三层结构：摘要 / 判断流程与证据 / 详细统计。"""
+
+    def test_summary_section(self):
+        """第 1 部分摘要存在，含结论。"""
+        from tabularx.reports import render_profile_report
+
+        data = load_breast_cancer(as_frame=True)
+        profile = build_profile(data.data, data.target)
+        html = render_profile_report(profile)
+        assert "① 摘要" in html
+        assert "关键发现" in html
+        assert "判定为" in html
+
+    def test_evidence_section(self):
+        """第 2 部分判断流程与证据存在，含规则文本。"""
+        from tabularx.reports import render_profile_report
+
+        data = load_breast_cancer(as_frame=True)
+        profile = build_profile(data.data, data.target)
+        html = render_profile_report(profile)
+        assert "② 判断流程与证据" in html
+        assert "2.2 目标变量判断依据" in html
+        assert "规则" in html
+
+    def test_detailed_stats_section(self):
+        """第 3 部分详细统计存在，含特征列表格。"""
+        from tabularx.reports import render_profile_report
+
+        data = load_breast_cancer(as_frame=True)
+        profile = build_profile(data.data, data.target)
+        html = render_profile_report(profile)
+        assert "③ 详细描述性统计" in html
+        assert "特征列" in html
+        assert "<table>" in html
+
+    def test_mermaid_flowchart_in_report(self):
+        """报告含判断流程图（Mermaid）。"""
+        from tabularx.reports import render_profile_report
+
+        data = load_breast_cancer(as_frame=True)
+        profile = build_profile(data.data, data.target)
+        html = render_profile_report(profile)
+        assert "mermaid" in html
+        assert "flowchart" in html
+
+
+# ─────────────────────────────────────────────────────────────
 # reports —— 报告渲染（jinja2 模板 → HTML 字符串）
 # ─────────────────────────────────────────────────────────────
 
