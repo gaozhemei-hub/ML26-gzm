@@ -28,12 +28,14 @@ class ReportType(str, Enum):
 
     PROFILE = "profile_report.html.jinja2"
     SPLIT = "split_report.html.jinja2"
+    PREPROCESS = "preprocess_report.html.jinja2"
 
 
 # 模板文件名 → 渲染上下文 key（模板里用什么变量名访问数据）
 TEMPLATE_CONTEXT_KEY: dict[ReportType, str] = {
-    ReportType.PROFILE: "data",  # 模板中用 {{ data.xxx }} 访问
+    ReportType.PROFILE: "data",
     ReportType.SPLIT: "data",
+    ReportType.PREPROCESS: "data",
 }
 
 
@@ -173,5 +175,19 @@ __all__ = [
     "render_report",
     "render_profile_report",
     "render_split_report",
+    "render_preprocess_report",
     "render_template",
 ]
+
+
+def render_preprocess_report(data: Any, *, template_dir: str | Path | None = None) -> str:
+    """便捷函数：渲染数据预处理报告（preprocess）。
+
+    Args:
+        data: PreprocessedData 实例（或任何含 n_features_in/n_features_out/transforms 的对象）。
+        template_dir: 可选注入模板目录。
+
+    Returns:
+        HTML 字符串。
+    """
+    return render_report(ReportType.PREPROCESS, data, template_dir=template_dir)
