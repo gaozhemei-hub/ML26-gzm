@@ -12,9 +12,11 @@ import numpy as np
 import pandas as pd
 from sklearn.utils.multiclass import type_of_target
 
+from tabularx.core.params import ProfileConfig
 from tabularx.exceptions import (
     EmptyDataError,
     EmptyTargetError,
+    InsufficientDataError,
     InvalidDataError,
     MismatchedLengthError,
     TaskTypeError,
@@ -42,7 +44,10 @@ class ProfileUtils:
     # ── 列类型推断 ──────────────────────────────────────────
 
     @staticmethod
-    def infer_column_type(col: pd.Series) -> str:
+    def infer_column_type(
+        col: pd.Series,
+        config: ProfileConfig | None = None,
+    ) -> str:
         """判断列的类型（MLJAR 式逐列分析）。
 
         规则（参考 MLJAR PreprocessingUtils.get_type）：
@@ -50,11 +55,16 @@ class ProfileUtils:
         2. datetime → "datetime"
         3. bool     → "boolean"
         4. object / str / category → 看唯一值数量：
-           - >200 且 >50% 行唯一 → "text"
+           - >{text_unique_threshold} 且 >{text_unique_ratio} 行唯一 → "text"
            - 否则 → "categorical"
-        5. int / uint → "categorical"（如果唯一值 ≤ 20） 否则 → "numeric"
+        5. int / uint → "categorical"（如果唯一值 ≤ {int_categorical_threshold}） 否则 → "numeric"
         6. float → "numeric"
+
+        Args:
+            col: 列数据。
+            config: 可选参数配置，默认使用 ProfileConfig()。
         """
+        cfg = config if config is not None else ProfileConfig()
         col_clean = col.dropna()
 
         # 全空列：无法判断类型，保守标记为 categorical
@@ -69,7 +79,7 @@ class ProfileUtils:
 
         dtype = col.dtype
 
-        # 类别型 / 文本型（pandas 3.0 字符串 dtype 为 StringDtype/str，不再是 object）
+        # 类别型 / 文本型
         is_string_like = (
             pd.api.types.is_object_dtype(col)
             or pd.api.types.is_string_dtype(col)
@@ -77,14 +87,17 @@ class ProfileUtils:
         )
         if is_string_like:
             unique_cnt = col_clean.nunique()
-            if unique_cnt > 200 and unique_cnt > int(0.5 * len(col_clean)):
+            if (
+                unique_cnt > cfg.text_unique_threshold
+                and unique_cnt > int(cfg.text_unique_ratio * len(col_clean))
+            ):
                 return ProfileUtils.TEXT
             return ProfileUtils.CATEGORICAL
 
         # 整数型
         if pd.api.types.is_integer_dtype(col):
             unique_cnt = col_clean.nunique()
-            if unique_cnt <= 20:
+            if unique_cnt <= cfg.int_categorical_threshold:
                 return ProfileUtils.CATEGORICAL
             return ProfileUtils.NUMERIC
 
@@ -94,14 +107,23 @@ class ProfileUtils:
     # ── scale 判据 ──────────────────────────────────────────
 
     @staticmethod
-    def is_scale_needed(col: pd.Series) -> bool:
-        """判断数值列是否需要标准化（MLJAR 判据：|mean|>0.5 or std>1.5）。"""
+    def is_scale_needed(
+        col: pd.Series,
+        config: ProfileConfig | None = None,
+    ) -> bool:
+        """判断数值列是否需要标准化（|mean|>{scale_mean_threshold} or std>{scale_std_threshold}）。
+
+        Args:
+            col: 列数据。
+            config: 可选参数配置，默认使用 ProfileConfig()。
+        """
+        cfg = config if config is not None else ProfileConfig()
         col_clean = col.dropna()
         if col_clean.empty:
             return False
         abs_mean = abs(np.mean(col_clean))
         std = np.std(col_clean)
-        return bool(abs_mean > 0.5 or std > 1.5)
+        return bool(abs_mean > cfg.scale_mean_threshold or std > cfg.scale_std_threshold)
 
     # ── 任务类型推断 ─────────────────────────────────────────
 
@@ -128,22 +150,18 @@ class ProfileUtils:
             return "binary"
 
         # ── 第 2 层：type_of_target 判为 multiclass 但实际可能是回归 ──
-        # type_of_target 对浮点连续值会误判为 multiclass（sklearn 已知局限）
         if raw == "multiclass" and pd.api.types.is_float_dtype(y_clean):
             unique_cnt = y_clean.nunique()
-            # 唯一值多（>20）→ 回归；唯一值少（≤20）→ 尊重 type_of_target 的 multiclass 判断
             if unique_cnt > 20:
                 return "regression"
             return "multiclass"
 
         # ── 第 3 层：type_of_target 判为 multiclass 且是整数 ──
         if raw == "multiclass":
-            # 整数型少量唯一值 → 分类
             if pd.api.types.is_integer_dtype(y_clean):
                 unique_cnt = y_clean.nunique()
                 if unique_cnt <= 20:
                     return "binary" if unique_cnt == 2 else "multiclass"
-            # 其他情况保持 multiclass
             return "multiclass"
 
         # ── 第 4 层：兜底 ────────────────────────────────────
@@ -170,9 +188,9 @@ class ProfileUtils:
 
     @staticmethod
     def compute_skewness(col: pd.Series) -> float | None:
-        """计算数值列的偏度（Fisher-Pearson 系数，>1 表示偏斜明显）。"""
+        """计算数值列的偏度（Fisher-Pearson 系数）。"""
         col_clean = col.dropna()
-        if len(col_clean) < 3:  # 样本太少，无法计算偏度
+        if len(col_clean) < 3:
             return None
         return float(col_clean.skew())
 
@@ -182,19 +200,27 @@ class ProfileUtils:
     def compute_fingerprint(X: pd.DataFrame, y: pd.Series) -> str:
         """对 X+y 计算 sha256 指纹，用于复现校验。"""
         hasher = hashlib.sha256()
-        # 用 pandas 的哈希方法得到统一哈希
         x_hash = pd.util.hash_pandas_object(X).values
         y_hash = pd.util.hash_pandas_object(y).values
         hasher.update(x_hash.tobytes())
         hasher.update(y_hash.tobytes())
-        return hasher.hexdigest()[:16]  # 取前 16 位，足够区分
+        return hasher.hexdigest()[:16]
 
 
 # ── 顶层函数 ─────────────────────────────────────────────────
 
 
-def build_column_fact(col: pd.Series) -> ColumnFact:
-    """构建单列的事实记录。"""
+def build_column_fact(
+    col: pd.Series,
+    config: ProfileConfig | None = None,
+) -> ColumnFact:
+    """构建单列的事实记录。
+
+    Args:
+        col: 列数据。
+        config: 可选参数配置，默认使用 ProfileConfig()。
+    """
+    cfg = config if config is not None else ProfileConfig()
     col_clean = col.dropna()
     n_missing = int(col.isna().sum())
     missing_rate = n_missing / len(col) if len(col) > 0 else 0.0
@@ -230,7 +256,7 @@ def build_column_fact(col: pd.Series) -> ColumnFact:
         )
 
     # 正常列：推断列类型
-    col_type = ProfileUtils.infer_column_type(col)
+    col_type = ProfileUtils.infer_column_type(col, config=cfg)
     evidences.append(
         Evidence("col_type", col_type, f"列类型判定为 {col_type}")
     )
@@ -239,7 +265,7 @@ def build_column_fact(col: pd.Series) -> ColumnFact:
     tags = [col_type]
 
     # 高基数类别检测
-    if col_type == ProfileUtils.CATEGORICAL and n_unique > 50:
+    if col_type == ProfileUtils.CATEGORICAL and n_unique > cfg.high_cardinality_threshold:
         tags.append("high_cardinality")
         evidences.append(
             Evidence(
@@ -250,13 +276,14 @@ def build_column_fact(col: pd.Series) -> ColumnFact:
         )
 
     if col_type == ProfileUtils.NUMERIC:
-        scale_needed = ProfileUtils.is_scale_needed(col)
+        scale_needed = ProfileUtils.is_scale_needed(col, config=cfg)
+        rule_str = f"|mean|>{cfg.scale_mean_threshold} or std>{cfg.scale_std_threshold}"
         if scale_needed:
             tags.append("scale_needed")
             evidences.append(
                 Evidence(
                     "scale_rule",
-                    "|mean|>0.5 or std>1.5",
+                    rule_str,
                     f"|mean|={abs(float(np.mean(col_clean))):.4f}, "
                     f"std={float(np.std(col_clean)):.4f}，满足判据 → scale_needed",
                 )
@@ -265,26 +292,31 @@ def build_column_fact(col: pd.Series) -> ColumnFact:
             evidences.append(
                 Evidence(
                     "scale_rule",
-                    "|mean|>0.5 or std>1.5",
+                    rule_str,
                     f"|mean|={abs(float(np.mean(col_clean))):.4f}, "
                     f"std={float(np.std(col_clean)):.4f}，不满足判据 → 无需 scale",
                 )
             )
         # 偏度检测
         skewness = ProfileUtils.compute_skewness(col)
-        if skewness is not None and abs(skewness) > 1:
+        if skewness is not None and abs(skewness) > cfg.skew_threshold:
             tags.append("skewed")
             evidences.append(
                 Evidence(
                     "skewness",
                     round(skewness, 4),
-                    f"偏度 = {skewness:.4f}，|skew| > 1，分布偏斜明显，建议评估 log 变换或缩尾处理",
+                    f"偏度 = {skewness:.4f}，|skew| > {cfg.skew_threshold}，"
+                    f"分布偏斜明显，建议评估 log 变换或缩尾处理",
                 )
             )
     if n_missing > 0:
         tags.append("has_missing")
         evidences.append(
-            Evidence("n_missing", n_missing, f"存在 {n_missing} 个缺失值（{missing_rate:.2%}）")
+            Evidence(
+                "n_missing",
+                n_missing,
+                f"存在 {n_missing} 个缺失值（{missing_rate:.2%}）",
+            )
         )
 
     # 数值列额外统计
@@ -304,14 +336,20 @@ def build_column_fact(col: pd.Series) -> ColumnFact:
     )
 
 
-def build_target_fact(y: pd.Series, task_type: str = "auto") -> TargetFact:
+def build_target_fact(
+    y: pd.Series,
+    task_type: str = "auto",
+    config: ProfileConfig | None = None,
+) -> TargetFact:
     """构建目标变量的事实记录。
 
     Args:
         y: 目标 Series。
         task_type: "auto"（自动推断）| "classification" | "regression"。
-            手动指定时跳过自动推断（classification 会继续细分 binary/multiclass）。
+        config: 可选参数配置，默认使用 ProfileConfig()。
     """
+    cfg = config if config is not None else ProfileConfig()
+
     if task_type not in ("auto", "classification", "regression"):
         raise TaskTypeError(
             f"task_type 必须是 'auto'/'classification'/'regression'，收到 {task_type!r}。"
@@ -328,14 +366,12 @@ def build_target_fact(y: pd.Series, task_type: str = "auto") -> TargetFact:
         inferred = "regression"
         evidences.append(Evidence("task_type_source", "user", "用户手动指定为回归任务"))
     elif task_type == "classification":
-        # 已知分类，细分 binary / multiclass
         inferred = "binary" if n_unique == 2 else "multiclass"
         evidences.append(
             Evidence(
                 "task_type_source",
                 "user+auto",
-                f"用户手动指定分类任务；按唯一值数 {n_unique} 细分为 "
-                f"{inferred}",
+                f"用户手动指定分类任务；按唯一值数 {n_unique} 细分为 {inferred}",
             )
         )
     else:  # auto
@@ -355,13 +391,14 @@ def build_target_fact(y: pd.Series, task_type: str = "auto") -> TargetFact:
 
         # 类别不平衡检测
         min_ratio = min(class_balance.values())
-        if min_ratio < 0.1:
+        if min_ratio < cfg.imbalance_ratio:
             target_tags = ["imbalanced"]
             evidences.append(
                 Evidence(
                     "imbalanced",
                     f"{min_ratio:.2%}",
-                    f"最小类别占比 {min_ratio:.2%} < 10%，类别不平衡。建议使用 F1/ROC-AUC 评估，并考虑 class_weight 参数。",
+                    f"最小类别占比 {min_ratio:.2%} < {cfg.imbalance_ratio}，"
+                    f"类别不平衡。建议使用 F1/ROC-AUC 评估，并考虑 class_weight 参数。",
                 )
             )
         else:
@@ -392,7 +429,10 @@ def build_target_fact(y: pd.Series, task_type: str = "auto") -> TargetFact:
 
 
 def build_profile(
-    X: pd.DataFrame, y: pd.Series, task_type: str = "auto"
+    X: pd.DataFrame,
+    y: pd.Series,
+    task_type: str = "auto",
+    config: ProfileConfig | None = None,
 ) -> DataProfile:
     """纯观测，零决策：构建数据集的完整事实记录。
 
@@ -400,15 +440,28 @@ def build_profile(
         X: 特征 DataFrame，必须有列名。
         y: 目标 Series。
         task_type: "auto"（默认，自动推断）| "classification" | "regression"。
-            手动指定时跳过自动推断。
+        config: 可选参数配置，默认使用 ProfileConfig()。
 
     Returns:
         DataProfile：包含所有列和目标的观测事实。
+
+    Raises:
+        InvalidDataError: X 不是 DataFrame 或 y 不是 Series。
+        EmptyDataError: X 或 y 为空。
+        MismatchedLengthError: X 与 y 行数不一致。
+        InsufficientDataError: 样本数不足以进行后续划分。
     """
+    cfg = config if config is not None else ProfileConfig()
+
     if not isinstance(X, pd.DataFrame):
-        raise InvalidDataError(f"X 必须是 pd.DataFrame，收到 {type(X)}。建议：使用 pd.DataFrame(X, columns=[...]) 转换。")
+        raise InvalidDataError(
+            f"X 必须是 pd.DataFrame，收到 {type(X)}。"
+            "建议：使用 pd.DataFrame(X, columns=[...]) 转换。"
+        )
     if not isinstance(y, pd.Series):
-        raise InvalidDataError(f"y 必须是 pd.Series，收到 {type(y)}。建议：使用 pd.Series(y) 转换。")
+        raise InvalidDataError(
+            f"y 必须是 pd.Series，收到 {type(y)}。建议：使用 pd.Series(y) 转换。"
+        )
 
     # 数据非空检查
     if len(X) == 0 or len(X.columns) == 0:
@@ -425,9 +478,29 @@ def build_profile(
             "请确保 X 与 y 对应同一批样本。"
         )
 
-    columns = [build_column_fact(X[col]) for col in X.columns]
-    target = build_target_fact(y, task_type=task_type)
+    columns = [build_column_fact(X[col], config=cfg) for col in X.columns]
+    target = build_target_fact(y, task_type=task_type, config=cfg)
     fingerprint = ProfileUtils.compute_fingerprint(X, y)
+
+    # ── 数据量下限检查 ──────────────────────────────────────
+    if target.task_type == "regression":
+        if len(X) < cfg.min_samples_regression:
+            raise InsufficientDataError(
+                f"回归任务至少需要 {cfg.min_samples_regression} 个样本，"
+                f"当前仅 {len(X)} 个。可通过增加数据量或调小 "
+                f"ProfileConfig.min_samples_regression 解决。"
+            )
+    else:
+        # 分类任务：计算每类最少样本数
+        min_class_size = min(
+            (y == cls).sum() for cls in y.unique()
+        )
+        if min_class_size < cfg.min_samples_per_class:
+            raise InsufficientDataError(
+                f"分类任务每类至少需要 {cfg.min_samples_per_class} 个样本，"
+                f"当前最小类别仅 {min_class_size} 个。可通过增加数据量或调小 "
+                f"ProfileConfig.min_samples_per_class 解决。"
+            )
 
     return DataProfile(
         n_rows=len(X),

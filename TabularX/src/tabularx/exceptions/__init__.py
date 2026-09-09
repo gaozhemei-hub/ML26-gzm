@@ -44,6 +44,7 @@ class DataError(TabularXError):
 from tabularx.exceptions.profile import (  # noqa: E402
     EmptyDataError,
     EmptyTargetError,
+    InsufficientDataError,
     InvalidDataError,
     MismatchedLengthError,
     ProfileError,
@@ -62,5 +63,6 @@ __all__ = [
     "MismatchedLengthError",
     "EmptyTargetError",
     "TaskTypeError",
+    "InsufficientDataError",
 ]
 

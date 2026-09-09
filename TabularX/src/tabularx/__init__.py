@@ -22,6 +22,7 @@ from tabularx.exceptions import (
     MismatchedLengthError,
     EmptyTargetError,
     TaskTypeError,
+    InsufficientDataError,
 )
 
 __all__ = [
@@ -49,4 +50,5 @@ __all__ = [
     "MismatchedLengthError",
     "EmptyTargetError",
     "TaskTypeError",
+    "InsufficientDataError",
 ]

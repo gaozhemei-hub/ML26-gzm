@@ -36,6 +36,14 @@ class TaskTypeError(ProfileError):
     """任务类型非法或自动推断失败。"""
 
 
+class InsufficientDataError(ProfileError):
+    """数据量不足，无法进行有意义的划分。
+
+    例如：回归任务样本数 < min_samples_regression，
+          分类任务某类别样本数 < min_samples_per_class。
+    """
+
+
 __all__ = [
     "ProfileError",
     "InvalidDataError",
@@ -43,4 +51,5 @@ __all__ = [
     "MismatchedLengthError",
     "EmptyTargetError",
     "TaskTypeError",
+    "InsufficientDataError",
 ]
