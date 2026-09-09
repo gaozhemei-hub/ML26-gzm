@@ -481,13 +481,14 @@ def preprocess(
         if _has_tag(profile, col_name, "constant_column") or _has_tag(
             profile, col_name, "empty_column"
         ):
+            saved_dtype = str(X_train[col_name].dtype)
             for df in [X_train, X_valid, X_test]:
                 df.drop(columns=[col_name], inplace=True)
             dropped_columns.append(col_name)
             transforms.append(
                 TransformRecord(
                     col_name=col_name,
-                    original_dtype=str(X_train[col_name].dtype),
+                    original_dtype=saved_dtype,
                     original_n_unique=_resolve_n_unique(profile, col_name),
                     action_sequence=["dropped"],
                     dropped=True,
@@ -500,13 +501,14 @@ def preprocess(
         # ── 文本列 ──────────────────────────────────────────
         if col_type == "text":
             if cfg.handle_text == "drop":
+                saved_dtype = str(X_train[col_name].dtype)
                 for df in [X_train, X_valid, X_test]:
                     df.drop(columns=[col_name], inplace=True)
                 dropped_columns.append(col_name)
                 transforms.append(
                     TransformRecord(
                         col_name=col_name,
-                        original_dtype=str(X_train[col_name].dtype),
+                        original_dtype=saved_dtype,
                         original_n_unique=_resolve_n_unique(profile, col_name),
                         action_sequence=["dropped"],
                         dropped=True,
@@ -527,13 +529,14 @@ def preprocess(
         # ── 日期列 ──────────────────────────────────────────
         if col_type == "datetime":
             if cfg.handle_datetime == "drop":
+                saved_dtype = str(X_train[col_name].dtype)
                 for df in [X_train, X_valid, X_test]:
                     df.drop(columns=[col_name], inplace=True)
                 dropped_columns.append(col_name)
                 transforms.append(
                     TransformRecord(
                         col_name=col_name,
-                        original_dtype=str(X_train[col_name].dtype),
+                        original_dtype=saved_dtype,
                         original_n_unique=_resolve_n_unique(profile, col_name),
                         action_sequence=["dropped"],
                         dropped=True,
