@@ -1,7 +1,18 @@
 """TabularX 工具包 - 面向可解释性与可复现性的自动化表格建模工具包。"""
 
-from tabularx.core.profile import build_profile, build_column_fact, build_target_fact, ProfileUtils
-from tabularx.schema.profile import DataProfile, ColumnFact, TargetFact
+from tabularx.core.params import (
+    PreprocessConfig,
+    ProfileConfig,
+    SplitConfig,
+    TabularXParams,
+)
+from tabularx.core.profile import (
+    build_profile,
+    build_column_fact,
+    build_target_fact,
+    ProfileUtils,
+)
+from tabularx.schema.profile import DataProfile, ColumnFact, TargetFact, Evidence
 from tabularx.exceptions import (
     TabularXError,
     DataError,
@@ -23,6 +34,12 @@ __all__ = [
     "DataProfile",
     "ColumnFact",
     "TargetFact",
+    "Evidence",
+    # 参数配置
+    "ProfileConfig",
+    "SplitConfig",
+    "PreprocessConfig",
+    "TabularXParams",
     # 异常
     "TabularXError",
     "DataError",
