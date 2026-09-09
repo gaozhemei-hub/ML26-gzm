@@ -60,6 +60,12 @@ from tabularx.exceptions.preprocess import (  # noqa: E402
     TextColumnNotSupportedError,
     TransformError,
 )
+from tabularx.exceptions.learning import (  # noqa: E402
+    ModelSearchError,
+    ModelNotAvailableError,
+    ModelTrainingError,
+    OptunaError,
+)
 
 
 __all__ = [
@@ -82,5 +88,10 @@ __all__ = [
     "PreprocessError",
     "TextColumnNotSupportedError",
     "TransformError",
+    # learning 阶段
+    "ModelSearchError",
+    "ModelNotAvailableError",
+    "ModelTrainingError",
+    "OptunaError",
 ]
 

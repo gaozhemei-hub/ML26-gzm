@@ -1,6 +1,7 @@
 """TabularX core 模块 - 纯函数逻辑，零 IO。"""
 
 from tabularx.core.params import (
+    ModelSearchConfig,
     PreprocessConfig,
     ProfileConfig,
     SplitConfig,
@@ -9,11 +10,13 @@ from tabularx.core.params import (
 from tabularx.core.preprocess import preprocess
 from tabularx.core.split import split_data
 
+
 __all__ = [
     # 参数配置
     "ProfileConfig",
     "SplitConfig",
     "PreprocessConfig",
+    "ModelSearchConfig",
     "TabularXParams",
     # 核心函数
     "preprocess",

@@ -383,6 +383,114 @@ class PreprocessConfig:
 
 
 # ═══════════════════════════════════════════════════════════════
+# Learning（模型搜索）阶段参数
+# ═══════════════════════════════════════════════════════════════
+
+@dataclass
+class ModelSearchConfig:
+    """ModelSearch 阶段参数配置。"""
+
+    # ── 并行与搜索 ──────────────────────────────────────────
+    n_jobs: int = 4
+    """并行进程数（同时运行多少个模型的 Optuna）"""
+    n_trials: int = 50
+    """每个模型 Optuna 搜索的 trial 数量"""
+    random_state: int = 42
+    """随机种子"""
+
+    # ── 模型选择 ────────────────────────────────────────────
+    models: list[str] = field(default_factory=lambda: ["auto"])
+    """使用的模型列表。默认 ["auto"] 表示全部可用模型。
+       可指定子集，如 ["random_forest", "xgboost"]。
+       每个模型自动匹配当前任务类型（回归/分类）。"""
+    top_k_models: int = 3
+    """保留验证集前 K 个模型进入 Voting 组合"""
+
+    # ── 评估指标 ────────────────────────────────────────────
+    primary_metric: str = "auto"
+    """模型选择的主指标。"auto" 根据 task_type 自动选择：
+       回归默认 "rmse"，二分类默认 "roc_auc"，多分类默认 "f1_macro"。"""
+
+    # ── 最终训练 ────────────────────────────────────────────
+    retrain_on_train_valid: bool = True
+    """选出最佳模型后，是否用 train+valid 重新训练再评估 test"""
+
+    # ── 保存控制 ────────────────────────────────────────────
+    save_models: bool = True
+    """是否保存所有模型的最终版本到本地"""
+
+    _COMMENTS: ClassVar[dict[str, str]] = {
+        "n_jobs": "并行进程数（同时跑几个模型的 Optuna）",
+        "n_trials": "每个模型 Optuna 搜索的 trial 数量",
+        "random_state": "随机种子",
+        "models": "使用的模型列表，默认为全部可用模型",
+        "top_k_models": "保留验证集前 K 个模型进入 Voting 组合",
+        "primary_metric": "模型选择的主指标，auto 根据 task_type 自动选择",
+        "retrain_on_train_valid": "选出最佳模型后是否用 train+valid 重训再评估 test",
+        "save_models": "是否保存所有模型的最终版本到本地",
+    }
+    _RANGES: ClassVar[dict[str, _Range]] = {
+        "n_jobs": (1, None),
+        "n_trials": (1, None),
+        "random_state": (0, None),
+        "top_k_models": (1, None),
+    }
+
+    def __post_init__(self) -> None:
+        """构造时自动校验所有参数。"""
+        for name, (lo, hi) in self._RANGES.items():
+            val = getattr(self, name)
+            if lo is not None and val < lo:
+                raise ValueError(
+                    f"{name} 不能小于 {lo}，收到 {val}。"
+                    f"  {self.get_comments(name)}"
+                )
+        # models 校验
+        models = self.models
+        if not isinstance(models, list) or len(models) == 0:
+            raise ValueError(
+                f"models 必须为非空列表，收到 {models!r}。"
+                f"  使用 ['auto'] 表示全部模型。"
+            )
+        if self.primary_metric not in ("auto", "rmse", "mae", "r2",
+                                         "roc_auc", "f1_macro", "f1", "accuracy",
+                                         "balanced_accuracy"):
+            raise ValueError(
+                f"不支持的 primary_metric {self.primary_metric!r}。"
+                f"  使用 'auto' 自动选择，或指定具体指标。"
+            )
+
+    def set_param(self, name: str, value: Any) -> None:
+        if name not in self._COMMENTS:
+            raise ValueError(f"未知参数 {name!r}。可用：{list(self._COMMENTS)}")
+        lo, hi = self._RANGES.get(name, (None, None))
+        if lo is not None and value < lo:
+            raise ValueError(f"{name} 不能小于 {lo}，收到 {value}。  {self.get_comments(name)}")
+        if hi is not None and value > hi:
+            raise ValueError(f"{name} 不能大于 {hi}，收到 {value}。  {self.get_comments(name)}")
+        setattr(self, name, value)
+
+    def get_comments(self, name: str) -> str:
+        if name not in self._COMMENTS:
+            raise ValueError(f"未知参数 {name!r}")
+        return self._COMMENTS[name]
+
+    def overview(self) -> str:
+        lines = []
+        for name, comment in self._COMMENTS.items():
+            val = getattr(self, name)
+            lines.append(f"  {name:>30} = {str(val):>5}   #{comment}")
+        return "\n".join(lines)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            f.name: getattr(self, f.name)
+            for f in dataclasses.fields(self)
+            if not f.name.startswith("_")
+        }
+
+
+# ═══════════════════════════════════════════════════════════════
 # 全局参数容器
 # ═══════════════════════════════════════════════════════════════
 
@@ -401,6 +509,7 @@ class TabularXParams:
     profile: ProfileConfig = field(default_factory=ProfileConfig)
     split: SplitConfig = field(default_factory=SplitConfig)
     preprocess: PreprocessConfig = field(default_factory=PreprocessConfig)
+    model_search: ModelSearchConfig = field(default_factory=ModelSearchConfig)
 
     # ── 总览 ──────────────────────────────────────────────────
 
@@ -410,7 +519,8 @@ class TabularXParams:
         lines = [sep, "  TabularX 参数总览", sep]
         for label, cfg in [("Profile", self.profile),
                            ("Split", self.split),
-                           ("Preprocess", self.preprocess)]:
+                           ("Preprocess", self.preprocess),
+                           ("ModelSearch", self.model_search)]:
             lines.append(f"\n【{label} 阶段】")
             lines.append(cfg.overview())
         lines.append(sep)
@@ -422,7 +532,7 @@ class TabularXParams:
         """按阶段设置参数值（带校验）。
 
         Args:
-            stage: 阶段名 "profile" / "split" / "preprocess"。
+            stage: 阶段名 "profile" / "split" / "preprocess" / "model_search"。
             name: 参数名。
             value: 参数值。
 
@@ -434,6 +544,7 @@ class TabularXParams:
             "profile": self.profile,
             "split": self.split,
             "preprocess": self.preprocess,
+            "model_search": self.model_search,
         }
         if stage not in stage_map:
             raise ValueError(
@@ -447,7 +558,7 @@ class TabularXParams:
         """返回指定阶段中某参数的中文注释。
 
         Args:
-            stage: 阶段名 "profile" / "split" / "preprocess"。
+            stage: 阶段名 "profile" / "split" / "preprocess" / "model_search"。
             name: 参数名。
 
         Returns:
@@ -460,6 +571,7 @@ class TabularXParams:
             "profile": self.profile,
             "split": self.split,
             "preprocess": self.preprocess,
+            "model_search": self.model_search,
         }
         if stage not in stage_map:
             raise ValueError(
@@ -475,6 +587,7 @@ class TabularXParams:
             "profile": self.profile.to_dict(),
             "split": self.split.to_dict(),
             "preprocess": self.preprocess.to_dict(),
+            "model_search": self.model_search.to_dict(),
         }
 
     # ── 重置 ──────────────────────────────────────────────────
@@ -484,6 +597,7 @@ class TabularXParams:
         self.profile = ProfileConfig()
         self.split = SplitConfig()
         self.preprocess = PreprocessConfig()
+        self.model_search = ModelSearchConfig()
 
 
 __all__ = [
@@ -493,6 +607,8 @@ __all__ = [
     "SplitConfig",
     # Preprocess
     "PreprocessConfig",
+    # Learning
+    "ModelSearchConfig",
     # 全局容器
     "TabularXParams",
 ]
