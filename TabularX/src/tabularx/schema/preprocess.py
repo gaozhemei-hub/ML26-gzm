@@ -28,6 +28,27 @@ class TransformRecord:
 
 
 @dataclass
+class ColumnMapping:
+    """记录原始列 → 输出列的映射关系。
+
+    用于追踪敏感特征经过预处理后的变换情况：
+      - 丢弃 → output_names 为空列表
+      - 原样保留或数值变换 → output_names 为 [原列名]
+      - OneHot → output_names 为 [col_A, col_B, ...]
+      - 日期提取 → output_names 为 [col_year, col_month, col_day]
+    """
+
+    original_name: str
+    """原始列名"""
+    output_names: list[str]
+    """变换后的输出列名列表（空列表表示被丢弃）"""
+    is_dropped: bool = False
+    """是否被丢弃"""
+    n_features_out: int = 1
+    """输出特征数"""
+
+
+@dataclass
 class PreprocessedData:
     """预处理后的完整数据集。
 
@@ -54,9 +75,12 @@ class PreprocessedData:
     """预处理后的特征名列表（对下游 ModelSearch 重要：解释特征重要性时需要知道名字）"""
     transforms: list[TransformRecord] = field(default_factory=list)
     """每列的变换记录"""
+    column_mappings: list[ColumnMapping] = field(default_factory=list)
+    """原始列到输出列的映射（用于追踪敏感特征等）"""
 
 
 __all__ = [
     "TransformRecord",
+    "ColumnMapping",
     "PreprocessedData",
 ]

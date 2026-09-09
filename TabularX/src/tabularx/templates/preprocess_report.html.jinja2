@@ -199,7 +199,65 @@ flowchart TD
   </section>
 
   <!-- ══════════════════════════════════════════════════════════
-       第 3 部分：数据概况（各子集统计）
+       第 4 部分：列映射关系（变换追踪）
+       ══════════════════════════════════════════════════════════ -->
+  {% set has_mapping_changes = data.column_mappings | selectattr("is_dropped") | list | length
+     or data.column_mappings | rejectattr("is_dropped") | selectattr("output_names", "ne", None) | list | length %}
+  {% set changed_mappings = [] %}
+  {% for m in data.column_mappings %}
+    {% if m.is_dropped or m.output_names != [m.original_name] %}
+      {% set _ = changed_mappings.append(m) %}
+    {% endif %}
+  {% endfor %}
+
+  {% if changed_mappings | length > 0 %}
+  <section>
+    <h2>④ 列映射关系</h2>
+    <p class="hint">仅展示有变化的列（被丢弃、展开、重命名或提取）。未列出的列原样保留。</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>原始列名</th>
+          <th>变换后列名</th>
+          <th>输出特征数</th>
+          <th>状态</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in changed_mappings %}
+        <tr>
+          <td><b>{{ m.original_name }}</b></td>
+          <td>
+            {% if m.is_dropped %}
+              <span class="hint">—（已丢弃）</span>
+            {% else %}
+              {% for out_name in m.output_names %}
+                <span class="badge badge-info">{{ out_name }}</span>
+              {% endfor %}
+            {% endif %}
+          </td>
+          <td>{{ m.n_features_out }}</td>
+          <td>
+            {% if m.is_dropped %}
+              <span class="badge badge-drop">丢弃</span>
+            {% elif m.output_names | length > 1 %}
+              <span class="badge badge-ok">展开</span>
+            {% elif m.output_names | length == 1 and m.output_names[0] != m.original_name %}
+              <span class="badge badge-warn">变换</span>
+            {% else %}
+              <span class="badge badge-ok">保留</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 5 部分：数据概况（各子集统计）
        ══════════════════════════════════════════════════════════ -->
   <section>
     <h2>④ 数据概况</h2>

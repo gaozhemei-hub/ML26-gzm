@@ -32,7 +32,7 @@ from tabularx.exceptions.preprocess import (
     TextColumnNotSupportedError,
     TransformError,
 )
-from tabularx.schema.preprocess import PreprocessedData, TransformRecord
+from tabularx.schema.preprocess import PreprocessedData, TransformRecord, ColumnMapping
 from tabularx.schema.profile import DataProfile
 from tabularx.schema.split import SplitResult
 
@@ -470,6 +470,7 @@ def preprocess(
     all_columns = list(X.columns)
     n_features_in = len(all_columns)
     transforms: list[TransformRecord] = []
+    column_mappings: list[ColumnMapping] = []
     dropped_columns: list[str] = []
     feature_names_out: list[str] = []
 
@@ -496,6 +497,14 @@ def preprocess(
                     note="常数列或全空列，对下游无信息量",
                 )
             )
+            column_mappings.append(
+                ColumnMapping(
+                    original_name=col_name,
+                    output_names=[],
+                    is_dropped=True,
+                    n_features_out=0,
+                )
+            )
             continue
 
         # ── 文本列 ──────────────────────────────────────────
@@ -514,6 +523,14 @@ def preprocess(
                         dropped=True,
                         n_features_out=0,
                         note="文本列，按配置丢弃",
+                    )
+                )
+                column_mappings.append(
+                    ColumnMapping(
+                        original_name=col_name,
+                        output_names=[],
+                        is_dropped=True,
+                        n_features_out=0,
                     )
                 )
                 continue
@@ -544,6 +561,14 @@ def preprocess(
                         note="日期列，按配置丢弃",
                     )
                 )
+                column_mappings.append(
+                    ColumnMapping(
+                        original_name=col_name,
+                        output_names=[],
+                        is_dropped=True,
+                        n_features_out=0,
+                    )
+                )
                 continue
             elif cfg.handle_datetime == "keep":
                 feature_names_out.append(col_name)
@@ -555,6 +580,13 @@ def preprocess(
                         action_sequence=["kept"],
                         n_features_out=1,
                         note="日期列按原样保留",
+                    )
+                )
+                column_mappings.append(
+                    ColumnMapping(
+                        original_name=col_name,
+                        output_names=[col_name],
+                        n_features_out=1,
                     )
                 )
                 continue
@@ -595,6 +627,13 @@ def preprocess(
                         n_features_out=len(out_features),
                     )
                 )
+                column_mappings.append(
+                    ColumnMapping(
+                        original_name=col_name,
+                        output_names=list(out_features),
+                        n_features_out=len(out_features),
+                    )
+                )
                 continue
 
         # ── 数值列 ──────────────────────────────────────────
@@ -621,6 +660,13 @@ def preprocess(
                     note=note,
                 )
             )
+            column_mappings.append(
+                ColumnMapping(
+                    original_name=col_name,
+                    output_names=[col_name],
+                    n_features_out=1,
+                )
+            )
             continue
 
         # ── 布尔列 ──────────────────────────────────────────
@@ -643,6 +689,13 @@ def preprocess(
                     original_dtype=str(col_train_s.dtype),
                     original_n_unique=2,
                     action_sequence=actions,
+                    n_features_out=1,
+                )
+            )
+            column_mappings.append(
+                ColumnMapping(
+                    original_name=col_name,
+                    output_names=[col_name],
                     n_features_out=1,
                 )
             )
@@ -694,6 +747,13 @@ def preprocess(
                     note=note,
                 )
             )
+            column_mappings.append(
+                ColumnMapping(
+                    original_name=col_name,
+                    output_names=list(out_features),
+                    n_features_out=len(out_features),
+                )
+            )
             continue
 
         # ── 兜底：未知类型，原样保留 ─────────────────────────
@@ -706,6 +766,13 @@ def preprocess(
                 action_sequence=["kept"],
                 n_features_out=1,
                 note="未知类型，原样保留",
+            )
+        )
+        column_mappings.append(
+            ColumnMapping(
+                original_name=col_name,
+                output_names=[col_name],
+                n_features_out=1,
             )
         )
 
@@ -723,6 +790,7 @@ def preprocess(
         dropped_columns=dropped_columns,
         feature_names_out=feature_names_out,
         transforms=transforms,
+        column_mappings=column_mappings,
     )
 
 
