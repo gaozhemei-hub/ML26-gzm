@@ -6,10 +6,14 @@ from tabularx.core.params import (
     SplitConfig,
     TabularXParams,
 )
+from tabularx.core.split import split_data
 
 __all__ = [
+    # 参数配置
     "ProfileConfig",
     "SplitConfig",
     "PreprocessConfig",
     "TabularXParams",
+    # 核心函数
+    "split_data",
 ]

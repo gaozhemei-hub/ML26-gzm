@@ -27,11 +27,13 @@ class ReportType(str, Enum):
     """报告类型注册表：枚举值即模板文件名（无后缀的）。"""
 
     PROFILE = "profile_report.html.jinja2"
+    SPLIT = "split_report.html.jinja2"
 
 
 # 模板文件名 → 渲染上下文 key（模板里用什么变量名访问数据）
 TEMPLATE_CONTEXT_KEY: dict[ReportType, str] = {
     ReportType.PROFILE: "data",  # 模板中用 {{ data.xxx }} 访问
+    ReportType.SPLIT: "data",
 }
 
 
@@ -152,10 +154,24 @@ def render_profile_report(data: Any, *, template_dir: str | Path | None = None) 
     return render_report(ReportType.PROFILE, data, template_dir=template_dir)
 
 
+def render_split_report(data: Any, *, template_dir: str | Path | None = None) -> str:
+    """便捷函数：渲染数据划分报告（split）。
+
+    Args:
+        data: SplitResult 实例（或任何含 n_train/n_valid/n_test 等属性的对象）。
+        template_dir: 可选注入模板目录。
+
+    Returns:
+        HTML 字符串。
+    """
+    return render_report(ReportType.SPLIT, data, template_dir=template_dir)
+
+
 __all__ = [
     "ReportType",
     "TEMPLATE_CONTEXT_KEY",
     "render_report",
     "render_profile_report",
+    "render_split_report",
     "render_template",
 ]

@@ -167,16 +167,20 @@ class SplitConfig:
     """验证集占比（相对于去掉测试集后剩余部分的比例）"""
     random_state: int = 42
     """随机种子（保证划分可复现）"""
+    min_samples_split: int = 5
+    """训练/验证/测试集每集最少样本数，任一子集少于该值则报错"""
 
     _COMMENTS: ClassVar[dict[str, str]] = {
         "test_size": "测试集占比（占总样本的比例）",
         "validation_size": "验证集占比（相对于去掉测试集后剩余部分的比例）",
         "random_state": "随机种子（保证划分可复现）",
+        "min_samples_split": "训练/验证/测试集每集最少样本数",
     }
     _RANGES: ClassVar[dict[str, _Range]] = {
         "test_size": (0.0, 1.0),
         "validation_size": (0.0, 1.0),
         "random_state": (0, None),
+        "min_samples_split": (1, None),
     }
 
     def __post_init__(self) -> None:

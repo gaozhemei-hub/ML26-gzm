@@ -12,7 +12,9 @@ from tabularx.core.profile import (
     build_target_fact,
     ProfileUtils,
 )
+from tabularx.core.split import split_data
 from tabularx.schema.profile import DataProfile, ColumnFact, TargetFact, Evidence
+from tabularx.schema.split import SplitResult
 from tabularx.exceptions import (
     TabularXError,
     DataError,
@@ -23,6 +25,9 @@ from tabularx.exceptions import (
     EmptyTargetError,
     TaskTypeError,
     InsufficientDataError,
+    SplitError,
+    InvalidSplitError,
+    StratifyError,
 )
 
 __all__ = [
@@ -31,11 +36,13 @@ __all__ = [
     "build_column_fact",
     "build_target_fact",
     "ProfileUtils",
+    "split_data",
     # schema 类型
     "DataProfile",
     "ColumnFact",
     "TargetFact",
     "Evidence",
+    "SplitResult",
     # 参数配置
     "ProfileConfig",
     "SplitConfig",
@@ -51,4 +58,7 @@ __all__ = [
     "EmptyTargetError",
     "TaskTypeError",
     "InsufficientDataError",
+    "SplitError",
+    "InvalidSplitError",
+    "StratifyError",
 ]

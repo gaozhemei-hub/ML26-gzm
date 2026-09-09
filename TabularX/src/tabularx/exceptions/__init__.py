@@ -50,6 +50,11 @@ from tabularx.exceptions.profile import (  # noqa: E402
     ProfileError,
     TaskTypeError,
 )
+from tabularx.exceptions.split import (  # noqa: E402
+    InvalidSplitError,
+    SplitError,
+    StratifyError,
+)
 
 
 __all__ = [
@@ -64,5 +69,9 @@ __all__ = [
     "EmptyTargetError",
     "TaskTypeError",
     "InsufficientDataError",
+    # split 阶段
+    "SplitError",
+    "InvalidSplitError",
+    "StratifyError",
 ]
 

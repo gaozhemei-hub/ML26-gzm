@@ -12,8 +12,8 @@ from sklearn.datasets import load_breast_cancer, load_diabetes, load_iris
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "TabularX" / "src"))
 
-from tabularx import build_profile
-from tabularx.reports import render_profile_report
+from tabularx import build_profile, split_data
+from tabularx.reports import render_profile_report, render_split_report
 
 
 # 目标目录
@@ -44,6 +44,15 @@ for name, loader in DATASETS.items():
     out_path = OUTPUT_DIR / f"{name}_profile_report.html"
     out_path.write_text(html, encoding="utf-8")
 
-    print(f"✓ → {out_path.relative_to(OUTPUT_DIR.parent.parent)}")
+    print(f"✓ profile → {out_path.relative_to(OUTPUT_DIR.parent.parent)}")
+
+    # ── split 报告 ──────────────────────────────────────────
+    split_result = split_data(X, y, profile)
+    html_split = render_split_report(split_result)
+
+    split_path = OUTPUT_DIR / f"{name}_split_report.html"
+    split_path.write_text(html_split, encoding="utf-8")
+
+    print(f"✓ split   → {split_path.relative_to(OUTPUT_DIR.parent.parent)}")
 
 print(f"\n全部完成，报告保存在 {OUTPUT_DIR}")
