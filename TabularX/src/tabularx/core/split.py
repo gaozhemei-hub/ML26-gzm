@@ -70,34 +70,15 @@ def split_data(
         SplitResult：包含划分索引和元信息。
 
     Raises:
-        InvalidSplitError: test_size + validation_size 超过可接受范围，
-                           或子集样本数不足 min_samples_split。
+        InvalidSplitError: 子集样本数不足 min_samples_split。
         StratifyError: 分层采样失败（如类别样本数不足）。
     """
     cfg = config if config is not None else SplitConfig()
 
-    # ── 参数校验 ──────────────────────────────────────────────
-    if cfg.test_size <= 0 or cfg.test_size >= 1:
-        raise InvalidSplitError(
-            f"test_size 必须在 (0, 1) 之间，收到 {cfg.test_size}。"
-        )
-    if cfg.validation_size <= 0 or cfg.validation_size >= 1:
-        raise InvalidSplitError(
-            f"validation_size 必须在 (0, 1) 之间，收到 {cfg.validation_size}。"
-        )
-
-    # 计算各子集实际占比
+    # 计算各子集实际占比（Config 已在构造时保证 test_size, validation_size 合法且 train_ratio > 0）
     test_ratio = cfg.test_size
     valid_ratio = cfg.validation_size * (1 - cfg.test_size)
     train_ratio = 1 - test_ratio - valid_ratio
-
-    if train_ratio <= 0:
-        raise InvalidSplitError(
-            f"test_size ({cfg.test_size}) + "
-            f"validation_size ({cfg.validation_size}) 占比过大，"
-            f"导致训练集占比为 {train_ratio:.4f}（应为正数）。"
-            "请减小 test_size 或 validation_size。"
-        )
 
     n_total = len(X)
     evidences: list[Evidence] = []

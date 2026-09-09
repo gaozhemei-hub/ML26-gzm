@@ -187,18 +187,54 @@ class SplitConfig:
         for name, (lo, hi) in self._RANGES.items():
             val = getattr(self, name)
             if lo is not None and val < lo:
-                raise ValueError(f"{name} 不能小于 {lo}，收到 {val}")
+                raise ValueError(
+                    f"{name} 不能小于 {lo}，收到 {val}。"
+                    f"  {self.get_comments(name)}"
+                )
             if hi is not None and val > hi:
-                raise ValueError(f"{name} 不能大于 {hi}，收到 {val}")
+                raise ValueError(
+                    f"{name} 不能大于 {hi}，收到 {val}。"
+                    f"  {self.get_comments(name)}"
+                )
+        # 推导检查：by-construction train_ratio > 0
+        derived_train_ratio = (
+            1 - self.test_size - self.validation_size * (1 - self.test_size)
+        )
+        if derived_train_ratio <= 0:
+            raise ValueError(
+                f"test_size ({self.test_size}) + validation_size ({self.validation_size})"
+                f" 组合导致训练集占比为 {derived_train_ratio:.4f}，应为正数。"
+                f"  test_size 与 validation_size 之和过大，请至少减小其中之一。"
+            )
 
     def set_param(self, name: str, value: Any) -> None:
         if name not in self._COMMENTS:
-            raise ValueError(f"未知参数 {name!r}。可用：{list(self._COMMENTS)}")
+            raise ValueError(
+                f"未知参数 {name!r}。可用参数：\n"
+                + "\n".join(f"  {k}" for k in self._COMMENTS)
+            )
         lo, hi = self._RANGES[name]
         if lo is not None and value < lo:
-            raise ValueError(f"{name} 不能小于 {lo}，收到 {value}")
+            raise ValueError(
+                f"{name} 不能小于 {lo}，收到 {value}。"
+                f"  {self.get_comments(name)}"
+            )
         if hi is not None and value > hi:
-            raise ValueError(f"{name} 不能大于 {hi}，收到 {value}")
+            raise ValueError(
+                f"{name} 不能大于 {hi}，收到 {value}。"
+                f"  {self.get_comments(name)}"
+            )
+        # 推导检查：修改 test_size / validation_size 时确保 train_ratio > 0
+        if name in ("test_size", "validation_size"):
+            tmp_test = value if name == "test_size" else self.test_size
+            tmp_valid = value if name == "validation_size" else self.validation_size
+            derived_train_ratio = 1 - tmp_test - tmp_valid * (1 - tmp_test)
+            if derived_train_ratio <= 0:
+                raise ValueError(
+                    f"test_size ({tmp_test}) + validation_size ({tmp_valid})"
+                    f" 组合导致训练集占比为 {derived_train_ratio:.4f}，应为正数。"
+                    f"  test_size 与 validation_size 之和过大，请至少减小其中之一。"
+                )
         setattr(self, name, value)
 
     def get_comments(self, name: str) -> str:

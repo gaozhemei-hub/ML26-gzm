@@ -76,18 +76,13 @@
     <h3>2.1 判断流程图</h3>
     <div class="mermaid">
 flowchart TD
-  Start([开始：接收 X, y, profile, config]) --> ParamCheck{参数校验}
-  ParamCheck -->|test_size ≤ 0 或 ≥ 1| InvalidTestSize[失败：InvalidSplitError]
-  ParamCheck -->|validation_size ≤ 0 或 ≥ 1| InvalidValidSize[失败：InvalidSplitError]
-  ParamCheck -->|test + valid 训练集占比为 0| NoTrainSet[失败：InvalidSplitError]
-  ParamCheck -->|参数有效| TaskCheck{任务类型判断}
+  Start([开始：接收 X, y, profile, config]) --> TaskCheck{任务类型判断}
   TaskCheck -->|binary / multiclass| Stratify[使用分层采样 stratify=y]
   TaskCheck -->|regression| Random[使用纯随机采样]
   Stratify --> Phase1[阶段 1：分出测试集]
   Random --> Phase1
   Phase1 -->|stratify 失败（类别样本不足）| StratifyFail1[失败：StratifyError]
   Phase1 -->|成功| Phase2[阶段 2：从剩余部分分验证集]
-  StratifyFail1 --> Phase2
   Phase2 -->|stratify 失败| StratifyFail2[失败：StratifyError]
   Phase2 -->|成功| SizeCheck{子集样本数检查}
   SizeCheck -->|任一子集 < min_samples_split| SizeFail[失败：InvalidSplitError]
@@ -98,7 +93,7 @@ flowchart TD
   Warn --> Done
   classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
   classDef warning fill:#fff3cd,stroke:#856404,stroke-width:1px;
-  class InvalidTestSize,InvalidValidSize,NoTrainSet,StratifyFail1,StratifyFail2,SizeFail error;
+  class StratifyFail1,StratifyFail2,SizeFail error;
   class Warn warning;
     </div>
     <div class="mermaid-note">↑ split 阶段完整判断流程。</div>
