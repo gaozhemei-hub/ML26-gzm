@@ -55,6 +55,11 @@ from tabularx.exceptions.split import (  # noqa: E402
     SplitError,
     StratifyError,
 )
+from tabularx.exceptions.preprocess import (  # noqa: E402
+    PreprocessError,
+    TextColumnNotSupportedError,
+    TransformError,
+)
 
 
 __all__ = [
@@ -73,5 +78,9 @@ __all__ = [
     "SplitError",
     "InvalidSplitError",
     "StratifyError",
+    # preprocess 阶段
+    "PreprocessError",
+    "TextColumnNotSupportedError",
+    "TransformError",
 ]
 

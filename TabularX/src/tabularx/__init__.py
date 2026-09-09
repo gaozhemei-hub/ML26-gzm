@@ -6,6 +6,7 @@ from tabularx.core.params import (
     SplitConfig,
     TabularXParams,
 )
+from tabularx.core.preprocess import preprocess
 from tabularx.core.profile import (
     build_profile,
     build_column_fact,
@@ -13,6 +14,7 @@ from tabularx.core.profile import (
     ProfileUtils,
 )
 from tabularx.core.split import split_data
+from tabularx.schema.preprocess import PreprocessedData, TransformRecord
 from tabularx.schema.profile import DataProfile, ColumnFact, TargetFact, Evidence
 from tabularx.schema.split import SplitResult
 from tabularx.exceptions import (
@@ -28,6 +30,9 @@ from tabularx.exceptions import (
     SplitError,
     InvalidSplitError,
     StratifyError,
+    PreprocessError,
+    TextColumnNotSupportedError,
+    TransformError,
 )
 
 __all__ = [
@@ -37,12 +42,15 @@ __all__ = [
     "build_target_fact",
     "ProfileUtils",
     "split_data",
+    "preprocess",
     # schema 类型
     "DataProfile",
     "ColumnFact",
     "TargetFact",
     "Evidence",
     "SplitResult",
+    "PreprocessedData",
+    "TransformRecord",
     # 参数配置
     "ProfileConfig",
     "SplitConfig",
@@ -61,4 +69,7 @@ __all__ = [
     "SplitError",
     "InvalidSplitError",
     "StratifyError",
+    "PreprocessError",
+    "TextColumnNotSupportedError",
+    "TransformError",
 ]

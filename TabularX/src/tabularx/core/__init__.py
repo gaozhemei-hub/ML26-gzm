@@ -6,6 +6,7 @@ from tabularx.core.params import (
     SplitConfig,
     TabularXParams,
 )
+from tabularx.core.preprocess import preprocess
 from tabularx.core.split import split_data
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     "PreprocessConfig",
     "TabularXParams",
     # 核心函数
+    "preprocess",
     "split_data",
 ]

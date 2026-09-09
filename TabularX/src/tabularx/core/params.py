@@ -265,19 +265,101 @@ class SplitConfig:
 class PreprocessConfig:
     """Preprocess 阶段参数配置。"""
 
-    skew_method: str = "yeojohnson"
-    """偏度校正方法："yeojohnson"（推荐，支持非正数）| "log1p"（仅正数）"""
+    # ── 缺失值填补 ──────────────────────────────────────────
+    numeric_impute: str = "median"
+    """数值列填补方法："median" | "mean" | "constant"（使用 impute_constant_value）"""
+    categorical_impute: str = "most_frequent"
+    """类别列填补方法："most_frequent" | "constant"（使用 impute_constant_value）"""
+    impute_constant_value: float = 0.0
+    """当数值/类别填补方法为 constant 时使用的填充值"""
+
+    # ── 标准化 ──────────────────────────────────────────────
+    scale_method: str = "standard"
+    """标准化方法："standard"（StandardScaler） | "minmax"（MinMaxScaler） | "robust"（RobustScaler）"""
+
+    # ── 偏度校正 ────────────────────────────────────────────
+    skew_method: str = "yeo-johnson"
+    """偏度校正方法："yeo-johnson"（推荐，支持非正数）| "log1p"（仅正数）"""
+
+    # ── 类别编码 ────────────────────────────────────────────
+    low_cardinality_encoding: str = "onehot"
+    """低基数类别列编码："onehot"（OneHotEncoder）| "label"（OrdinalEncoder）"""
+    high_cardinality_encoding: str = "target"
+    """高基数类别列编码："target"（目标编码）| "frequency"（频率编码）"""
+    max_onehot_categories: int = 20
+    """低于此值的类别列使用 low_cardinality_encoding，超过的使用 high_cardinality_encoding"""
+
+    # ── 特殊列 ──────────────────────────────────────────────
+    handle_text: str = "drop"
+    """文本列处理："drop"（丢弃）| "keep"（保留，当前 keep 会报错）"""
+    handle_datetime: str = "extract"
+    """日期列处理："extract"（抽特征）| "drop"（丢弃）| "keep"（保留）"""
+    datetime_features: str = "basic"
+    """日期特征提取级别："basic"（年/月/日）| "full"（+星期/季度）"""
 
     _COMMENTS: ClassVar[dict[str, str]] = {
-        "skew_method": "偏度校正方法：yeojohnson（推荐）或 log1p",
+        "numeric_impute": "数值列填补方法：median / mean / constant",
+        "categorical_impute": "类别列填补方法：most_frequent / constant",
+        "impute_constant_value": "数值/类别填补为 constant 时的填充值",
+        "scale_method": "标准化方法：standard / minmax / robust",
+        "skew_method": "偏度校正方法：yeo-johnson（推荐）或 log1p",
+        "low_cardinality_encoding": "低基数类别列编码：onehot 或 label",
+        "high_cardinality_encoding": "高基数类别列编码：target 或 frequency",
+        "max_onehot_categories": "低/高基数编码切换阈值（唯一值 ≤ 此值用 low_cardinality_encoding）",
+        "handle_text": "文本列处理：drop（丢弃）或 keep（当前 keep 会报错）",
+        "handle_datetime": "日期列处理：extract / drop / keep",
+        "datetime_features": "日期特征提取级别：basic（年/月/日）或 full（+星期/季度）",
     }
-    _RANGES: ClassVar[dict[str, _Range]] = {}
+    _RANGES: ClassVar[dict[str, _Range]] = {
+        "impute_constant_value": (None, None),
+        "max_onehot_categories": (1, None),
+    }
+    _CHOICES: ClassVar[dict[str, set[str]]] = {
+        "numeric_impute": {"median", "mean", "constant"},
+        "categorical_impute": {"most_frequent", "constant"},
+        "scale_method": {"standard", "minmax", "robust"},
+        "skew_method": {"yeo-johnson", "log1p"},
+        "low_cardinality_encoding": {"onehot", "label"},
+        "high_cardinality_encoding": {"target", "frequency"},
+        "handle_text": {"drop", "keep"},
+        "handle_datetime": {"extract", "drop", "keep"},
+        "datetime_features": {"basic", "full"},
+    }
+
+    def __post_init__(self) -> None:
+        """构造时自动校验所有参数。"""
+        for name, (lo, hi) in self._RANGES.items():
+            val = getattr(self, name)
+            if lo is not None and val < lo:
+                raise ValueError(
+                    f"{name} 不能小于 {lo}，收到 {val}。"
+                    f"  {self.get_comments(name)}"
+                )
+            if hi is not None and val > hi:
+                raise ValueError(
+                    f"{name} 不能大于 {hi}，收到 {val}。"
+                    f"  {self.get_comments(name)}"
+                )
+        # 枚举选项校验
+        for name, choices in self._CHOICES.items():
+            val = getattr(self, name)
+            if val not in choices:
+                raise ValueError(
+                    f"{name} 必须为 {choices} 之一，收到 {val!r}。"
+                    f"  {self.get_comments(name)}"
+                )
 
     def set_param(self, name: str, value: Any) -> None:
         if name not in self._COMMENTS:
             raise ValueError(f"未知参数 {name!r}。可用：{list(self._COMMENTS)}")
-        if name == "skew_method" and value not in ("yeojohnson", "log1p"):
-            raise ValueError(f"skew_method 必须为 'yeojohnson' 或 'log1p'，收到 {value!r}")
+        lo, hi = self._RANGES.get(name, (None, None))
+        if lo is not None and value < lo:
+            raise ValueError(f"{name} 不能小于 {lo}，收到 {value}。  {self.get_comments(name)}")
+        if hi is not None and value > hi:
+            raise ValueError(f"{name} 不能大于 {hi}，收到 {value}。  {self.get_comments(name)}")
+        choices = self._CHOICES.get(name)
+        if choices is not None and value not in choices:
+            raise ValueError(f"{name} 必须为 {choices} 之一，收到 {value!r}。  {self.get_comments(name)}")
         setattr(self, name, value)
 
     def get_comments(self, name: str) -> str:
