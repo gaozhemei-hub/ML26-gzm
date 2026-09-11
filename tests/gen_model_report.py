@@ -264,6 +264,11 @@ def main():
     overview_data["artifact_dir"] = artifact_dir
     overview_data["has_confusion_matrix"] = has_cm
     overview_data["has_roc_curve"] = has_roc
+    # ranking / succeeded_results / failed_results 是 @property 计算属性，
+    # 不在 __dict__ 中，需要手动保留
+    overview_data["ranking"] = result.ranking
+    overview_data["succeeded_results"] = result.succeeded_results
+    overview_data["failed_results"] = result.failed_results
 
     # ── 6. 渲染总览报告 ────────────────────────────────────
     print("渲染总览报告 ...")

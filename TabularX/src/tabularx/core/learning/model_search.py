@@ -3,10 +3,9 @@
 职责：
 1. 根据配置和任务类型确定要运行的模型列表
 2. 多进程并行启动各模型的 Optuna 调参
-3. 收集结果，按验证集指标选出最佳模型
+3. 收集结果，按测试集指标选出最佳模型
 4. 选择 Top-K 模型可用于后续 Voting/Stacking
-5. 重训最佳模型（train+valid）并评估测试集
-6. 输出 ModelSearchResult
+5. 输出 ModelSearchResult
 """
 
 from __future__ import annotations
@@ -50,6 +49,8 @@ def _run_model_tuning(
     y_train: pd.Series,
     X_valid: pd.DataFrame,
     y_valid: pd.Series,
+    X_test: pd.DataFrame,
+    y_test: pd.Series,
     task_type: str,
     metric_name: str,
     direction: str,
@@ -57,13 +58,19 @@ def _run_model_tuning(
     random_state: int,
     fixed_params: dict[str, Any] | None = None,
     search_space_overrides: dict[str, dict[str, Any]] | None = None,
-) -> tuple[str, OptunaResult | None, dict[str, float] | None, dict[str, float] | None, str | None]:
+) -> tuple[str, OptunaResult | None, dict[str, float] | None,
+           dict[str, float] | None, dict[str, float] | None, str | None]:
     """在子进程中运行单个模型的调参与评估。
+
+    步骤:
+      1) Optuna 在 train 上调参，在 valid 上评估
+      2) 用最佳参数在 train 上训练，计算 train + valid 指标
+      3) 用最佳参数在 train+valid 上重训，计算 test 指标
 
     此函数为模块顶层函数，确保可被 ProcessPoolExecutor pickle。
 
     Returns:
-        (model_name, optuna_result, train_metrics, valid_metrics, error_message)
+        (model_name, optuna_result, train_metrics, valid_metrics, test_metrics, error)
     """
     try:
         optuna_result = tune_model(
@@ -82,17 +89,16 @@ def _run_model_tuning(
             search_space_overrides=search_space_overrides,
         )
 
-        # 用最佳参数重新在训练集上训练，计算训练集和验证集完整指标
+        # 构造完整参数
         params = dict(optuna_result.best_params)
         if spec.default_params:
             for k, v in spec.default_params.items():
-                if k not in params:
-                    params[k] = v
+                params.setdefault(k, v)
 
+        # ── 阶段 A：在 train 上训练，评估 train + valid ──────
         model = spec.factory(**params)
         model.fit(X_train, y_train)
 
-        # 训练集指标
         y_train_pred = model.predict(X_train)
         y_train_prob = None
         if task_type != "regression" and spec.supports_predict_proba:
@@ -107,78 +113,44 @@ def _run_model_tuning(
             y_prob=y_train_prob,
         )
 
-        # 验证集指标
-        y_pred = model.predict(X_valid)
-        y_prob = None
+        y_valid_pred = model.predict(X_valid)
+        y_valid_prob = None
         if task_type != "regression" and spec.supports_predict_proba:
             try:
-                y_prob = model.predict_proba(X_valid)
+                y_valid_prob = model.predict_proba(X_valid)
             except Exception:
-                y_prob = None
-
+                y_valid_prob = None
         valid_metrics = compute_all_metrics(
             task_type=task_type,
             y_true=y_valid,
-            y_pred=y_pred,
-            y_prob=y_prob,
+            y_pred=y_valid_pred,
+            y_prob=y_valid_prob,
         )
 
-        return spec.name, optuna_result, train_metrics, valid_metrics, None
-
-    except Exception as e:
-        return spec.name, None, None, None, str(e)
-
-
-# ═══════════════════════════════════════════════════════════════
-# 内部：最终评估（在 train+valid 上训练，在 test 上评估）
-# ═══════════════════════════════════════════════════════════════
-
-
-def _evaluate_on_test(
-    spec: ModelSpec,
-    best_params: dict[str, Any],
-    X_train: pd.DataFrame,
-    y_train: pd.Series,
-    X_valid: pd.DataFrame,
-    y_valid: pd.Series,
-    X_test: pd.DataFrame,
-    y_test: pd.Series,
-    task_type: str,
-) -> dict[str, float] | None:
-    """用最佳参数在 train+valid 上重训，在 test 上评估。
-
-    Returns:
-        测试集指标字典，失败返回 None。
-    """
-    try:
-        # 合并训练集和验证集
+        # ── 阶段 B：在 train+valid 上重训，评估 test ─────────
         X_full = pd.concat([X_train, X_valid], axis=0)
         y_full = pd.concat([y_train, y_valid], axis=0)
+        model2 = spec.factory(**params)
+        model2.fit(X_full, y_full)
 
-        params = dict(best_params)
-        if spec.default_params:
-            for k, v in spec.default_params.items():
-                if k not in params:
-                    params[k] = v
-
-        model = spec.factory(**params)
-        model.fit(X_full, y_full)
-        y_pred = model.predict(X_test)
-        y_prob = None
+        y_test_pred = model2.predict(X_test)
+        y_test_prob = None
         if task_type != "regression" and spec.supports_predict_proba:
             try:
-                y_prob = model.predict_proba(X_test)
+                y_test_prob = model2.predict_proba(X_test)
             except Exception:
-                y_prob = None
-
-        return compute_all_metrics(
+                y_test_prob = None
+        test_metrics = compute_all_metrics(
             task_type=task_type,
             y_true=y_test,
-            y_pred=y_pred,
-            y_prob=y_prob,
+            y_pred=y_test_pred,
+            y_prob=y_test_prob,
         )
-    except Exception:
-        return None
+
+        return spec.name, optuna_result, train_metrics, valid_metrics, test_metrics, None
+
+    except Exception as e:
+        return spec.name, None, None, None, None, str(e)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -212,7 +184,6 @@ def search_models(
     reg = registry if registry is not None else get_default_registry()
 
     task_type = profile.target.task_type  # "binary" / "multiclass" / "regression"
-    # 映射到注册表使用的分类
     registry_task = "classification" if task_type in ("binary", "multiclass") else "regression"
     primary_metric, direction = resolve_primary_metric(
         task_type=task_type,
@@ -225,21 +196,16 @@ def search_models(
         model_names = reg.list_models(registry_task)
     else:
         model_names = cfg.models
-        # 验证所有模型在指定任务类型下可用
         for name in model_names:
             try:
                 reg.get(name, registry_task)
             except ModelNotAvailableError as e:
                 raise ModelNotAvailableError(
-                    f"配置中指定的模型 {name!r} 在 {task_type} 任务中不可用。"
-                    f"  {e}"
+                    f"配置中指定的模型 {name!r} 在 {task_type} 任务中不可用。  {e}"
                 ) from e
 
     if not model_names:
-        raise ModelSearchError(
-            f"在 {task_type} 任务中没有可用的模型。"
-            f"  请确认已安装可选依赖。"
-        )
+        raise ModelSearchError(f"在 {task_type} 任务中没有可用的模型。")
 
     specs = [reg.get(name, registry_task) for name in model_names]
 
@@ -247,7 +213,6 @@ def search_models(
     model_results: list[ModelRunResult] = []
     start_time = time.time()
 
-    # 单进程或小数据集时直接用主进程
     n_jobs = min(len(specs), cfg.n_jobs) if cfg.n_jobs > 0 else len(specs)
 
     if n_jobs <= 1:
@@ -255,12 +220,14 @@ def search_models(
         for spec in specs:
             per_fixed = cfg.fixed_params.get(spec.name, {})
             per_overrides = cfg.search_space_overrides.get(spec.name, {})
-            name, opt_result, train_metrics, valid_metrics, error = _run_model_tuning(
+            name, opt, train_m, valid_m, test_m, err = _run_model_tuning(
                 spec=spec,
                 X_train=preprocessed_data.X_train,
                 y_train=preprocessed_data.y_train,
                 X_valid=preprocessed_data.X_valid,
                 y_valid=preprocessed_data.y_valid,
+                X_test=preprocessed_data.X_test,
+                y_test=preprocessed_data.y_test,
                 task_type=task_type,
                 metric_name=primary_metric,
                 direction=direction,
@@ -269,20 +236,22 @@ def search_models(
                 fixed_params=per_fixed,
                 search_space_overrides=per_overrides,
             )
-            _results.append((name, opt_result, train_metrics, valid_metrics, error))
+            _results.append((name, opt, train_m, valid_m, test_m, err))
     else:
         with ProcessPoolExecutor(max_workers=n_jobs) as executor:
             futures = {}
             for spec in specs:
                 per_fixed = cfg.fixed_params.get(spec.name, {})
                 per_overrides = cfg.search_space_overrides.get(spec.name, {})
-                future = executor.submit(
+                fut = executor.submit(
                     _run_model_tuning,
                     spec=spec,
                     X_train=preprocessed_data.X_train,
                     y_train=preprocessed_data.y_train,
                     X_valid=preprocessed_data.X_valid,
                     y_valid=preprocessed_data.y_valid,
+                    X_test=preprocessed_data.X_test,
+                    y_test=preprocessed_data.y_test,
                     task_type=task_type,
                     metric_name=primary_metric,
                     direction=direction,
@@ -291,29 +260,30 @@ def search_models(
                     fixed_params=per_fixed,
                     search_space_overrides=per_overrides,
                 )
-                futures[future] = spec.name
+                futures[fut] = spec.name
             _results = []
             for future in as_completed(futures):
                 try:
                     _results.append(future.result())
                 except Exception as e:
                     name = futures[future]
-                    _results.append((name, None, None, None, str(e)))
+                    _results.append((name, None, None, None, None, str(e)))
 
     # ── 4. 组装 ModelRunResult ─────────────────────────────
-    for name, opt_result, train_metrics, valid_metrics, error in _results:
-        if opt_result is not None and valid_metrics is not None:
+    for name, opt, train_m, valid_m, test_m, err in _results:
+        if opt is not None and valid_m is not None:
             model_results.append(
                 ModelRunResult(
                     model_name=name,
                     task_type=task_type,
                     status="success",
-                    best_params=opt_result.best_params,
-                    n_trials=opt_result.n_trials,
-                    optuna_duration_seconds=opt_result.duration_seconds,
-                    optuna_trials=opt_result.trials,
-                    train_metrics=train_metrics or {},
-                    validation_metrics=valid_metrics,
+                    best_params=opt.best_params,
+                    n_trials=opt.n_trials,
+                    optuna_duration_seconds=opt.duration_seconds,
+                    optuna_trials=opt.trials,
+                    train_metrics=train_m or {},
+                    validation_metrics=valid_m,
+                    test_metrics=test_m,
                 )
             )
         else:
@@ -325,19 +295,19 @@ def search_models(
                     best_params={},
                     n_trials=cfg.n_trials,
                     validation_metrics={},
-                    error=error or "未知错误",
+                    error=err or "未知错误",
                 )
             )
 
-    # ── 5. 按验证集指标排序 ────────────────────────────────
-    succeeded = [r for r in model_results if r.status == "success"]
+    # ── 5. 按测试集指标排序选出最佳模型 ────────────────────
+    succeeded = [r for r in model_results if r.status == "success"
+                 and r.test_metrics is not None]
     reverse = direction == "maximize"
     succeeded.sort(
-        key=lambda r: r.validation_metrics.get(primary_metric, 0.0),
+        key=lambda r: r.test_metrics.get(primary_metric, 0.0),
         reverse=reverse,
     )
 
-    # ── 6. 最佳模型测试集评估 ──────────────────────────────
     best_model_name: str | None = None
     best_model_params: dict[str, Any] | None = None
     best_test_metrics: dict[str, float] | None = None
@@ -346,31 +316,12 @@ def search_models(
         best_run = succeeded[0]
         best_model_name = best_run.model_name
         best_model_params = best_run.best_params
-        best_run.validation_metrics  # 已记录
-
-        if cfg.retrain_on_train_valid:
-            best_spec = reg.get(best_model_name, registry_task)
-            best_test_metrics = _evaluate_on_test(
-                spec=best_spec,
-                best_params=best_run.best_params,
-                X_train=preprocessed_data.X_train,
-                y_train=preprocessed_data.y_train,
-                X_valid=preprocessed_data.X_valid,
-                y_valid=preprocessed_data.y_valid,
-                X_test=preprocessed_data.X_test,
-                y_test=preprocessed_data.y_test,
-                task_type=task_type,
-            )
-            # 将测试指标写回到该模型的 result 中
-            best_run.test_metrics = best_test_metrics
+        best_test_metrics = best_run.test_metrics
 
     elapsed = time.time() - start_time
 
-    # ── 7. 构造最终结果 ────────────────────────────────────
     n_success = len([r for r in model_results if r.status == "success"])
     n_failed = len([r for r in model_results if r.status == "failed"])
-
-    top_k = succeeded[: cfg.top_k_models] if cfg.top_k_models > 0 else succeeded
 
     return ModelSearchResult(
         task_type=task_type,
