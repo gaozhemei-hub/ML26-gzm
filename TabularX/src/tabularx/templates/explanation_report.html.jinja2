@@ -34,19 +34,91 @@
     .stat-item { background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; padding: .5rem .75rem; min-width: 140px; }
     .stat-item .name { font-size: .75rem; color: #7f8c8d; }
     .stat-item .val { font-size: .9rem; font-weight: 600; color: #2c3e50; }
+    .mermaid { background: #fff; padding: 1rem; border-radius: 6px; border: 1px solid #eee; }
+    .mermaid-note { background: #f5f6fa; border: 1px dashed #bdc3c7; padding: 1rem; border-radius: 6px; margin: 1rem 0; font-size: .85rem; color: #7f8c8d; }
     footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #95a5a6; font-size: .85rem; }
   </style>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+  </script>
 </head>
 <body>
   <p><a href="model_search.html" class="model-link" style="color: #2980b9;">← 返回模型搜索总览</a></p>
   <h1>TabularX 可解释性与公平性报告</h1>
 
   <!-- ══════════════════════════════════════════════════════════
-       第 1 部分：SHAP 可解释性分析
+       第 1 部分：摘要
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>① 摘要</h2>
+
+    <h3>输入</h3>
+    <div class="summary">
+      <div class="card"><div class="num">{{ data.best_model_name or "—" }}</div><div class="label">最优模型</div></div>
+      {% if data.shap_available %}
+      <div class="card"><div class="num">{{ data.shap_n_explain_samples }}</div><div class="label">解释样本数</div></div>
+      <div class="card"><div class="num">{{ data.shap_n_features }}</div><div class="label">特征数</div></div>
+      <div class="card"><div class="num">{{ "%.1f"|format(data.shap_top_k_explained_ratio * 100) }}%</div><div class="label">Top-10 累计解释力</div></div>
+      {% endif %}
+      {% if data.fairness_enabled %}
+      <div class="card"><div class="num">{{ data.fairness_sensitive_features | length }}</div><div class="label">敏感特征数</div></div>
+      {% endif %}
+    </div>
+
+    <h3>结论</h3>
+    <div class="conclusion">
+      {% if data.shap_available and data.fairness_enabled %}
+        对最优模型 <b>{{ data.best_model_name }}</b> 执行了 SHAP 可解释性分析，
+        并对 <b>{{ data.fairness_sensitive_features | length }}</b> 个敏感特征执行了公平性评估。
+      {% elif data.shap_available %}
+        对最优模型 <b>{{ data.best_model_name }}</b> 执行了 SHAP 可解释性分析。
+        未指定敏感特征，跳过公平性评估。
+      {% elif data.fairness_enabled %}
+        对 <b>{{ data.fairness_sensitive_features | length }}</b> 个敏感特征执行了公平性评估。
+        SHAP 可解释性不可用。
+      {% else %}
+        未执行任何分析。
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 2 部分：整体流程图（架构总览）
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>② 整体流程图</h2>
+    <div class="mermaid">
+flowchart TB
+  Input([模型搜索结果]) --> SHAPBlock[SHAP 可解释性<br/>对最优模型]
+
+  SHAPBlock --> Importance[特征重要性排序<br/>Top-10]
+  SHAPBlock --> Viz[SHAP 可视化<br/>beeswarm / 柱状图 / waterfall]
+  SHAPBlock --> Direction[特征贡献方向分析]
+
+  Input --> FairnessBlock[公平性评估<br/>对每个敏感特征]
+
+  FairnessBlock --> Resolve[查找 column_mappings<br/>解析预处理后列名]
+  Resolve --> Dropped{已被丢弃？}
+  Dropped -->|是| Skip[跳过并提示]
+  Dropped -->|否| Split[按子组拆分测试集]
+  Split --> GroupMetrics[计算各子组指标<br/>正类预测率 / 准确率 / TPR / FPR]
+  GroupMetrics --> Diff[计算公平性差异<br/>Demographic Parity<br/>Equalized Odds TPR/FPR]
+  Diff --> Threshold{超出阈值 0.1？}
+  Threshold -->|是| Warn[标记潜在偏见]
+  Threshold -->|否| Pass[公平性通过]
+
+  SHAPBlock & FairnessBlock --> Report[生成可解释性与公平性报告]
+</div>
+<div class="mermaid-note">可解释性与公平性报告完整流程。SHAP 解释在最优模型上自动执行；公平性评估在用户指定敏感特征后执行。</div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 3 部分：SHAP 可解释性分析
        ══════════════════════════════════════════════════════════ -->
   {% if data.shap_available %}
   <section>
-    <h2>① SHAP 可解释性分析</h2>
+    <h2>③ SHAP 可解释性分析</h2>
 
     <h3>1.1 基本信息</h3>
     <div class="summary">
@@ -173,7 +245,7 @@
        第 2 部分：公平性评估
        ══════════════════════════════════════════════════════════ -->
   <section>
-    <h2>② 公平性评估</h2>
+    <h2>④ 公平性评估</h2>
 
     {% if data.fairness_error %}
     <div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; padding: 1rem; margin: 1rem 0;">
@@ -192,7 +264,7 @@
     </div>
 
     {% else %}
-    <h3>2.1 配置</h3>
+    <h3>4.1 配置</h3>
     <table>
       <tr><th>敏感特征</th><td>
         {% for f in data.fairness_sensitive_features %}
@@ -204,7 +276,7 @@
     </table>
 
     {% for feat_result in data.fairness_feature_results %}
-    <h3>2.2 敏感特征：{{ feat_result.feature_name }}</h3>
+    <h3>4.2 敏感特征：{{ feat_result.feature_name }}</h3>
 
     {% if feat_result.is_dropped %}
     <div class="conclusion" style="background: #fef3cd; border-left-color: #ffc107;">
