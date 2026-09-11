@@ -72,15 +72,10 @@ def _run_model_tuning(
 
     Args:
         device: 计算设备，"cpu"（默认）| "gpu" | "auto"。
-               为 "cpu" 时对 XGBoost 注入 device="cpu"。
 
     Returns:
         (model_name, optuna_result, train_metrics, valid_metrics, test_metrics, error)
     """
-    # ── 强制禁用 CUDA（针对预编译带 CUDA 的 XGBoost） ──
-    if device == "cpu":
-        import os
-        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     try:
         optuna_result = tune_model(
             spec=spec,
@@ -104,21 +99,20 @@ def _run_model_tuning(
             for k, v in spec.default_params.items():
                 params.setdefault(k, v)
 
-        # ── 根据 device 注入硬件参数 ────────────────────────
+        # ── 根据 device 注入硬件参数（覆盖搜索空间和默认参数）──
         if device == "cpu":
             if spec.name == "xgboost":
-                # XGBoost 预编译包默认会尝试 GPU，强制 CPU
-                params.setdefault("device", "cpu")
-                params.setdefault("tree_method", "hist")
+                params["device"] = "cpu"
+                params["tree_method"] = "hist"
             # LightGBM 和 CatBoost 默认就是 CPU，无需额外设置
         elif device == "gpu":
             if spec.name == "xgboost":
-                params.setdefault("device", "cuda")
-                params.setdefault("tree_method", "hist")
+                params["device"] = "cuda"
+                params["tree_method"] = "hist"
             elif spec.name == "lightgbm":
-                params.setdefault("device", "gpu")
+                params["device"] = "gpu"
             elif spec.name == "catboost":
-                params.setdefault("task_type", "GPU")
+                params["task_type"] = "GPU"
         # "auto" — 不做任何注入，让各库自行决定
 
         # ── 阶段 A：在 train 上训练，评估 train + valid ──────
@@ -176,6 +170,19 @@ def _run_model_tuning(
         return spec.name, optuna_result, train_metrics, valid_metrics, test_metrics, None
 
     except Exception as e:
+        err_msg = str(e)
+        # 检测 CUDA 驱动不兼容错误
+        if spec.name == "xgboost" and (
+            "CUDA" in err_msg
+            or "cudaError" in err_msg
+            or "cuda_dr_utils" in err_msg
+            or "cudaErrorInsufficientDriver" in err_msg
+        ):
+            return spec.name, None, None, None, None, (
+                "XGBoost 跳过：当前环境的 NVIDIA 驱动与 XGBoost 不兼容。\n"
+                "  - 如果有 NVIDIA 显卡，请安装正确的 CUDA 驱动\n"
+                "  - 如果没有显卡，请安装纯 CPU 版：uv pip install --no-binary xgboost xgboost"
+            )
         return spec.name, None, None, None, None, str(e)
 
 
