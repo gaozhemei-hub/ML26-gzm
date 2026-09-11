@@ -32,10 +32,15 @@ class ShapError(ModelSearchError):
     """SHAP 解释执行失败。"""
 
 
+class FairnessError(ModelSearchError):
+    """公平性评估执行失败。"""
+
+
 __all__ = [
     "ModelSearchError",
     "ModelNotAvailableError",
     "ModelTrainingError",
     "OptunaError",
     "ShapError",
+    "FairnessError",
 ]

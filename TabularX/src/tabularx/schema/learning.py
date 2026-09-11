@@ -213,6 +213,60 @@ class FairnessConfig:
 
 
 @dataclass
+class FairnessGroupResult:
+    """单个子组的公平性评估结果。"""
+
+    group_name: str
+    """子组名称，如 "男"、"女" """
+    n_samples: int
+    """该子组的样本数"""
+    positive_rate: float
+    """正类预测率 P(预测=正类)"""
+    accuracy: float
+    """准确率"""
+    tpr: float
+    """真正率（召回率）"""
+    fpr: float
+    """假正率"""
+    support: int
+    """该子组的实际样本数"""
+
+
+@dataclass
+class FairnessFeatureResult:
+    """单个敏感特征的公平性分析结果。"""
+
+    feature_name: str
+    """敏感特征名"""
+    is_dropped: bool = False
+    """该特征是否在预处理中被丢弃"""
+    dropped_reason: str | None = None
+    """丢弃原因"""
+    groups: list[FairnessGroupResult] = field(default_factory=list)
+    """各子组的结果"""
+    demographic_parity_diff: float | None = None
+    """Demographic Parity 差异：各子组正类预测率的最大差值"""
+    equalized_odds_tpr_diff: float | None = None
+    """Equalized Odds TPR 差异：各子组 TPR 的最大差值"""
+    equalized_odds_fpr_diff: float | None = None
+    """Equalized Odds FPR 差异：各子组 FPR 的最大差值"""
+
+
+@dataclass
+class FairnessResult:
+    """公平性评估的完整结果。"""
+
+    enabled: bool
+    """是否实际执行了公平性评估"""
+    sensitive_features: list[str] = field(default_factory=list)
+    """用户指定的敏感特征列表"""
+    feature_results: list[FairnessFeatureResult] = field(default_factory=list)
+    """每个敏感特征的分析结果"""
+    error: str | None = None
+    """公平性评估过程中的错误信息"""
+
+
+@dataclass
 class ShapResult:
     """SHAP 可解释性分析的结果。
 
@@ -251,5 +305,8 @@ __all__ = [
     "ModelRunResult",
     "ModelSearchResult",
     "FairnessConfig",
+    "FairnessResult",
+    "FairnessFeatureResult",
+    "FairnessGroupResult",
     "ShapResult",
 ]

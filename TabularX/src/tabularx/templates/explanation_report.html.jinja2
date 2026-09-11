@@ -170,16 +170,131 @@
   {% endif %}
 
   <!-- ══════════════════════════════════════════════════════════
-       第 2 部分：公平性评估（预留）
+       第 2 部分：公平性评估
        ══════════════════════════════════════════════════════════ -->
   <section>
     <h2>② 公平性评估</h2>
-    <div class="conclusion" style="background: #f5f6fa; border-left-color: #95a5a6;">
-      <b>尚未启用</b>
-      <br>
-      公平性评估功能将在后续版本中提供。启用后，此页面将展示模型在敏感特征
-      （如性别、种族）各子组上的性能差异和公平性指标（Demographic Parity、Equalized Odds）。
+
+    {% if data.fairness_error %}
+    <div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; padding: 1rem; margin: 1rem 0;">
+      <b>公平性评估执行错误：</b><br>
+      <span class="hint">{{ data.fairness_error }}</span>
     </div>
+
+    {% elif not data.fairness_enabled %}
+    <div class="conclusion" style="background: #f5f6fa; border-left-color: #95a5a6;">
+      <b>未指定敏感特征</b>
+      <br>
+      未指定敏感特征，跳过公平性评估。可通过
+      <code>FairnessConfig(sensitive_features=["列名1", "列名2"])</code>
+      启用公平性审计，自动计算模型在不同子组间的性能差异和公平性指标
+      （Demographic Parity、Equalized Odds）。
+    </div>
+
+    {% else %}
+    <h3>2.1 配置</h3>
+    <table>
+      <tr><th>敏感特征</th><td>
+        {% for f in data.fairness_sensitive_features %}
+          <span class="badge badge-info">{{ f }}</span>
+        {% endfor %}
+      </td></tr>
+      <tr><th>评估指标</th><td>Demographic Parity, Equalized Odds (TPR / FPR)</td></tr>
+      <tr><th>差异阈值</th><td>0.1（超过此值标记为潜在偏见）</td></tr>
+    </table>
+
+    {% for feat_result in data.fairness_feature_results %}
+    <h3>2.2 敏感特征：{{ feat_result.feature_name }}</h3>
+
+    {% if feat_result.is_dropped %}
+    <div class="conclusion" style="background: #fef3cd; border-left-color: #ffc107;">
+      <b>特征已被丢弃</b>
+      <br>
+      {{ feat_result.dropped_reason or "该敏感特征在预处理中被丢弃，无法进行公平性评估。" }}
+    </div>
+    {% else %}
+
+    <h4>各子组指标</h4>
+    <table>
+      <thead>
+        <tr>
+          <th>子组</th>
+          <th>样本数</th>
+          <th>正类预测率</th>
+          <th>准确率</th>
+          <th>TPR（真正率）</th>
+          <th>FPR（假正率）</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for g in feat_result.groups %}
+        <tr>
+          <td><b>{{ g.group_name }}</b></td>
+          <td>{{ g.n_samples }}</td>
+          <td>{{ "%.2f"|format(g.positive_rate * 100) }}%</td>
+          <td>{{ "%.2f"|format(g.accuracy * 100) }}%</td>
+          <td>{{ "%.2f"|format(g.tpr * 100) }}%</td>
+          <td>{{ "%.2f"|format(g.fpr * 100) }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h4>公平性差异</h4>
+    <table>
+      <thead>
+        <tr>
+          <th>指标</th>
+          <th>差异值</th>
+          <th>是否超阈值</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set _dp = feat_result.demographic_parity_diff or 0 %}
+        {% set _dp_flag = "badge-warn" if _dp > 0.1 else "badge-ok" %}
+        <tr>
+          <td><b>Demographic Parity</b></td>
+          <td>{{ "%.4f"|format(_dp) }}</td>
+          <td><span class="badge {{ _dp_flag }}">{{ "是" if _dp > 0.1 else "否" }}</span></td>
+          <td class="hint">各子组正类预测率的最大差异</td>
+        </tr>
+        {% set _tpr = feat_result.equalized_odds_tpr_diff or 0 %}
+        {% set _tpr_flag = "badge-warn" if _tpr > 0.1 else "badge-ok" %}
+        <tr>
+          <td><b>Equalized Odds (TPR)</b></td>
+          <td>{{ "%.4f"|format(_tpr) }}</td>
+          <td><span class="badge {{ _tpr_flag }}">{{ "是" if _tpr > 0.1 else "否" }}</span></td>
+          <td class="hint">各子组真正率的最大差异</td>
+        </tr>
+        {% set _fpr = feat_result.equalized_odds_fpr_diff or 0 %}
+        {% set _fpr_flag = "badge-warn" if _fpr > 0.1 else "badge-ok" %}
+        <tr>
+          <td><b>Equalized Odds (FPR)</b></td>
+          <td>{{ "%.4f"|format(_fpr) }}</td>
+          <td><span class="badge {{ _fpr_flag }}">{{ "是" if _fpr > 0.1 else "否" }}</span></td>
+          <td class="hint">各子组假正率的最大差异</td>
+        </tr>
+      </tbody>
+    </table>
+
+    {% if _dp > 0.1 or _tpr > 0.1 or _fpr > 0.1 %}
+    <div class="conclusion" style="background: #fef3cd; border-left-color: #ffc107;">
+      <b>潜在偏见检测</b>
+      <br>
+      模型在特征 <b>{{ feat_result.feature_name }}</b> 上存在超过阈值的公平性差异，
+      建议进一步审查模型对该特征的依赖情况。
+    </div>
+    {% else %}
+    <div class="conclusion" style="background: #d4edda; border-left-color: #28a745;">
+      <b>公平性通过</b>
+      <br>
+      模型在特征 <b>{{ feat_result.feature_name }}</b> 上的公平性差异在可接受范围内。
+    </div>
+    {% endif %}
+    {% endif %}
+    {% endfor %}
+    {% endif %}
   </section>
 
   <footer>

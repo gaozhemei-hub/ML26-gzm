@@ -17,6 +17,9 @@ from tabularx.core.params import ModelSearchConfig
 from tabularx.core.learning import search_models, build_voting
 from tabularx.core.learning.model_registry import get_default_registry
 from tabularx.core.learning.shap_explainer import explain_model
+from tabularx.core.learning.fairness import evaluate_fairness
+from tabularx.schema.preprocess import ColumnMapping
+from tabularx.schema.learning import FairnessConfig
 from tabularx.reports import render_model_search_report, render_model_detail_report, render_voting_report, render_explanation_report
 from tabularx.schema.learning import ModelSearchResult
 from tabularx.schema.preprocess import PreprocessedData
@@ -203,11 +206,48 @@ def main():
     # 生成可解释性与公平性报告
     if shap_available:
         shap_n_features = len(ppd.feature_names_out)
-        shap_n_explain_samples = shap_result.n_explain_samples if hasattr(shap_result, 'n_explain_samples') else 0
-        shap_top_k_explained_ratio = shap_result.top_k_explained_ratio if hasattr(shap_result, 'top_k_explained_ratio') else 0.0
-        shap_sum_total = shap_result.shap_sum_total if hasattr(shap_result, 'shap_sum_total') else 1.0
-        shap_top_k_stats = shap_result.top_k_stats if hasattr(shap_result, 'top_k_stats') else {}
+        shap_n_explain_samples = shap_result.n_explain_samples
+        shap_top_k_explained_ratio = shap_result.top_k_explained_ratio
+        shap_sum_total = shap_result.shap_sum_total
+        shap_top_k_stats = shap_result.top_k_stats
         task_type = profile.target.task_type
+
+        # 公平性评估：用 f0（平均半径）和 f1（平均纹理）二值化模拟敏感特征
+        _median_f0 = ppd.X_test["f0"].median()
+        ppd.X_test = ppd.X_test.copy()
+        ppd.X_test["f0_demo"] = (ppd.X_test["f0"] > _median_f0).astype(int)
+        ppd.X_test["f1_demo"] = (ppd.X_test["f1"] > ppd.X_test["f1"].median()).astype(int)
+        _demo_mappings = list(ppd.column_mappings) + [
+            ColumnMapping(original_name="f0_demo", output_names=["f0_demo"], n_features_out=1),
+            ColumnMapping(original_name="f1_demo", output_names=["f1_demo"], n_features_out=1),
+        ]
+
+        # 也在训练集添加演示列，确保训练/测试特征数一致
+        _median_f0_train = pd.concat([ppd.X_train, ppd.X_valid])["f0"].median()
+        _median_f1_train = pd.concat([ppd.X_train, ppd.X_valid])["f1"].median()
+        X_full = pd.concat([ppd.X_train, ppd.X_valid]).copy()
+        X_full["f0_demo"] = (X_full["f0"] > _median_f0_train).astype(int)
+        X_full["f1_demo"] = (X_full["f1"] > _median_f1_train).astype(int)
+
+        best_spec = registry.get(result.best_model_name, "classification")
+        y_full = pd.concat([ppd.y_train, ppd.y_valid])
+        params = dict(result.best_model_params)
+        if best_spec.default_params:
+            for k, v in best_spec.default_params.items():
+                params.setdefault(k, v)
+        best_model = best_spec.factory(**params)
+        best_model.fit(X_full, y_full)
+        y_pred = best_model.predict(ppd.X_test)
+        y_prob = best_model.predict_proba(ppd.X_test)
+        fairness_result = evaluate_fairness(
+            X_test=ppd.X_test, y_test=ppd.y_test,
+            y_pred=y_pred, y_prob=y_prob,
+            column_mappings=_demo_mappings,
+            sensitive_features=["f0_demo", "f1_demo"],
+            task_type=task_type,
+        )
+        print(f"  [Fairness] 敏感特征: f0_demo, f1_demo — DP={fairness_result.feature_results[0].demographic_parity_diff:.3f}")
+
         explanation_data = dict(
             shap_available=True,
             best_model_name=result.best_model_name,
@@ -223,6 +263,10 @@ def main():
             shap_sum_total=shap_sum_total,
             shap_top_k_stats=shap_top_k_stats,
             task_type=task_type,
+            fairness_enabled=fairness_result.enabled,
+            fairness_sensitive_features=fairness_result.sensitive_features,
+            fairness_feature_results=fairness_result.feature_results,
+            fairness_error=fairness_result.error,
         )
         explanation_html = render_explanation_report(explanation_data)
         explanation_path = out_dir / "explanation.html"

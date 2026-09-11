@@ -18,7 +18,7 @@ from tabularx.core.split import split_data
 from tabularx.core.learning.model_registry import ModelRegistry, get_default_registry
 from tabularx.core.learning.model_search import search_models
 from tabularx.core.learning.ensemble_search import build_voting
-from tabularx.core.learning import explain_model
+from tabularx.core.learning import explain_model, evaluate_fairness
 from tabularx.core.learning.metrics import (
     resolve_primary_metric,
     compute_all_metrics,
@@ -44,6 +44,9 @@ from tabularx.schema.learning import (
     ModelRunResult,
     ModelSearchResult,
     FairnessConfig,
+    FairnessResult,
+    FairnessFeatureResult,
+    FairnessGroupResult,
     ShapResult,
 )
 from tabularx.exceptions import (
@@ -83,6 +86,7 @@ __all__ = [
     "search_models",
     "build_voting",
     "explain_model",
+    "evaluate_fairness",
     "resolve_primary_metric",
     "compute_all_metrics",
     "compute_regression_metrics",
@@ -109,6 +113,9 @@ __all__ = [
     "ModelRunResult",
     "ModelSearchResult",
     "FairnessConfig",
+    "FairnessResult",
+    "FairnessFeatureResult",
+    "FairnessGroupResult",
     "ShapResult",
     # 参数配置
     "ProfileConfig",
@@ -137,4 +144,5 @@ __all__ = [
     "ModelTrainingError",
     "OptunaError",
     "ShapError",
+    "FairnessError",
 ]
