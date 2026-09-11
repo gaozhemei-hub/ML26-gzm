@@ -22,7 +22,7 @@ from tabularx.core.learning import (
     search_models,
     build_voting,
 )
-from tabularx.reports import render_model_search_report, render_model_detail_report
+from tabularx.core.reports import render_model_search_report, render_model_detail_report
 from tabularx.schema.learning import ModelSearchResult
 from tabularx.schema.preprocess import PreprocessedData
 from tabularx.schema.profile import DataProfile, TargetFact

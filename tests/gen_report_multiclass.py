@@ -19,7 +19,7 @@ from tabularx.core.learning.model_registry import get_default_registry
 from tabularx.core.learning.shap_explainer import explain_model
 from tabularx.core.learning.fairness import evaluate_fairness
 from tabularx.schema.preprocess import ColumnMapping
-from tabularx.reports import render_model_search_report, render_model_detail_report, render_voting_report, render_explanation_report
+from tabularx.core.reports import render_model_search_report, render_model_detail_report, render_voting_report, render_explanation_report
 from tabularx.schema.learning import ModelSearchResult
 from tabularx.schema.preprocess import PreprocessedData
 from tabularx.schema.profile import DataProfile, TargetFact

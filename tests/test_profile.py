@@ -462,7 +462,7 @@ class TestReportThreeLayerStructure:
 
     def test_summary_section(self):
         """第 1 部分摘要存在，含结论。"""
-        from tabularx.reports import render_profile_report
+        from tabularx.core.reports import render_profile_report
 
         data = load_breast_cancer(as_frame=True)
         profile = build_profile(data.data, data.target)
@@ -473,7 +473,7 @@ class TestReportThreeLayerStructure:
 
     def test_evidence_section(self):
         """第 2 部分判断流程与证据存在，含规则文本。"""
-        from tabularx.reports import render_profile_report
+        from tabularx.core.reports import render_profile_report
 
         data = load_breast_cancer(as_frame=True)
         profile = build_profile(data.data, data.target)
@@ -484,7 +484,7 @@ class TestReportThreeLayerStructure:
 
     def test_detailed_stats_section(self):
         """第 3 部分详细统计存在，含特征列表格。"""
-        from tabularx.reports import render_profile_report
+        from tabularx.core.reports import render_profile_report
 
         data = load_breast_cancer(as_frame=True)
         profile = build_profile(data.data, data.target)
@@ -495,7 +495,7 @@ class TestReportThreeLayerStructure:
 
     def test_mermaid_flowchart_in_report(self):
         """报告含判断流程图（Mermaid）。"""
-        from tabularx.reports import render_profile_report
+        from tabularx.core.reports import render_profile_report
 
         data = load_breast_cancer(as_frame=True)
         profile = build_profile(data.data, data.target)
@@ -513,7 +513,7 @@ class TestRenderReport:
 
     def test_render_profile_html(self):
         """渲染 DataProfile → HTML，应包含关键信息。"""
-        from tabularx.reports import ReportType, render_report
+        from tabularx.core.reports import ReportType, render_report
 
         data = load_breast_cancer(as_frame=True)
         profile = build_profile(data.data, data.target)
@@ -534,7 +534,7 @@ class TestRenderReport:
 
     def test_render_profile_returns_str(self):
         """返回值必须是字符串（供上层写文件）。"""
-        from tabularx.reports import render_profile_report
+        from tabularx.core.reports import render_profile_report
 
         data = load_breast_cancer(as_frame=True)
         profile = build_profile(data.data, data.target)
@@ -544,7 +544,7 @@ class TestRenderReport:
 
     def test_render_deterministic(self):
         """相同输入 → 相同输出（纯函数特性）。"""
-        from tabularx.reports import render_report, ReportType
+        from tabularx.core.reports import render_report, ReportType
 
         data = load_breast_cancer(as_frame=True)
         profile = build_profile(data.data, data.target)
@@ -554,7 +554,7 @@ class TestRenderReport:
 
     def test_render_regression_profile(self):
         """回归任务的 profile 也能正常渲染（无 n_classes/class_balance 的分支）。"""
-        from tabularx.reports import render_profile_report
+        from tabularx.core.reports import render_profile_report
 
         data = load_diabetes(as_frame=True)
         profile = build_profile(data.data, data.target)
@@ -569,7 +569,7 @@ class TestRenderReport:
         import tempfile
         from pathlib import Path
 
-        from tabularx.reports import render_template
+        from tabularx.core.reports import render_template
 
         with tempfile.TemporaryDirectory() as tmpdir:
             custom_template = Path(tmpdir) / "custom.html.jinja2"
@@ -586,7 +586,7 @@ class TestRenderReport:
         """模板不存在时抛 TemplateNotFound。"""
         import tempfile
 
-        from tabularx.reports import render_template
+        from tabularx.core.reports import render_template
 
         with tempfile.TemporaryDirectory() as tmpdir:
             data = load_breast_cancer(as_frame=True)
@@ -599,7 +599,7 @@ class TestRenderReport:
         import tempfile
         from pathlib import Path
 
-        from tabularx.reports import render_template
+        from tabularx.core.reports import render_template
 
         with tempfile.TemporaryDirectory() as tmpdir:
             custom_template = Path(tmpdir) / "x.html.jinja2"
@@ -617,7 +617,7 @@ class TestRenderReport:
 
     def test_profile_report_end_to_end(self):
         """端到端：build_profile → render_profile_report，全流程无异常。"""
-        from tabularx.reports import render_profile_report
+        from tabularx.core.reports import render_profile_report
 
         for loader in (load_breast_cancer, load_iris, load_diabetes):
             data = loader(as_frame=True)

@@ -53,7 +53,7 @@ def _default_template_dir() -> Path:
     优先用 reports.py 旁边的 templates/（源码布局最可靠），
     回退到 importlib.resources（wheel 安装布局）。
     """
-    src_layout = Path(__file__).resolve().parent / "templates"
+    src_layout = Path(__file__).resolve().parent.parent / "templates"
     if src_layout.is_dir():
         return src_layout
     try:
@@ -177,21 +177,6 @@ def render_split_report(data: Any, *, template_dir: str | Path | None = None) ->
     return render_report(ReportType.SPLIT, data, template_dir=template_dir)
 
 
-__all__ = [
-    "ReportType",
-    "TEMPLATE_CONTEXT_KEY",
-    "render_report",
-    "render_profile_report",
-    "render_split_report",
-    "render_preprocess_report",
-    "render_model_search_report",
-    "render_model_detail_report",
-    "render_voting_report",
-    "render_explanation_report",
-    "render_template",
-]
-
-
 def render_preprocess_report(data: Any, *, template_dir: str | Path | None = None) -> str:
     """便捷函数：渲染数据预处理报告（preprocess）。
 
@@ -257,3 +242,18 @@ def render_explanation_report(data: Any, *, template_dir: str | Path | None = No
         HTML 字符串。
     """
     return render_report(ReportType.EXPLANATION, data, template_dir=template_dir)
+
+
+__all__ = [
+    "ReportType",
+    "TEMPLATE_CONTEXT_KEY",
+    "render_report",
+    "render_profile_report",
+    "render_split_report",
+    "render_preprocess_report",
+    "render_model_search_report",
+    "render_model_detail_report",
+    "render_voting_report",
+    "render_explanation_report",
+    "render_template",
+]

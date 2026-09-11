@@ -27,7 +27,7 @@ from tabularx.core.learning.metrics import (
     compute_regression_metrics,
     compute_classification_metrics,
 )
-from tabularx.reports import (
+from tabularx.core.reports import (
     ReportType,
     render_report,
     render_profile_report,
