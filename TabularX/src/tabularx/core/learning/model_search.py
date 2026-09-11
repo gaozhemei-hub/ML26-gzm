@@ -296,6 +296,7 @@ def search_models(
                     best_params=opt_result.best_params,
                     n_trials=opt_result.n_trials,
                     optuna_duration_seconds=opt_result.duration_seconds,
+                    optuna_trials=opt_result.trials,
                     validation_metrics=valid_metrics,
                 )
             )

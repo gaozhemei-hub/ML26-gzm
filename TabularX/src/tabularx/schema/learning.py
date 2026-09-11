@@ -116,6 +116,8 @@ class ModelRunResult:
     best_params: dict[str, Any]
     n_trials: int
     optuna_duration_seconds: float | None = None
+    optuna_trials: list[TrialRecord] | None = None
+    """Optuna 每次 trial 的完整记录（用于画调参轨迹图）"""
 
     # ── 验证集指标 ──────────────────────────────────────────
     validation_metrics: dict[str, float] = field(default_factory=dict)

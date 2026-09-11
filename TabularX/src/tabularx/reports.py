@@ -29,6 +29,8 @@ class ReportType(str, Enum):
     PROFILE = "profile_report.html.jinja2"
     SPLIT = "split_report.html.jinja2"
     PREPROCESS = "preprocess_report.html.jinja2"
+    MODEL_SEARCH = "model_search_report.html.jinja2"
+    MODEL_DETAIL = "model_detail_report.html.jinja2"
 
 
 # 模板文件名 → 渲染上下文 key（模板里用什么变量名访问数据）
@@ -36,6 +38,8 @@ TEMPLATE_CONTEXT_KEY: dict[ReportType, str] = {
     ReportType.PROFILE: "data",
     ReportType.SPLIT: "data",
     ReportType.PREPROCESS: "data",
+    ReportType.MODEL_SEARCH: "data",
+    ReportType.MODEL_DETAIL: "data",
 }
 
 
@@ -176,6 +180,8 @@ __all__ = [
     "render_profile_report",
     "render_split_report",
     "render_preprocess_report",
+    "render_model_search_report",
+    "render_model_detail_report",
     "render_template",
 ]
 
@@ -191,3 +197,29 @@ def render_preprocess_report(data: Any, *, template_dir: str | Path | None = Non
         HTML 字符串。
     """
     return render_report(ReportType.PREPROCESS, data, template_dir=template_dir)
+
+
+def render_model_search_report(data: Any, *, template_dir: str | Path | None = None) -> str:
+    """便捷函数：渲染模型搜索总览报告（model_search）。
+
+    Args:
+        data: ModelSearchResult 实例。
+        template_dir: 可选注入模板目录。
+
+    Returns:
+        HTML 字符串。
+    """
+    return render_report(ReportType.MODEL_SEARCH, data, template_dir=template_dir)
+
+
+def render_model_detail_report(data: Any, *, template_dir: str | Path | None = None) -> str:
+    """便捷函数：渲染单个模型详情报告（model_detail）。
+
+    Args:
+        data: 包含目标变量名的 ModelRunResult 字典。
+        template_dir: 可选注入模板目录。
+
+    Returns:
+        HTML 字符串。
+    """
+    return render_report(ReportType.MODEL_DETAIL, data, template_dir=template_dir)
