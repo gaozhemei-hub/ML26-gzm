@@ -586,16 +586,13 @@ class TestEnsembleSearch:
 class TestFairnessConfig:
     def test_default(self):
         cfg = FairnessConfig()
-        assert cfg.enabled is False
         assert cfg.sensitive_features == []
         assert "demographic_parity" in cfg.metrics
 
     def test_custom(self):
         cfg = FairnessConfig(
-            enabled=True,
             sensitive_features=["gender", "race"],
         )
-        assert cfg.enabled is True
         assert "gender" in cfg.sensitive_features
 
 

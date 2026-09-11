@@ -522,8 +522,6 @@ class ModelSearchConfig:
 class ShapConfig:
     """SHAP 可解释性阶段参数配置。"""
 
-    enabled: bool = True
-    """是否执行 SHAP 分析"""
     max_explain_samples: int = 200
     """解释样本数上限（测试集太大时截断到此值）"""
     n_background: int = 100
@@ -534,7 +532,6 @@ class ShapConfig:
     """生成图表的最小样本数下限"""
 
     _COMMENTS: ClassVar[dict[str, str]] = {
-        "enabled": "是否执行 SHAP 可解释性分析",
         "max_explain_samples": "解释样本数上限，测试集过大时截断到此值",
         "n_background": "KernelExplainer 背景采样数",
         "top_k_features": "Top-K 特征统计基数，也用于 waterfall 图的显示特征数",
@@ -599,8 +596,6 @@ class ShapConfig:
 class FairnessConfig:
     """公平性评估阶段参数配置。"""
 
-    enabled: bool = False
-    """是否启用公平性评估"""
     sensitive_features: list[str] = field(default_factory=list)
     """敏感特征列名列表（必须存在于原始 X 中）"""
     metrics: list[str] = field(
@@ -615,7 +610,6 @@ class FairnessConfig:
     """Equalized Odds FPR 差异告警阈值（默认 0.1）"""
 
     _COMMENTS: ClassVar[dict[str, str]] = {
-        "enabled": "是否启用公平性评估",
         "sensitive_features": "敏感特征列名列表",
         "metrics": "需要计算的公平性指标列表",
         "dp_threshold": "Demographic Parity 差异告警阈值",
