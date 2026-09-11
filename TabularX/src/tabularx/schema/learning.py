@@ -183,13 +183,13 @@ class ModelSearchResult:
 
     @property
     def ranking(self) -> list[ModelRunResult]:
-        """按验证集主指标排序的模型列表（最优在前）。"""
+        """按测试集主指标排序的模型列表（最优在前）。"""
         if not self.succeeded_results:
             return []
         reverse = self.optimization_direction == "maximize"
         return sorted(
             self.succeeded_results,
-            key=lambda r: r.validation_metrics.get(self.primary_metric, 0.0),
+            key=lambda r: (r.test_metrics or r.validation_metrics).get(self.primary_metric, 0.0),
             reverse=reverse,
         )
 
