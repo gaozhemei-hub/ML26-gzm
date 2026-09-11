@@ -56,6 +56,7 @@ def _run_model_tuning(
     direction: str,
     n_trials: int,
     random_state: int,
+    device: str = "cpu",
     fixed_params: dict[str, Any] | None = None,
     search_space_overrides: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[str, OptunaResult | None, dict[str, float] | None,
@@ -68,6 +69,10 @@ def _run_model_tuning(
       3) 用最佳参数在 train+valid 上重训，计算 test 指标
 
     此函数为模块顶层函数，确保可被 ProcessPoolExecutor pickle。
+
+    Args:
+        device: 计算设备，"cpu"（默认）| "gpu" | "auto"。
+               为 "cpu" 时对 XGBoost 注入 device="cpu"。
 
     Returns:
         (model_name, optuna_result, train_metrics, valid_metrics, test_metrics, error)
@@ -94,6 +99,23 @@ def _run_model_tuning(
         if spec.default_params:
             for k, v in spec.default_params.items():
                 params.setdefault(k, v)
+
+        # ── 根据 device 注入硬件参数 ────────────────────────
+        if device == "cpu":
+            if spec.name == "xgboost":
+                # XGBoost 预编译包默认会尝试 GPU，强制 CPU
+                params.setdefault("device", "cpu")
+                params.setdefault("tree_method", "hist")
+            # LightGBM 和 CatBoost 默认就是 CPU，无需额外设置
+        elif device == "gpu":
+            if spec.name == "xgboost":
+                params.setdefault("device", "cuda")
+                params.setdefault("tree_method", "hist")
+            elif spec.name == "lightgbm":
+                params.setdefault("device", "gpu")
+            elif spec.name == "catboost":
+                params.setdefault("task_type", "GPU")
+        # "auto" — 不做任何注入，让各库自行决定
 
         # ── 阶段 A：在 train 上训练，评估 train + valid ──────
         model = spec.factory(**params)
@@ -233,6 +255,7 @@ def search_models(
                 direction=direction,
                 n_trials=cfg.n_trials,
                 random_state=cfg.random_state,
+                device=cfg.device,
                 fixed_params=per_fixed,
                 search_space_overrides=per_overrides,
             )
@@ -257,6 +280,7 @@ def search_models(
                     direction=direction,
                     n_trials=cfg.n_trials,
                     random_state=cfg.random_state,
+                    device=cfg.device,
                     fixed_params=per_fixed,
                     search_space_overrides=per_overrides,
                 )

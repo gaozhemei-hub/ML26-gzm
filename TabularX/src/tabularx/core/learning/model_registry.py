@@ -210,6 +210,7 @@ _DEFAULT_PARAMS_CATB = {
     "thread_count": 1,
     "verbose": 0,
     "allow_writing_files": False,
+    "bootstrap_type": "Bernoulli",
 }
 
 

@@ -420,6 +420,9 @@ class ModelSearchConfig:
     """是否保存所有模型的最终版本到本地"""
 
     # ── 搜索空间定制 ────────────────────────────────────────
+    device: str = "cpu"
+    """计算设备。"cpu"（默认）| "gpu" | "auto"。
+       设为 "cpu" 时 XGBoost 会 fallback 到 CPU；LightGBM 和 CatBoost 默认即为 CPU。"""
     fixed_params: dict[str, dict[str, Any]] = field(default_factory=dict)
     """固定参数（不参与搜索），按模型名 → 参数名 → 值 索引。
        被列出的参数将跳过 trial.suggest_*() 调用，直接使用固定值。
@@ -441,6 +444,7 @@ class ModelSearchConfig:
         "primary_metric": "模型选择的主指标，auto 根据 task_type 自动选择",
         "retrain_on_train_valid": "选出最佳模型后是否用 train+valid 重训再评估 test",
         "save_models": "是否保存所有模型的最终版本到本地",
+        "device": "计算设备：cpu（默认）/ gpu / auto",
         "fixed_params": "固定参数（不参与搜索），按模型名索引",
         "search_space_overrides": "搜索范围覆盖，按模型名 → 参数名 → 字段 三层索引",
     }
@@ -460,6 +464,11 @@ class ModelSearchConfig:
                     f"{name} 不能小于 {lo}，收到 {val}。"
                     f"  {self.get_comments(name)}"
                 )
+        # device 校验
+        if self.device not in ("cpu", "gpu", "auto"):
+            raise ValueError(
+                f"device 必须为 'cpu'、'gpu' 或 'auto'，收到 {self.device!r}。"
+            )
         # models 校验
         models = self.models
         if not isinstance(models, list) or len(models) == 0:
