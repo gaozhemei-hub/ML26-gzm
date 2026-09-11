@@ -41,8 +41,15 @@
     .param-item { background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; padding: .5rem .75rem; }
     .param-item .name { font-size: .8rem; color: #7f8c8d; }
     .param-item .value { font-size: .9rem; font-weight: 600; color: #2c3e50; word-break: break-all; }
+    .mermaid { background: #fff; padding: 1rem; border-radius: 6px; border: 1px solid #eee; }
+    .mermaid-note { background: #f5f6fa; border: 1px dashed #bdc3c7; padding: 1rem; border-radius: 6px; margin: 1rem 0; font-size: .85rem; color: #7f8c8d; }
+    .voting-comparison-badge { display: inline-block; background: #eaf4fd; border: 1px solid #3498db; border-radius: 4px; padding: .25rem .6rem; font-size: .8rem; color: #004085; }
     footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #95a5a6; font-size: .85rem; }
   </style>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+  </script>
 </head>
 <body>
   <h1>TabularX 模型搜索报告</h1>
@@ -85,11 +92,41 @@
   </section>
 
   <!-- ══════════════════════════════════════════════════════════
-       第 2 部分：最优模型（含详细指标和图）
+       第 2 部分：整体流程图（架构总览）
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>② 整体流程图</h2>
+    <div class="mermaid">
+flowchart TB
+  Input([配置 + 预处理后数据]) --> Parse[解析配置<br/>确定模型列表]
+
+  subgraph Tuning[并行调参]
+    M1["模型 1<br/>Optuna x n_trials"]
+    M2["模型 2<br/>Optuna x n_trials"]
+    M3["..."]
+  end
+
+  Parse --> Tuning
+
+  M1 & M2 & M3 --> Retrain["最佳参数重训<br/>(train+valid → test 评估)"]
+  Retrain --> Rank[按 test 主指标排序]
+
+  Rank --> Best[最优单模型]
+  Rank --> Vote["构建 Voting 组合<br/>(Top-K)"]
+  Vote --> VoteEval[评估 Voting<br/>valid + test]
+  Best --> Output[输出 ModelSearchResult]
+  VoteEval --> Output
+  Output --> Report[生成 HTML 报告]
+</div>
+<div class="mermaid-note">模型搜索阶段完整流程。核心：并行调参 → 最佳参数重训 → 排序选出最优 → Voting 组合。</div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 3 部分：最优模型（含详细指标和图）
        ══════════════════════════════════════════════════════════ -->
   {% if data.best_model_name %}
   <section>
-    <h2>② 最优模型：{{ data.best_model_name }}</h2>
+    <h2>③ 最优模型：{{ data.best_model_name }}</h2>
 
     <div class="conclusion-best">
       <b>{{ data.best_model_name }}</b>
@@ -103,7 +140,7 @@
       <a class="model-link" href="models/{{ data.best_model_name }}.html">查看详细报告</a>
     </div>
 
-    <h3>2.1 三集表现</h3>
+    <h3>3.1 三集表现</h3>
     <table>
       <thead>
         <tr>
@@ -147,7 +184,7 @@
 
     {# 最优模型参数 #}
     {% if data.best_model_params %}
-    <h3>2.2 最佳参数</h3>
+    <h3>3.2 最佳参数</h3>
     <div class="param-grid">
       {% for k, v in data.best_model_params.items() %}
       <div class="param-item">
@@ -160,7 +197,7 @@
 
     {# 分类评估图（嵌入总览） #}
     {% if data.is_classification and data.artifact_dir %}
-    <h3>2.3 分类评估图</h3>
+    <h3>3.3 分类评估图</h3>
     <div class="plot-grid">
       {% if data.has_confusion_matrix %}
       <div class="plot-item">
@@ -180,12 +217,12 @@
   {% endif %}
 
   <!-- ══════════════════════════════════════════════════════════
-       第 3 部分：模型排名
+       第 4 部分：模型排名
        ══════════════════════════════════════════════════════════ -->
   <section>
-    <h2>③ 模型排名</h2>
+    <h2>④ 模型排名</h2>
 
-    <h3>3.1 主指标对比（{{ data.primary_metric }}）</h3>
+    <h3>4.1 主指标对比（{{ data.primary_metric }}）</h3>
 
     {% set succeeded = data.succeeded_results %}
     {% if succeeded %}
@@ -215,7 +252,7 @@
     </div>
     {% endif %}
 
-    <h3>3.2 详细排名表</h3>
+    <h3>4.2 详细排名表</h3>
     <table>
       <thead>
         <tr>
@@ -271,12 +308,12 @@
   </section>
 
   <!-- ══════════════════════════════════════════════════════════
-       第 4 部分：失败模型
+       第 5 部分：失败模型
        ══════════════════════════════════════════════════════════ -->
   {% set failed = data.failed_results %}
   {% if failed %}
   <section>
-    <h2>④ 失败模型</h2>
+    <h2>⑤ 失败模型</h2>
     <table>
       <thead>
         <tr><th>模型</th><th>错误原因</th></tr>

@@ -24,6 +24,16 @@ from tabularx.core.learning.metrics import (
     compute_regression_metrics,
     compute_classification_metrics,
 )
+from tabularx.reports import (
+    ReportType,
+    render_report,
+    render_profile_report,
+    render_split_report,
+    render_preprocess_report,
+    render_model_search_report,
+    render_model_detail_report,
+    render_voting_report,
+)
 from tabularx.schema.preprocess import PreprocessedData, TransformRecord
 from tabularx.schema.profile import DataProfile, ColumnFact, TargetFact, Evidence
 from tabularx.schema.split import SplitResult
@@ -72,6 +82,15 @@ __all__ = [
     "compute_all_metrics",
     "compute_regression_metrics",
     "compute_classification_metrics",
+    # 报告渲染
+    "ReportType",
+    "render_report",
+    "render_profile_report",
+    "render_split_report",
+    "render_preprocess_report",
+    "render_model_search_report",
+    "render_model_detail_report",
+    "render_voting_report",
     # schema 类型
     "DataProfile",
     "ColumnFact",

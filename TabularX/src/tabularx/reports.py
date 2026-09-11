@@ -31,6 +31,7 @@ class ReportType(str, Enum):
     PREPROCESS = "preprocess_report.html.jinja2"
     MODEL_SEARCH = "model_search_report.html.jinja2"
     MODEL_DETAIL = "model_detail_report.html.jinja2"
+    VOTING = "voting_report.html.jinja2"
 
 
 # 模板文件名 → 渲染上下文 key（模板里用什么变量名访问数据）
@@ -40,6 +41,7 @@ TEMPLATE_CONTEXT_KEY: dict[ReportType, str] = {
     ReportType.PREPROCESS: "data",
     ReportType.MODEL_SEARCH: "data",
     ReportType.MODEL_DETAIL: "data",
+    ReportType.VOTING: "data",
 }
 
 
@@ -182,6 +184,7 @@ __all__ = [
     "render_preprocess_report",
     "render_model_search_report",
     "render_model_detail_report",
+    "render_voting_report",
     "render_template",
 ]
 
@@ -223,3 +226,18 @@ def render_model_detail_report(data: Any, *, template_dir: str | Path | None = N
         HTML 字符串。
     """
     return render_report(ReportType.MODEL_DETAIL, data, template_dir=template_dir)
+
+
+def render_voting_report(data: Any, *, template_dir: str | Path | None = None) -> str:
+    """便捷函数：渲染 Voting 组合模型报告（voting）。
+
+    Args:
+        data: 包含 Voting ModelRunResult 及其对比信息的字典。
+              必需键：run (ModelRunResult), primary_metric, optimization_direction,
+              best_single_test, is_classification, succeeded_results。
+        template_dir: 可选注入模板目录。
+
+    Returns:
+        HTML 字符串。
+    """
+    return render_report(ReportType.VOTING, data, template_dir=template_dir)

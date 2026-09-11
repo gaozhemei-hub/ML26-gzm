@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "TabularX" / "src")
 from tabularx.core.params import ModelSearchConfig
 from tabularx.core.learning import search_models, build_voting
 from tabularx.core.learning.model_registry import get_default_registry
-from tabularx.reports import render_model_search_report, render_model_detail_report
+from tabularx.reports import render_model_search_report, render_model_detail_report, render_voting_report
 from tabularx.schema.learning import ModelSearchResult
 from tabularx.schema.preprocess import PreprocessedData
 from tabularx.schema.profile import DataProfile, TargetFact
@@ -81,11 +81,26 @@ def main():
     all_runs = result.model_results + ([result.ensemble_result] if result.ensemble_result else [])
     for run in all_runs:
         if run is None: continue
-        detail_data = dict(run=run, primary_metric=result.primary_metric,
-            optimization_direction=result.optimization_direction,
-            is_classification=False, artifact_dir=None,
-            has_confusion_matrix=False, has_roc_curve=False)
-        detail_html = render_model_detail_report(detail_data)
+        if run.model_name == "voting":
+            best_single_test = result.best_test_metrics.get(result.primary_metric, 0) if result.best_test_metrics else 0
+            voting_data = dict(
+                run=run,
+                primary_metric=result.primary_metric,
+                optimization_direction=result.optimization_direction,
+                best_single_test=best_single_test,
+                is_classification=False,
+                artifact_dir=None,
+                has_confusion_matrix=False,
+                has_roc_curve=False,
+                succeeded_results=result.succeeded_results,
+            )
+            detail_html = render_voting_report(voting_data)
+        else:
+            detail_data = dict(run=run, primary_metric=result.primary_metric,
+                optimization_direction=result.optimization_direction,
+                is_classification=False, artifact_dir=None,
+                has_confusion_matrix=False, has_roc_curve=False)
+            detail_html = render_model_detail_report(detail_data)
         (models_dir / f"{run.model_name}.html").write_text(detail_html, encoding="utf-8")
         print(f"  [OK] {run.model_name}.html")
 
