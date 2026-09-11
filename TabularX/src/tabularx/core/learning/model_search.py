@@ -77,6 +77,10 @@ def _run_model_tuning(
     Returns:
         (model_name, optuna_result, train_metrics, valid_metrics, test_metrics, error)
     """
+    # ── 强制禁用 CUDA（针对预编译带 CUDA 的 XGBoost） ──
+    if device == "cpu":
+        import os
+        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     try:
         optuna_result = tune_model(
             spec=spec,

@@ -102,8 +102,7 @@ _CATBOOST_SEARCH_SPACE: list[ParamDef] = [
              description="L2 正则化系数"),
     ParamDef("random_strength", "float", low=1e-8, high=10.0, log=True,
              description="随机噪声强度"),
-    ParamDef("bagging_temperature", "float", low=0.0, high=1.0,
-             description="贝叶斯自助采样温度"),
+    
 ]
 
 
