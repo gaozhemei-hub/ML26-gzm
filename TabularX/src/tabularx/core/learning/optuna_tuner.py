@@ -35,6 +35,7 @@ def _objective(
     task_type: str,
     fixed_params: dict[str, Any] | None = None,
     overrides: dict[str, dict[str, Any]] | None = None,
+    device: str = "cpu",
 ) -> float:
     """Optuna 目标函数：一次 trial 的训练+评估。
 
@@ -52,6 +53,7 @@ def _objective(
         task_type: "regression" / "binary" / "multiclass"。
         fixed_params: 固定参数字典（跳过搜索）。
         overrides: 搜索范围覆盖字典，key 为参数名，value 为覆盖字段。
+        device: 计算设备，"cpu"（默认）| "gpu" | "auto"。
 
     Returns:
         验证集上的指标值。
@@ -99,11 +101,26 @@ def _objective(
             if k not in params:
                 params[k] = v
 
-    # 3. 创建并训练模型
+    # 3. 根据 device 注入硬件参数（覆盖搜索空间和默认参数）
+    if device == "cpu":
+        if spec.name == "xgboost":
+            params["device"] = "cpu"
+            params["tree_method"] = "hist"
+    elif device == "gpu":
+        if spec.name == "xgboost":
+            params["device"] = "cuda"
+            params["tree_method"] = "hist"
+        elif spec.name == "lightgbm":
+            params["device"] = "gpu"
+        elif spec.name == "catboost":
+            params["task_type"] = "GPU"
+    # "auto" — 不做任何注入，让各库自行决定
+
+    # 4. 创建并训练模型
     model = spec.factory(**params)
     model.fit(X_train, y_train)
 
-    # 4. 验证集预测
+    # 5. 验证集预测
     y_pred = model.predict(X_valid)
     y_prob = None
     if task_type != "regression" and spec.supports_predict_proba:
@@ -112,7 +129,7 @@ def _objective(
         except Exception:
             y_prob = None
 
-    # 5. 计算指标
+    # 6. 计算指标
     metrics = compute_all_metrics(
         task_type=task_type,
         y_true=y_valid,
@@ -137,6 +154,7 @@ def tune_model(
     study_name: str | None = None,
     fixed_params: dict[str, Any] | None = None,
     search_space_overrides: dict[str, dict[str, Any]] | None = None,
+    device: str = "cpu",
 ) -> OptunaResult:
     """对单个模型执行 Optuna 调参。
 
@@ -155,6 +173,7 @@ def tune_model(
         study_name: 可选 study 名称。
         fixed_params: 固定参数（不参与搜索）。
         search_space_overrides: 搜索范围覆盖。
+        device: 计算设备，"cpu"（默认）| "gpu" | "auto"。
 
     Returns:
         OptunaResult 包含最佳参数和 trial 记录。
@@ -186,6 +205,7 @@ def tune_model(
                 task_type=task_type,
                 fixed_params=fixed_params,
                 overrides=search_space_overrides,
+                device=device,
             ),
             n_trials=n_trials,
             show_progress_bar=False,

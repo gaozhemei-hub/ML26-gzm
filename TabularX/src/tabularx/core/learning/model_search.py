@@ -72,15 +72,10 @@ def _run_model_tuning(
 
     Args:
         device: 计算设备，"cpu"（默认）| "gpu" | "auto"。
-               为 "cpu" 时对 XGBoost 注入 device="cpu"。
 
     Returns:
         (model_name, optuna_result, train_metrics, valid_metrics, test_metrics, error)
     """
-    # ── 强制禁用 CUDA（针对预编译带 CUDA 的 XGBoost） ──
-    if device == "cpu":
-        import os
-        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     try:
         optuna_result = tune_model(
             spec=spec,
@@ -96,6 +91,7 @@ def _run_model_tuning(
             study_name=f"{spec.name}_{task_type}",
             fixed_params=fixed_params,
             search_space_overrides=search_space_overrides,
+            device=device,
         )
 
         # 构造完整参数
@@ -104,21 +100,20 @@ def _run_model_tuning(
             for k, v in spec.default_params.items():
                 params.setdefault(k, v)
 
-        # ── 根据 device 注入硬件参数 ────────────────────────
+        # ── 根据 device 注入硬件参数（覆盖搜索空间和默认参数）──
         if device == "cpu":
             if spec.name == "xgboost":
-                # XGBoost 预编译包默认会尝试 GPU，强制 CPU
-                params.setdefault("device", "cpu")
-                params.setdefault("tree_method", "hist")
+                params["device"] = "cpu"
+                params["tree_method"] = "hist"
             # LightGBM 和 CatBoost 默认就是 CPU，无需额外设置
         elif device == "gpu":
             if spec.name == "xgboost":
-                params.setdefault("device", "cuda")
-                params.setdefault("tree_method", "hist")
+                params["device"] = "cuda"
+                params["tree_method"] = "hist"
             elif spec.name == "lightgbm":
-                params.setdefault("device", "gpu")
+                params["device"] = "gpu"
             elif spec.name == "catboost":
-                params.setdefault("task_type", "GPU")
+                params["task_type"] = "GPU"
         # "auto" — 不做任何注入，让各库自行决定
 
         # ── 阶段 A：在 train 上训练，评估 train + valid ──────
