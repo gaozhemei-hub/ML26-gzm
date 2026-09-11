@@ -515,6 +515,164 @@ class ModelSearchConfig:
 
 
 # ═══════════════════════════════════════════════════════════════
+# SHAP 可解释性阶段参数
+# ═══════════════════════════════════════════════════════════════
+
+@dataclass
+class ShapConfig:
+    """SHAP 可解释性阶段参数配置。"""
+
+    enabled: bool = True
+    """是否执行 SHAP 分析"""
+    max_explain_samples: int = 200
+    """解释样本数上限（测试集太大时截断到此值）"""
+    n_background: int = 100
+    """KernelExplainer 背景采样数"""
+    top_k_features: int = 10
+    """Top-K 特征统计基数，也用于 waterfall 图的最大显示特征数"""
+    min_samples_for_plots: int = 50
+    """生成图表的最小样本数下限"""
+
+    _COMMENTS: ClassVar[dict[str, str]] = {
+        "enabled": "是否执行 SHAP 可解释性分析",
+        "max_explain_samples": "解释样本数上限，测试集过大时截断到此值",
+        "n_background": "KernelExplainer 背景采样数",
+        "top_k_features": "Top-K 特征统计基数，也用于 waterfall 图的显示特征数",
+        "min_samples_for_plots": "生成图表的最小样本数下限",
+    }
+    _RANGES: ClassVar[dict[str, _Range]] = {
+        "max_explain_samples": (10, None),
+        "n_background": (10, None),
+        "top_k_features": (1, None),
+        "min_samples_for_plots": (1, None),
+    }
+
+    def __post_init__(self) -> None:
+        for name, (lo, hi) in self._RANGES.items():
+            val = getattr(self, name)
+            if lo is not None and val < lo:
+                raise ValueError(
+                    f"{name} 不能小于 {lo}，收到 {val}。"
+                    f"  {self.get_comments(name)}"
+                )
+            if hi is not None and val > hi:
+                raise ValueError(
+                    f"{name} 不能大于 {hi}，收到 {val}。"
+                    f"  {self.get_comments(name)}"
+                )
+
+    def set_param(self, name: str, value: Any) -> None:
+        if name not in self._COMMENTS:
+            raise ValueError(f"未知参数 {name!r}。可用：{list(self._COMMENTS)}")
+        lo, hi = self._RANGES.get(name, (None, None))
+        if lo is not None and value < lo:
+            raise ValueError(f"{name} 不能小于 {lo}，收到 {value}。  {self.get_comments(name)}")
+        if hi is not None and value > hi:
+            raise ValueError(f"{name} 不能大于 {hi}，收到 {value}。  {self.get_comments(name)}")
+        setattr(self, name, value)
+
+    def get_comments(self, name: str) -> str:
+        if name not in self._COMMENTS:
+            raise ValueError(f"未知参数 {name!r}")
+        return self._COMMENTS[name]
+
+    def overview(self) -> str:
+        lines = []
+        for name, comment in self._COMMENTS.items():
+            val = getattr(self, name)
+            lines.append(f"  {name:>30} = {str(val):>5}   #{comment}")
+        return "\n".join(lines)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            f.name: getattr(self, f.name)
+            for f in dataclasses.fields(self)
+            if not f.name.startswith("_")
+        }
+
+
+# ═══════════════════════════════════════════════════════════════
+# 公平性评估阶段参数
+# ═══════════════════════════════════════════════════════════════
+
+@dataclass
+class FairnessConfig:
+    """公平性评估阶段参数配置。"""
+
+    enabled: bool = False
+    """是否启用公平性评估"""
+    sensitive_features: list[str] = field(default_factory=list)
+    """敏感特征列名列表（必须存在于原始 X 中）"""
+    metrics: list[str] = field(
+        default_factory=lambda: ["demographic_parity", "equalized_odds"]
+    )
+    """需要计算的公平性指标列表"""
+    dp_threshold: float = 0.1
+    """Demographic Parity 差异告警阈值，超过此值标记为潜在偏见（默认 0.1）"""
+    eo_tpr_threshold: float = 0.1
+    """Equalized Odds TPR 差异告警阈值（默认 0.1）"""
+    eo_fpr_threshold: float = 0.1
+    """Equalized Odds FPR 差异告警阈值（默认 0.1）"""
+
+    _COMMENTS: ClassVar[dict[str, str]] = {
+        "enabled": "是否启用公平性评估",
+        "sensitive_features": "敏感特征列名列表",
+        "metrics": "需要计算的公平性指标列表",
+        "dp_threshold": "Demographic Parity 差异告警阈值",
+        "eo_tpr_threshold": "Equalized Odds TPR 差异告警阈值",
+        "eo_fpr_threshold": "Equalized Odds FPR 差异告警阈值",
+    }
+    _RANGES: ClassVar[dict[str, _Range]] = {
+        "dp_threshold": (0.0, 1.0),
+        "eo_tpr_threshold": (0.0, 1.0),
+        "eo_fpr_threshold": (0.0, 1.0),
+    }
+
+    def __post_init__(self) -> None:
+        for name, (lo, hi) in self._RANGES.items():
+            val = getattr(self, name)
+            if lo is not None and val < lo:
+                raise ValueError(
+                    f"{name} 不能小于 {lo}，收到 {val}。"
+                    f"  {self.get_comments(name)}"
+                )
+            if hi is not None and val > hi:
+                raise ValueError(
+                    f"{name} 不能大于 {hi}，收到 {val}。"
+                    f"  {self.get_comments(name)}"
+                )
+
+    def set_param(self, name: str, value: Any) -> None:
+        if name not in self._COMMENTS:
+            raise ValueError(f"未知参数 {name!r}。可用：{list(self._COMMENTS)}")
+        lo, hi = self._RANGES.get(name, (None, None))
+        if lo is not None and value < lo:
+            raise ValueError(f"{name} 不能小于 {lo}，收到 {value}。  {self.get_comments(name)}")
+        if hi is not None and value > hi:
+            raise ValueError(f"{name} 不能大于 {hi}，收到 {value}。  {self.get_comments(name)}")
+        setattr(self, name, value)
+
+    def get_comments(self, name: str) -> str:
+        if name not in self._COMMENTS:
+            raise ValueError(f"未知参数 {name!r}")
+        return self._COMMENTS[name]
+
+    def overview(self) -> str:
+        lines = []
+        for name, comment in self._COMMENTS.items():
+            val = getattr(self, name)
+            lines.append(f"  {name:>30} = {str(val):>5}   #{comment}")
+        return "\n".join(lines)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            f.name: getattr(self, f.name)
+            for f in dataclasses.fields(self)
+            if not f.name.startswith("_")
+        }
+
+
+# ═══════════════════════════════════════════════════════════════
 # 全局参数容器
 # ═══════════════════════════════════════════════════════════════
 
@@ -534,6 +692,8 @@ class TabularXParams:
     split: SplitConfig = field(default_factory=SplitConfig)
     preprocess: PreprocessConfig = field(default_factory=PreprocessConfig)
     model_search: ModelSearchConfig = field(default_factory=ModelSearchConfig)
+    shap: ShapConfig = field(default_factory=ShapConfig)
+    fairness: FairnessConfig = field(default_factory=FairnessConfig)
 
     # ── 总览 ──────────────────────────────────────────────────
 
@@ -544,7 +704,9 @@ class TabularXParams:
         for label, cfg in [("Profile", self.profile),
                            ("Split", self.split),
                            ("Preprocess", self.preprocess),
-                           ("ModelSearch", self.model_search)]:
+                           ("ModelSearch", self.model_search),
+                           ("SHAP", self.shap),
+                           ("Fairness", self.fairness)]:
             lines.append(f"\n【{label} 阶段】")
             lines.append(cfg.overview())
         lines.append(sep)
@@ -569,6 +731,8 @@ class TabularXParams:
             "split": self.split,
             "preprocess": self.preprocess,
             "model_search": self.model_search,
+            "shap": self.shap,
+            "fairness": self.fairness,
         }
         if stage not in stage_map:
             raise ValueError(
@@ -596,6 +760,8 @@ class TabularXParams:
             "split": self.split,
             "preprocess": self.preprocess,
             "model_search": self.model_search,
+            "shap": self.shap,
+            "fairness": self.fairness,
         }
         if stage not in stage_map:
             raise ValueError(
@@ -612,6 +778,8 @@ class TabularXParams:
             "split": self.split.to_dict(),
             "preprocess": self.preprocess.to_dict(),
             "model_search": self.model_search.to_dict(),
+            "shap": self.shap.to_dict(),
+            "fairness": self.fairness.to_dict(),
         }
 
     # ── 重置 ──────────────────────────────────────────────────
@@ -622,6 +790,8 @@ class TabularXParams:
         self.split = SplitConfig()
         self.preprocess = PreprocessConfig()
         self.model_search = ModelSearchConfig()
+        self.shap = ShapConfig()
+        self.fairness = FairnessConfig()
 
 
 __all__ = [
@@ -633,6 +803,10 @@ __all__ = [
     "PreprocessConfig",
     # Learning
     "ModelSearchConfig",
+    # SHAP 可解释性
+    "ShapConfig",
+    # 公平性评估
+    "FairnessConfig",
     # 全局容器
     "TabularXParams",
 ]

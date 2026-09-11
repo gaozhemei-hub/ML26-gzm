@@ -24,6 +24,7 @@ from tabularx.schema.learning import (
     FairnessFeatureResult,
     FairnessResult,
 )
+from tabularx.core.params import FairnessConfig
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -163,6 +164,7 @@ def evaluate_fairness(
     column_mappings: list[ColumnMapping],
     sensitive_features: list[str],
     task_type: str,
+    config: FairnessConfig | None = None,
 ) -> FairnessResult:
     """执行公平性评估。
 
@@ -171,6 +173,7 @@ def evaluate_fairness(
       2. 按子组拆分测试集
       3. 计算各子组的 positive_rate / accuracy / TPR / FPR
       4. 计算 Demographic Parity 和 Equalized Odds 差异值
+      5. 根据配置的阈值标记是否违反公平性标准
 
     Args:
         X_test: 预处理后的测试集特征。
@@ -180,6 +183,7 @@ def evaluate_fairness(
         column_mappings: 列映射列表（来自 PreprocessedData）。
         sensitive_features: 用户指定的敏感特征原始列名列表。
         task_type: 任务类型。
+        config: FairnessConfig 对象（可选，提供后标记违反字段）。
 
     Returns:
         FairnessResult 对象。
@@ -189,6 +193,8 @@ def evaluate_fairness(
             enabled=False,
             sensitive_features=[],
         )
+
+    _cfg = config or FairnessConfig()
 
     feature_results: list[FairnessFeatureResult] = []
 
@@ -236,6 +242,11 @@ def evaluate_fairness(
             eo_tpr_diff = 0.0
             eo_fpr_diff = 0.0
 
+        # 根据配置的阈值判断是否违反公平性标准
+        dp_violation = dp_diff > _cfg.dp_threshold
+        eo_tpr_violation = eo_tpr_diff > _cfg.eo_tpr_threshold
+        eo_fpr_violation = eo_fpr_diff > _cfg.eo_fpr_threshold
+
         feature_results.append(
             FairnessFeatureResult(
                 feature_name=feat_name,
@@ -243,6 +254,9 @@ def evaluate_fairness(
                 demographic_parity_diff=dp_diff,
                 equalized_odds_tpr_diff=eo_tpr_diff,
                 equalized_odds_fpr_diff=eo_fpr_diff,
+                dp_violation=dp_violation,
+                eo_tpr_violation=eo_tpr_violation,
+                eo_fpr_violation=eo_fpr_violation,
             )
         )
 

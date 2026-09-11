@@ -23,6 +23,7 @@ import pandas as pd
 
 from tabularx.exceptions.learning import ShapError
 from tabularx.schema.learning import ModelSpec, ShapResult
+from tabularx.core.params import ShapConfig
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -181,6 +182,7 @@ def _generate_plots(
     feature_names: list[str],
     output_dir: Path,
     model_name: str,
+    top_k_features: int = 10,
 ) -> dict[str, str]:
     """生成 SHAP 解释图。
 
@@ -190,6 +192,7 @@ def _generate_plots(
         feature_names: 特征名列表。
         output_dir: 图片保存目录。
         model_name: 模型名（用于文件名）。
+        top_k_features: waterfall 图最大显示特征数（默认 10）。
 
     Returns:
         图片路径字典，如 {"shap_summary": "assets/model_shap_summary.png"}。
@@ -282,7 +285,7 @@ def _generate_plots(
             exp_single = shap_values[0]
 
         fig = plt.figure(figsize=(10, 5))
-        shap.plots.waterfall(exp_single, max_display=10, show=False)
+        shap.plots.waterfall(exp_single, max_display=top_k_features, show=False)
         plt.tight_layout()
         path = output_dir / f"{model_name}_shap_waterfall.png"
         fig.savefig(str(path), dpi=120, bbox_inches="tight")
@@ -311,6 +314,7 @@ def explain_model(
     model_name: str = "best_model",
     max_explain_samples: int = 200,
     n_background: int = 100,
+    config: ShapConfig | None = None,
 ) -> ShapResult:
     """对最优模型执行 SHAP 可解释性分析。
 
@@ -333,6 +337,7 @@ def explain_model(
         model_name: 模型名称（用于文件名）。
         max_explain_samples: 解释样本数上限（默认 200）。
         n_background: KernelExplainer 背景采样数（默认 100）。
+        config: ShapConfig 对象（可选，提供后将覆盖 max_explain_samples/n_background 等参数）。
 
     Returns:
         ShapResult 对象。
@@ -341,6 +346,16 @@ def explain_model(
         ShapError: shap 未安装或所有解释器均失败。
     """
     output_path = Path(output_dir)
+
+    # ── 解析配置参数 ──────────────────────────────────────
+    _cfg = config or ShapConfig()
+    _max_explain = max_explain_samples
+    _n_bg = n_background
+    if config is not None:
+        _max_explain = config.max_explain_samples
+        _n_bg = config.n_background
+    _top_k = _cfg.top_k_features
+    _min_samples = _cfg.min_samples_for_plots
 
     # ── 1. 重建模型 ─────────────────────────────────────────
     try:
@@ -357,8 +372,8 @@ def explain_model(
         model=model,
         X_explain=X_explain,
         X_background=X_train,
-        max_explain_samples=max_explain_samples,
-        n_background=n_background,
+        max_explain_samples=_max_explain,
+        n_background=_n_bg,
     )
 
     if shap_values is None or error_msg:
@@ -372,9 +387,9 @@ def explain_model(
     feature_importance = _extract_feature_importance(shap_values, feature_names)
     top_k = list(feature_importance.keys())
 
-    # ── 3.5 计算更多统计数据 ─────────────────────────────────
+    # ── 3.5 计算更多统计数据（使用配置的 top_k_features）─────
     shap_sum_total = sum(feature_importance.values()) or 1.0
-    top_k_count = min(10, len(top_k))
+    top_k_count = min(_top_k, len(top_k))
     top_k_ratio = sum(list(feature_importance.values())[:top_k_count]) / shap_sum_total if shap_sum_total > 0 else 0.0
 
     top_k_stats: dict[str, dict[str, float]] = {}
@@ -401,13 +416,14 @@ def explain_model(
 
     n_explain_samples = shap_2d.shape[0]
 
-    # ── 4. 生成图表 ──────────────────────────────────────────
+    # ── 4. 生成图表（使用配置的 min_samples_for_plots）──────
     artifact_paths = _generate_plots(
         shap_values=shap_values,
-        X_explain=X_explain.iloc[: max(min(len(X_explain), max_explain_samples), 50)],
+        X_explain=X_explain.iloc[: max(min(len(X_explain), _max_explain), _min_samples)],
         feature_names=feature_names,
         output_dir=output_path,
         model_name=model_name,
+        top_k_features=_top_k,
     )
 
     return ShapResult(

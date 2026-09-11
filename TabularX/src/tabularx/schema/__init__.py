@@ -9,7 +9,6 @@ from tabularx.schema.learning import (
     OptunaResult,
     ModelRunResult,
     ModelSearchResult,
-    FairnessConfig,
 )
 
 __all__ = [
@@ -26,5 +25,4 @@ __all__ = [
     "OptunaResult",
     "ModelRunResult",
     "ModelSearchResult",
-    "FairnessConfig",
 ]

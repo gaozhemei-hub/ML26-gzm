@@ -194,23 +194,19 @@ class ModelSearchResult:
         )
 
 
+__all__ = [
+    "ParamDef",
+    "ModelSpec",
+    "TrialRecord",
+    "OptunaResult",
+    "ModelRunResult",
+    "ModelSearchResult",
+]
+
+
 # ═══════════════════════════════════════════════════════════════
-# 公平性配置
+# 公平性评估结果类型
 # ═══════════════════════════════════════════════════════════════
-
-@dataclass
-class FairnessConfig:
-    """公平性感知评估的配置。"""
-
-    enabled: bool = False
-    """是否启用公平性评估"""
-    sensitive_features: list[str] = field(default_factory=list)
-    """敏感特征列名列表（必须存在于原始 X 中）"""
-    metrics: list[str] = field(
-        default_factory=lambda: ["demographic_parity", "equalized_odds"]
-    )
-    """需要计算的公平性指标列表"""
-
 
 @dataclass
 class FairnessGroupResult:
@@ -250,6 +246,12 @@ class FairnessFeatureResult:
     """Equalized Odds TPR 差异：各子组 TPR 的最大差值"""
     equalized_odds_fpr_diff: float | None = None
     """Equalized Odds FPR 差异：各子组 FPR 的最大差值"""
+    dp_violation: bool = False
+    """Demographic Parity 是否超过告警阈值"""
+    eo_tpr_violation: bool = False
+    """Equalized Odds TPR 是否超过告警阈值"""
+    eo_fpr_violation: bool = False
+    """Equalized Odds FPR 是否超过告警阈值"""
 
 
 @dataclass
@@ -304,7 +306,6 @@ __all__ = [
     "OptunaResult",
     "ModelRunResult",
     "ModelSearchResult",
-    "FairnessConfig",
     "FairnessResult",
     "FairnessFeatureResult",
     "FairnessGroupResult",

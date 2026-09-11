@@ -272,7 +272,7 @@ flowchart TB
         {% endfor %}
       </td></tr>
       <tr><th>评估指标</th><td>Demographic Parity, Equalized Odds (TPR / FPR)</td></tr>
-      <tr><th>差异阈值</th><td>0.1（超过此值标记为潜在偏见）</td></tr>
+      <tr><th>差异阈值</th><td>由 FairnessConfig.dp_threshold / eo_tpr_threshold / eo_fpr_threshold 配置</td></tr>
     </table>
 
     {% for feat_result in data.fairness_feature_results %}
@@ -324,33 +324,33 @@ flowchart TB
       </thead>
       <tbody>
         {% set _dp = feat_result.demographic_parity_diff or 0 %}
-        {% set _dp_flag = "badge-warn" if _dp > 0.1 else "badge-ok" %}
+        {% set _dp_flag = "badge-warn" if feat_result.dp_violation else "badge-ok" %}
         <tr>
           <td><b>Demographic Parity</b></td>
           <td>{{ "%.4f"|format(_dp) }}</td>
-          <td><span class="badge {{ _dp_flag }}">{{ "是" if _dp > 0.1 else "否" }}</span></td>
+          <td><span class="badge {{ _dp_flag }}">{{ "是" if feat_result.dp_violation else "否" }}</span></td>
           <td class="hint">各子组正类预测率的最大差异</td>
         </tr>
         {% set _tpr = feat_result.equalized_odds_tpr_diff or 0 %}
-        {% set _tpr_flag = "badge-warn" if _tpr > 0.1 else "badge-ok" %}
+        {% set _tpr_flag = "badge-warn" if feat_result.eo_tpr_violation else "badge-ok" %}
         <tr>
           <td><b>Equalized Odds (TPR)</b></td>
           <td>{{ "%.4f"|format(_tpr) }}</td>
-          <td><span class="badge {{ _tpr_flag }}">{{ "是" if _tpr > 0.1 else "否" }}</span></td>
+          <td><span class="badge {{ _tpr_flag }}">{{ "是" if feat_result.eo_tpr_violation else "否" }}</span></td>
           <td class="hint">各子组真正率的最大差异</td>
         </tr>
         {% set _fpr = feat_result.equalized_odds_fpr_diff or 0 %}
-        {% set _fpr_flag = "badge-warn" if _fpr > 0.1 else "badge-ok" %}
+        {% set _fpr_flag = "badge-warn" if feat_result.eo_fpr_violation else "badge-ok" %}
         <tr>
           <td><b>Equalized Odds (FPR)</b></td>
           <td>{{ "%.4f"|format(_fpr) }}</td>
-          <td><span class="badge {{ _fpr_flag }}">{{ "是" if _fpr > 0.1 else "否" }}</span></td>
+          <td><span class="badge {{ _fpr_flag }}">{{ "是" if feat_result.eo_fpr_violation else "否" }}</span></td>
           <td class="hint">各子组假正率的最大差异</td>
         </tr>
       </tbody>
     </table>
 
-    {% if _dp > 0.1 or _tpr > 0.1 or _fpr > 0.1 %}
+    {% if feat_result.dp_violation or feat_result.eo_tpr_violation or feat_result.eo_fpr_violation %}
     <div class="conclusion" style="background: #fef3cd; border-left-color: #ffc107;">
       <b>潜在偏见检测</b>
       <br>

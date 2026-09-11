@@ -6,6 +6,8 @@ from tabularx.core.params import (
     ProfileConfig,
     SplitConfig,
     TabularXParams,
+    ShapConfig,
+    FairnessConfig,
 )
 from tabularx.core.preprocess import preprocess
 from tabularx.core.profile import (
@@ -43,7 +45,6 @@ from tabularx.schema.learning import (
     ModelSpec,
     ModelRunResult,
     ModelSearchResult,
-    FairnessConfig,
     FairnessResult,
     FairnessFeatureResult,
     FairnessGroupResult,
@@ -122,6 +123,8 @@ __all__ = [
     "SplitConfig",
     "PreprocessConfig",
     "ModelSearchConfig",
+    "ShapConfig",
+    "FairnessConfig",
     "TabularXParams",
     # 异常
     "TabularXError",
