@@ -152,6 +152,34 @@ class ProfileConfig:
             if not f.name.startswith("_")
         }
 
+    def list_params(self) -> list[str]:
+        """返回本阶段所有参数名列表。"""
+        return list(self._COMMENTS.keys())
+
+    def get_param_info(self, name: str) -> dict[str, Any]:
+        """返回指定参数的元信息：当前值、范围、注释、可选值。
+
+        Args:
+            name: 参数名。
+
+        Returns:
+            dict，包含 value / range / comment / choices 字段。
+        """
+        if name not in self._COMMENTS:
+            raise ValueError(
+                f"未知参数 {name!r}。可用参数：\n"
+                + "\n".join(f"  {k}" for k in self._COMMENTS)
+            )
+        info: dict[str, Any] = {
+            "value": getattr(self, name),
+            "range": self._RANGES.get(name),
+            "comment": self._COMMENTS[name],
+        }
+        choices = getattr(self, "_CHOICES", {}).get(name)
+        if choices is not None:
+            info["choices"] = choices
+        return info
+
 
 # ═══════════════════════════════════════════════════════════════
 # Split 阶段参数（暂定，后续补充）
@@ -255,6 +283,24 @@ class SplitConfig:
             for f in dataclasses.fields(self)
             if not f.name.startswith("_")
         }
+
+    def list_params(self) -> list[str]:
+        """返回本阶段所有参数名列表。"""
+        return list(self._COMMENTS.keys())
+
+    def get_param_info(self, name: str) -> dict[str, Any]:
+        """返回指定参数的元信息。"""
+        if name not in self._COMMENTS:
+            raise ValueError(f"未知参数 {name!r}。可用：{list(self._COMMENTS)}")
+        info: dict[str, Any] = {
+            "value": getattr(self, name),
+            "range": self._RANGES.get(name),
+            "comment": self._COMMENTS[name],
+        }
+        choices = getattr(self, "_CHOICES", {}).get(name)
+        if choices is not None:
+            info["choices"] = choices
+        return info
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -380,6 +426,24 @@ class PreprocessConfig:
             for f in dataclasses.fields(self)
             if not f.name.startswith("_")
         }
+
+    def list_params(self) -> list[str]:
+        """返回本阶段所有参数名列表。"""
+        return list(self._COMMENTS.keys())
+
+    def get_param_info(self, name: str) -> dict[str, Any]:
+        """返回指定参数的元信息。"""
+        if name not in self._COMMENTS:
+            raise ValueError(f"未知参数 {name!r}")
+        info: dict[str, Any] = {
+            "value": getattr(self, name),
+            "range": self._RANGES.get(name),
+            "comment": self._COMMENTS[name],
+        }
+        choices = getattr(self, "_CHOICES", {}).get(name)
+        if choices is not None:
+            info["choices"] = choices
+        return info
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -513,6 +577,24 @@ class ModelSearchConfig:
             if not f.name.startswith("_")
         }
 
+    def list_params(self) -> list[str]:
+        """返回本阶段所有参数名列表。"""
+        return list(self._COMMENTS.keys())
+
+    def get_param_info(self, name: str) -> dict[str, Any]:
+        """返回指定参数的元信息。"""
+        if name not in self._COMMENTS:
+            raise ValueError(f"未知参数 {name!r}")
+        info: dict[str, Any] = {
+            "value": getattr(self, name),
+            "range": self._RANGES.get(name),
+            "comment": self._COMMENTS[name],
+        }
+        choices = getattr(self, "_CHOICES", {}).get(name)
+        if choices is not None:
+            info["choices"] = choices
+        return info
+
 
 # ═══════════════════════════════════════════════════════════════
 # SHAP 可解释性阶段参数
@@ -586,6 +668,24 @@ class ShapConfig:
             for f in dataclasses.fields(self)
             if not f.name.startswith("_")
         }
+
+    def list_params(self) -> list[str]:
+        """返回本阶段所有参数名列表。"""
+        return list(self._COMMENTS.keys())
+
+    def get_param_info(self, name: str) -> dict[str, Any]:
+        """返回指定参数的元信息。"""
+        if name not in self._COMMENTS:
+            raise ValueError(f"未知参数 {name!r}")
+        info: dict[str, Any] = {
+            "value": getattr(self, name),
+            "range": self._RANGES.get(name),
+            "comment": self._COMMENTS[name],
+        }
+        choices = getattr(self, "_CHOICES", {}).get(name)
+        if choices is not None:
+            info["choices"] = choices
+        return info
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -665,6 +765,24 @@ class FairnessConfig:
             if not f.name.startswith("_")
         }
 
+    def list_params(self) -> list[str]:
+        """返回本阶段所有参数名列表。"""
+        return list(self._COMMENTS.keys())
+
+    def get_param_info(self, name: str) -> dict[str, Any]:
+        """返回指定参数的元信息。"""
+        if name not in self._COMMENTS:
+            raise ValueError(f"未知参数 {name!r}")
+        info: dict[str, Any] = {
+            "value": getattr(self, name),
+            "range": self._RANGES.get(name),
+            "comment": self._COMMENTS[name],
+        }
+        choices = getattr(self, "_CHOICES", {}).get(name)
+        if choices is not None:
+            info["choices"] = choices
+        return info
+
 
 # ═══════════════════════════════════════════════════════════════
 # 全局参数容器
@@ -720,19 +838,7 @@ class TabularXParams:
             ValueError: 阶段名不存在、参数名不存在。
             TypeError: 参数类型不匹配。
         """
-        stage_map = {
-            "profile": self.profile,
-            "split": self.split,
-            "preprocess": self.preprocess,
-            "model_search": self.model_search,
-            "shap": self.shap,
-            "fairness": self.fairness,
-        }
-        if stage not in stage_map:
-            raise ValueError(
-                f"未知阶段 {stage!r}。可用：{list(stage_map)}"
-            )
-        stage_map[stage].set_param(name, value)
+        self._get_stage_cfg(stage).set_param(name, value)
 
     # ── 查询注释 ──────────────────────────────────────────────
 
@@ -749,19 +855,7 @@ class TabularXParams:
         Raises:
             ValueError: 阶段名或参数名不存在。
         """
-        stage_map = {
-            "profile": self.profile,
-            "split": self.split,
-            "preprocess": self.preprocess,
-            "model_search": self.model_search,
-            "shap": self.shap,
-            "fairness": self.fairness,
-        }
-        if stage not in stage_map:
-            raise ValueError(
-                f"未知阶段 {stage!r}。可用：{list(stage_map)}"
-            )
-        return stage_map[stage].get_comments(name)
+        return self._get_stage_cfg(stage).get_comments(name)
 
     # ── 序列化 ─────────────────────────────────────────────────
 
@@ -775,6 +869,55 @@ class TabularXParams:
             "shap": self.shap.to_dict(),
             "fairness": self.fairness.to_dict(),
         }
+
+    # ── 自省（introspection） ─────────────────────────────────
+
+    @property
+    def stages(self) -> list[str]:
+        """返回所有阶段名列表。"""
+        return ["profile", "split", "preprocess", "model_search", "shap", "fairness"]
+
+    def list_params(self, stage: str) -> list[str]:
+        """返回指定阶段的所有参数名列表。
+
+        Args:
+            stage: 阶段名，如 "profile" / "shap"。
+
+        Returns:
+            参数名列表。
+
+        Raises:
+            ValueError: 阶段名不存在。
+        """
+        return self._get_stage_cfg(stage).list_params()
+
+    def get_param_info(self, stage: str, name: str) -> dict[str, Any]:
+        """返回指定阶段中某参数的元信息。
+
+        Args:
+            stage: 阶段名。
+            name: 参数名。
+
+        Returns:
+            dict，包含 value / range / comment 等字段。
+        """
+        return self._get_stage_cfg(stage).get_param_info(name)
+
+    def _get_stage_cfg(self, stage: str):
+        """内部：按阶段名取 Config 实例。"""
+        stage_map = {
+            "profile": self.profile,
+            "split": self.split,
+            "preprocess": self.preprocess,
+            "model_search": self.model_search,
+            "shap": self.shap,
+            "fairness": self.fairness,
+        }
+        if stage not in stage_map:
+            raise ValueError(
+                f"未知阶段 {stage!r}。可用：{list(stage_map)}"
+            )
+        return stage_map[stage]
 
     # ── 重置 ──────────────────────────────────────────────────
 
