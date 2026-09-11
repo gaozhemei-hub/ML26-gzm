@@ -63,7 +63,7 @@
     <h3>结论（最优模型）</h3>
     {% if data.best_model_name %}
     <div class="conclusion-best">
-      <b>🏆 最优模型：{{ data.best_model_name }}</b>
+      <b>最优模型：{{ data.best_model_name }}</b>
       <br>
       验证集 {{ data.primary_metric }} = {{ "%.4f"|format(data.best_validation_metrics.get(data.primary_metric, 0)) }}
       {% if data.best_test_metrics %}
@@ -75,14 +75,14 @@
     </div>
     {% else %}
     <div class="conclusion-fail">
-      <b>❌ 无成功模型</b>
+      <b>无成功模型</b>
       <br>所有模型均调参失败，请检查日志。
     </div>
     {% endif %}
 
     {% if data.ensemble_result and data.ensemble_result.status == "success" %}
     <div class="conclusion">
-      <b>🔗 Voting 组合模型</b>
+      <b>Voting 组合模型</b>
       <br>
       包含模型：{{ data.ensemble_result.note }}
       <br>

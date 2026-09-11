@@ -30,6 +30,10 @@
     .param-item .name { font-size: .8rem; color: #7f8c8d; }
     .param-item .value { font-size: .9rem; font-weight: 600; color: #2c3e50; word-break: break-all; }
     .evaluation-text { font-size: .95rem; line-height: 1.7; padding: .5rem 0; }
+    .plot-grid { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
+    .plot-item { flex: 1; min-width: 320px; border: 1px solid #eee; border-radius: 6px; padding: .5rem; text-align: center; }
+    .plot-item img { max-width: 100%; height: auto; border-radius: 4px; }
+    .plot-item .caption { font-size: .85rem; color: #7f8c8d; margin-top: .25rem; }
     footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #95a5a6; font-size: .85rem; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
@@ -55,7 +59,7 @@
        ══════════════════════════════════════════════════════════ -->
   {% if data.run.model_name == data.best_model_name %}
   <div class="conclusion-good">
-    <b>🏆 最优模型（{{ data.primary_metric }} = {{ "%.4f"|format(data.run.validation_metrics.get(data.primary_metric, 0)) }}）</b>
+    <b>最优模型（{{ data.primary_metric }} = {{ "%.4f"|format(data.run.validation_metrics.get(data.primary_metric, 0)) }}）</b>
     <div class="evaluation-text">
       该模型在验证集上取得了最佳 {{ data.primary_metric }} 表现，被选为最终模型。
       {% if data.run.test_metrics %}
@@ -66,7 +70,7 @@
   </div>
   {% elif data.run.status == "failed" %}
   <div class="conclusion-bad">
-    <b>❌ 调参失败</b>
+    <b>调参失败</b>
     <div class="evaluation-text">错误原因：{{ data.run.error }}</div>
   </div>
   {% else %}
@@ -74,21 +78,21 @@
     {% set this_val = data.run.validation_metrics.get(data.primary_metric, 0) %}
     {% if best_val != 0 and (best_val - this_val)|abs / best_val|abs < 0.01 %}
     <div class="conclusion-good">
-      <b>👍 表现与最优模型相当</b>
+      <b>表现与最优模型相当</b>
       <div class="evaluation-text">
         {{ data.primary_metric }} = {{ "%.4f"|format(this_val) }}，与最优模型（{{ "%.4f"|format(best_val) }}）差距在 1% 以内。
       </div>
     </div>
     {% elif best_val != 0 and (best_val - this_val)|abs / best_val|abs < 0.05 %}
     <div class="conclusion">
-      <b>👌 表现略低于最优模型</b>
+      <b>表现略低于最优模型</b>
       <div class="evaluation-text">
         {{ data.primary_metric }} = {{ "%.4f"|format(this_val) }}，与最优模型（{{ "%.4f"|format(best_val) }}）差距在 5% 以内。
       </div>
     </div>
     {% else %}
     <div class="conclusion-bad">
-      <b>⚠️ 表现显著低于最优模型</b>
+      <b>表现显著低于最优模型</b>
       <div class="evaluation-text">
         {{ data.primary_metric }} = {{ "%.4f"|format(this_val) }}，与最优模型（{{ "%.4f"|format(best_val) }}）差距超过 5%。
       </div>
@@ -117,7 +121,6 @@
             { number: {{ t.trial_number }}, value: {{ t.value }} },
           {% endfor %}
         ];
-        const labels = trials.map(t => t.number);
 
         new Chart(document.getElementById('trialChart'), {
           type: 'scatter',
@@ -143,7 +146,11 @@
               }
             },
             scales: {
-              x: { title: { display: true, text: 'Trial 序号' } },
+              x: {
+                title: { display: true, text: 'Trial 序号' },
+                type: 'linear',
+                ticks: { stepSize: 1, precision: 0 }
+              },
               y: { title: { display: true, text: '{{ data.primary_metric }}' } }
             }
           }
@@ -154,11 +161,37 @@
   {% endif %}
 
   <!-- ══════════════════════════════════════════════════════════
+       第 4 部分：分类评估图
+       ══════════════════════════════════════════════════════════ -->
+  {% if data.run.status == "success" and data.is_classification and data.artifact_dir %}
+  <section>
+    {% if data.run.optuna_trials %}<h2>③ 分类评估图</h2>{% else %}<h2>② 分类评估图</h2>{% endif %}
+    <div class="plot-grid">
+      {% if data.has_confusion_matrix %}
+      <div class="plot-item">
+        <img src="{{ data.artifact_dir }}/{{ data.run.model_name }}_confusion_matrix.png" alt="混淆矩阵">
+        <div class="caption">混淆矩阵</div>
+      </div>
+      {% endif %}
+      {% if data.has_roc_curve %}
+      <div class="plot-item">
+        <img src="{{ data.artifact_dir }}/{{ data.run.model_name }}_roc_curve.png" alt="ROC 曲线">
+        <div class="caption">ROC 曲线</div>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ══════════════════════════════════════════════════════════
        第 4 部分：三集表现对比
        ══════════════════════════════════════════════════════════ -->
   {% if data.run.status == "success" %}
+  {% set has_trials = data.run.optuna_trials %}
+  {% set has_plots = data.is_classification and data.artifact_dir %}
+  {% set section_num = "④" if has_trials and has_plots else "③" if (has_trials or has_plots) else "②" %}
   <section>
-    {% if data.run.optuna_trials %}<h2>③ 三集表现对比</h2>{% else %}<h2>② 三集表现对比</h2>{% endif %}
+    <h2>{{ section_num }} 三集表现对比</h2>
     <table>
       <thead>
         <tr>

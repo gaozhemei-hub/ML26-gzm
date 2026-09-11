@@ -41,6 +41,9 @@ def build_voting(
     """
     reg = registry if registry is not None else get_default_registry()
 
+    # 映射任务类型到注册表使用的分类
+    registry_task = "classification" if task_type in ("binary", "multiclass") else "regression"
+
     ranking = search_result.ranking
     if len(ranking) < 2:
         return None  # 模型不足，跳过组合
@@ -49,7 +52,7 @@ def build_voting(
         # 为每个候选模型创建实例
         estimators: list[tuple[str, Any]] = []
         for run in ranking:
-            spec = reg.get(run.model_name, task_type)
+            spec = reg.get(run.model_name, registry_task)
             params = dict(run.best_params)
             if spec.default_params:
                 for k, v in spec.default_params.items():

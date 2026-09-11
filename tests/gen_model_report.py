@@ -2,6 +2,7 @@
 
 读取 sklearn 内置数据集，构造 PreprocessedData + DataProfile，
 运行实际模型搜索（含 Optuna 调参），生成总览和详细报告到 .inbox/reports/。
+同时生成分类任务的混淆矩阵和 ROC 曲线图（存为 PNG）。
 """
 
 from __future__ import annotations
@@ -11,7 +12,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.datasets import load_diabetes
+from sklearn.datasets import load_diabetes, load_breast_cancer
 
 # 确保能找到 tabularx
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "TabularX" / "src"))
@@ -25,6 +26,12 @@ from tabularx.reports import render_model_search_report, render_model_detail_rep
 from tabularx.schema.learning import ModelSearchResult
 from tabularx.schema.preprocess import PreprocessedData
 from tabularx.schema.profile import DataProfile, TargetFact
+
+# ─── matplotlib 尝试禁用 GUI 后端，静默创建 ──────────────
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from sklearn.metrics import ConfusionMatrixDisplay, RocCurveDisplay
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -68,20 +75,134 @@ def _make_regression_data() -> tuple[PreprocessedData, DataProfile]:
     return ppd, profile
 
 
+def _make_classification_data() -> tuple[PreprocessedData, DataProfile]:
+    X, y = load_breast_cancer(return_X_y=True)
+    X_df = pd.DataFrame(X, columns=[f"f{i}" for i in range(X.shape[1])])
+    y_ser = pd.Series(y, name="target")
+
+    n = len(X_df)
+    split = int(n * 0.6), int(n * 0.8)
+
+    ppd = PreprocessedData(
+        X_train=X_df.iloc[: split[0]],
+        y_train=y_ser.iloc[: split[0]],
+        X_valid=X_df.iloc[split[0]: split[1]],
+        y_valid=y_ser.iloc[split[0]: split[1]],
+        X_test=X_df.iloc[split[1]:],
+        y_test=y_ser.iloc[split[1]:],
+        n_features_in=X_df.shape[1],
+        n_features_out=X_df.shape[1],
+        dropped_columns=[],
+        feature_names_out=list(X_df.columns),
+    )
+
+    # 计算类别平衡
+    classes = sorted(y_ser.unique())
+    class_balance = {str(c): float((y_ser == c).mean()) for c in classes}
+
+    profile = DataProfile(
+        n_rows=n,
+        n_cols=X_df.shape[1],
+        columns=[],
+        target=TargetFact(
+            task_type="binary",
+            n_classes=2,
+            class_balance=class_balance,
+            tags=[],
+        ),
+        fingerprint="breast_cancer_demo",
+    )
+
+    return ppd, profile
+
+
+# ═══════════════════════════════════════════════════════════════
+# 辅助：生成分类评估图
+# ═══════════════════════════════════════════════════════════════
+
+
+def _generate_classification_plots(
+    ppd: PreprocessedData,
+    best_spec,
+    best_params: dict,
+    task_type: str,
+    model_name: str,
+    assets_dir: Path,
+) -> dict[str, str]:
+    """生成混淆矩阵和 ROC 曲线图，保存到 assets_dir。
+
+    Returns:
+        图文件名到相对路径的映射，如 {"confusion_matrix": "assets/rf_cm.png"}
+    """
+    if task_type == "regression":
+        return {}
+
+    # 重训模型
+    params = dict(best_params)
+    if best_spec.default_params:
+        for k, v in best_spec.default_params.items():
+            params.setdefault(k, v)
+
+    model = best_spec.factory(**params)
+    # 合并 train+valid 重训，在 test 上评估
+    X_full = pd.concat([ppd.X_train, ppd.X_valid], axis=0)
+    y_full = pd.concat([ppd.y_train, ppd.y_valid], axis=0)
+    model.fit(X_full, y_full)
+
+    y_test_pred = model.predict(ppd.X_test)
+    y_test_prob = None
+    if hasattr(model, "predict_proba"):
+        y_test_prob = model.predict_proba(ppd.X_test)
+
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    paths = {}
+
+    # 混淆矩阵
+    fig, ax = plt.subplots(figsize=(5, 4))
+    ConfusionMatrixDisplay.from_predictions(
+        ppd.y_test, y_test_pred, ax=ax,
+        cmap="Blues", colorbar=False,
+    )
+    ax.set_title(f"{model_name} - Confusion Matrix")
+    fig.tight_layout()
+    cm_path = assets_dir / f"{model_name}_confusion_matrix.png"
+    fig.savefig(cm_path, dpi=120)
+    plt.close(fig)
+    paths["confusion_matrix"] = f"assets/{cm_path.name}"
+
+    # ROC 曲线（二分类）
+    if y_test_prob is not None and y_test_prob.shape[1] >= 2:
+        fig, ax = plt.subplots(figsize=(5, 4))
+        RocCurveDisplay.from_predictions(
+            ppd.y_test, y_test_prob[:, 1], ax=ax,
+        )
+        ax.set_title(f"{model_name} - ROC Curve")
+        ax.plot([0, 1], [0, 1], "k--", alpha=0.3)
+        fig.tight_layout()
+        roc_path = assets_dir / f"{model_name}_roc_curve.png"
+        fig.savefig(roc_path, dpi=120)
+        plt.close(fig)
+        paths["roc_curve"] = f"assets/{roc_path.name}"
+
+    return paths
+
+
 # ═══════════════════════════════════════════════════════════════
 # 主流程
 # ═══════════════════════════════════════════════════════════════
 
+
 def main():
     out_dir = Path(__file__).resolve().parent.parent / ".inbox" / "reports"
     out_dir.mkdir(parents=True, exist_ok=True)
-
     models_dir = out_dir / "models"
     models_dir.mkdir(parents=True, exist_ok=True)
+    assets_dir = out_dir / "assets"
+    assets_dir.mkdir(parents=True, exist_ok=True)
 
     # ── 1. 准备数据 ────────────────────────────────────────
     print("加载数据 ...")
-    ppd, profile = _make_regression_data()
+    ppd, profile = _make_classification_data()
     print(f"数据: {profile.n_rows} 行, {profile.n_cols} 列, 任务: {profile.target.task_type}")
 
     # ── 2. 模型搜索 ────────────────────────────────────────
@@ -99,10 +220,14 @@ def main():
     )
 
     print(f"开始模型搜索（{config.models}，每个 {config.n_trials} trials）...")
+    from tabularx.core.learning.model_registry import get_default_registry
+    registry = get_default_registry()
+
     result: ModelSearchResult = search_models(
         preprocessed_data=ppd,
         profile=profile,
         config=config,
+        registry=registry,
     )
     print(f"  成功: {result.n_models_succeeded}, 失败: {result.n_models_failed}")
     print(f"  最佳模型: {result.best_model_name}")
@@ -116,42 +241,72 @@ def main():
             search_result=result,
             preprocessed_data=ppd,
             task_type=profile.target.task_type,
+            registry=registry,
         )
         result.ensemble_result = voting_result
         if voting_result and voting_result.status == "success":
             print(f"  Voting 验证集 {result.primary_metric}: "
                   f"{voting_result.validation_metrics.get(result.primary_metric):.4f}")
 
-    # ── 4. 渲染总览报告 ────────────────────────────────────
+    # ── 4. 生成分类评估图 ──────────────────────────────────
+    is_classification = profile.target.task_type != "regression"
+    if result.best_model_name and is_classification:
+        print("生成分类评估图 ...")
+        registry_task = "classification" if profile.target.task_type in ("binary", "multiclass") else "regression"
+        best_spec = registry.get(result.best_model_name, registry_task)
+        model_assets_dir = models_dir / "assets"
+        artifact_paths = _generate_classification_plots(
+            ppd=ppd,
+            best_spec=best_spec,
+            best_params=result.best_model_params,
+            task_type=profile.target.task_type,
+            model_name=result.best_model_name,
+            assets_dir=model_assets_dir,
+        )
+        # 将图路径写入最佳模型的 artifact_paths
+        for run in result.model_results:
+            if run.model_name == result.best_model_name:
+                run.artifact_paths = artifact_paths
+                break
+
+    # ── 5. 渲染总览报告 ────────────────────────────────────
     print("渲染总览报告 ...")
     overview_html = render_model_search_report(result)
     overview_path = out_dir / "model_search.html"
     overview_path.write_text(overview_html, encoding="utf-8")
     print(f"  已保存: {overview_path}")
 
-    # ── 5. 渲染各模型详情报告 ──────────────────────────────
+    # ── 6. 渲染各模型详情报告 ──────────────────────────────
     print("渲染模型详情报告 ...")
     all_runs = result.model_results + ([result.ensemble_result] if result.ensemble_result else [])
     for run in all_runs:
         if run is None:
             continue
 
-        # 构造传递给详情模板的上下文：包含排名和最佳模型信息
+        # 构造传递给详情模板的上下文
+        artifact_dir = f"assets" if run.artifact_paths else None
+        has_cm = "confusion_matrix" in run.artifact_paths if run.artifact_paths else False
+        has_roc = "roc_curve" in run.artifact_paths if run.artifact_paths else False
+
         detail_data = {
             "run": run,
             "primary_metric": result.primary_metric,
             "optimization_direction": result.optimization_direction,
             "best_model_name": result.best_model_name,
             "best_validation_metrics": result.best_validation_metrics,
+            "is_classification": is_classification,
+            "artifact_dir": artifact_dir,
+            "has_confusion_matrix": has_cm,
+            "has_roc_curve": has_roc,
         }
 
         detail_html = render_model_detail_report(detail_data)
         detail_path = models_dir / f"{run.model_name}.html"
         detail_path.write_text(detail_html, encoding="utf-8")
-        status_icon = "✅" if run.status == "success" else "❌"
+        status_icon = "[OK]" if run.status == "success" else "[FAIL]"
         print(f"  {status_icon} {run.model_name}.html")
 
-    # ── 6. 生成失败模型的简要报告 ──────────────────────────
+    # ── 7. 生成失败模型的简要报告 ──────────────────────────
     failed_dir = models_dir / "_failed"
     for run in result.failed_results:
         failed_dir.mkdir(parents=True, exist_ok=True)
@@ -161,7 +316,7 @@ body {{ font-family: sans-serif; margin: 2rem; color: #333; }}
 h1 {{ color: #c0392b; border-bottom: 2px solid #e74c3c; }}
 .error-box {{ background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; padding: 1rem; }}
 </style></head><body>
-<h1>❌ 模型调参失败：{run.model_name}</h1>
+<h1>模型调参失败：{run.model_name}</h1>
 <div class="error-box"><pre>{run.error}</pre></div>
 </body></html>"""
         (failed_dir / f"{run.model_name}.html").write_text(html, encoding="utf-8")

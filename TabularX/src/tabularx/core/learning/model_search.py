@@ -199,6 +199,8 @@ def search_models(
     reg = registry if registry is not None else get_default_registry()
 
     task_type = profile.target.task_type  # "binary" / "multiclass" / "regression"
+    # 映射到注册表使用的分类
+    registry_task = "classification" if task_type in ("binary", "multiclass") else "regression"
     primary_metric, direction = resolve_primary_metric(
         task_type=task_type,
         primary_metric=cfg.primary_metric,
@@ -207,13 +209,13 @@ def search_models(
 
     # ── 2. 确定模型列表 ────────────────────────────────────
     if cfg.models == ["auto"]:
-        model_names = reg.list_models(task_type)
+        model_names = reg.list_models(registry_task)
     else:
         model_names = cfg.models
         # 验证所有模型在指定任务类型下可用
         for name in model_names:
             try:
-                reg.get(name, task_type)
+                reg.get(name, registry_task)
             except ModelNotAvailableError as e:
                 raise ModelNotAvailableError(
                     f"配置中指定的模型 {name!r} 在 {task_type} 任务中不可用。"
@@ -226,7 +228,7 @@ def search_models(
             f"  请确认已安装可选依赖。"
         )
 
-    specs = [reg.get(name, task_type) for name in model_names]
+    specs = [reg.get(name, registry_task) for name in model_names]
 
     # ── 3. 并行调参 ────────────────────────────────────────
     model_results: list[ModelRunResult] = []
@@ -333,7 +335,7 @@ def search_models(
         best_run.validation_metrics  # 已记录
 
         if cfg.retrain_on_train_valid:
-            best_spec = reg.get(best_model_name, task_type)
+            best_spec = reg.get(best_model_name, registry_task)
             best_test_metrics = _evaluate_on_test(
                 spec=best_spec,
                 best_params=best_run.best_params,
