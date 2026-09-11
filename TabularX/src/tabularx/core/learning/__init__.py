@@ -18,6 +18,7 @@ from tabularx.core.learning.metrics import (
 )
 from tabularx.core.learning.optuna_tuner import tune_model
 from tabularx.core.learning.ensemble_search import build_voting
+from tabularx.core.learning.shap_explainer import explain_model
 
 
 __all__ = [
@@ -26,6 +27,7 @@ __all__ = [
     "search_models",
     "tune_model",
     "build_voting",
+    "explain_model",
     "resolve_primary_metric",
     "compute_all_metrics",
     "compute_regression_metrics",

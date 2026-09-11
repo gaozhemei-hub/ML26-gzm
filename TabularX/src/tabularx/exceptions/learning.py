@@ -28,9 +28,14 @@ class OptunaError(ModelSearchError):
     """Optuna 调参过程出错。"""
 
 
+class ShapError(ModelSearchError):
+    """SHAP 解释执行失败。"""
+
+
 __all__ = [
     "ModelSearchError",
     "ModelNotAvailableError",
     "ModelTrainingError",
     "OptunaError",
+    "ShapError",
 ]

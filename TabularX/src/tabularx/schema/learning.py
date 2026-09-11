@@ -212,6 +212,29 @@ class FairnessConfig:
     """需要计算的公平性指标列表"""
 
 
+@dataclass
+class ShapResult:
+    """SHAP 可解释性分析的结果。
+
+    只保存汇总数据、图片路径，不保存完整的 SHAP 值矩阵（太大）。
+    """
+
+    model_name: str
+    """模型名称"""
+    feature_importance: dict[str, float] = field(default_factory=dict)
+    """特征 -> 平均 |SHAP| 值，按降序排列"""
+    top_k_features: list[str] = field(default_factory=list)
+    """按重要性降序排列的特征名列表"""
+    prediction_type: str = "binary"
+    """预测类型："binary" / "multiclass" / "regression" """
+    n_features: int = 0
+    """参与解释的特征数"""
+    artifact_paths: dict[str, str] = field(default_factory=dict)
+    """图片路径，如 {"shap_summary": "assets/xgboost_shap_summary.png"} """
+    error: str | None = None
+    """SHAP 计算过程中的错误信息"""
+
+
 __all__ = [
     "ParamDef",
     "ModelSpec",
@@ -220,4 +243,5 @@ __all__ = [
     "ModelRunResult",
     "ModelSearchResult",
     "FairnessConfig",
+    "ShapResult",
 ]

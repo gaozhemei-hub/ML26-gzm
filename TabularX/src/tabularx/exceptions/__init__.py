@@ -65,6 +65,7 @@ from tabularx.exceptions.learning import (  # noqa: E402
     ModelNotAvailableError,
     ModelTrainingError,
     OptunaError,
+    ShapError,
 )
 
 
@@ -93,5 +94,6 @@ __all__ = [
     "ModelNotAvailableError",
     "ModelTrainingError",
     "OptunaError",
+    "ShapError",
 ]
 

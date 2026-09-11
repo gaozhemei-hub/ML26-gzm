@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "TabularX" / "src")
 from tabularx.core.params import ModelSearchConfig
 from tabularx.core.learning import search_models, build_voting
 from tabularx.core.learning.model_registry import get_default_registry
+from tabularx.core.learning.shap_explainer import explain_model
 from tabularx.reports import render_model_search_report, render_model_detail_report, render_voting_report
 from tabularx.schema.learning import ModelSearchResult
 from tabularx.schema.preprocess import PreprocessedData
@@ -87,6 +88,46 @@ def main():
                           task_type=profile.target.task_type, registry=registry)
         result.ensemble_result = vr
 
+    # SHAP 可解释性分析（仅对最优模型）
+    shap_available = False
+    shap_artifact_dir = None
+    shap_has_summary = False
+    shap_has_importance = False
+    shap_has_waterfall = False
+    shap_error = None
+    shap_feature_importance = {}
+    if result.best_model_name and result.best_model_params:
+        try:
+            best_spec = registry.get(result.best_model_name, "classification")
+            X_full = pd.concat([ppd.X_train, ppd.X_valid])
+            y_full = pd.concat([ppd.y_train, ppd.y_valid])
+            shap_result = explain_model(
+                spec=best_spec,
+                best_params=result.best_model_params,
+                X_train=X_full,
+                y_train=y_full,
+                X_explain=ppd.X_test,
+                feature_names=ppd.feature_names_out,
+                task_type=profile.target.task_type,
+                output_dir=model_assets,
+                model_name=result.best_model_name,
+                max_explain_samples=200,
+            )
+            if shap_result.error:
+                shap_error = shap_result.error
+                print(f"  [SHAP] {result.best_model_name} — 错误: {shap_error}")
+            else:
+                shap_available = True
+                shap_artifact_dir = "models/assets"
+                shap_has_summary = "shap_summary" in shap_result.artifact_paths
+                shap_has_importance = "shap_importance" in shap_result.artifact_paths
+                shap_has_waterfall = "shap_waterfall" in shap_result.artifact_paths
+                shap_feature_importance = shap_result.feature_importance
+                print(f"  [SHAP] {result.best_model_name} — {len(shap_feature_importance)} 个特征")
+        except Exception as e:
+            shap_error = str(e)
+            print(f"  [SHAP] 错误: {shap_error}")
+
     for run in result.succeeded_results:
         spec = registry.get(run.model_name, "classification")
         paths = _gen_cm(ppd, spec, run.best_params, profile.target.task_type, run.model_name, model_assets)
@@ -105,6 +146,13 @@ def main():
     overview_data["ranking"] = result.ranking
     overview_data["succeeded_results"] = result.succeeded_results
     overview_data["failed_results"] = result.failed_results
+    overview_data["shap_available"] = shap_available
+    overview_data["shap_artifact_dir"] = shap_artifact_dir
+    overview_data["shap_has_summary"] = shap_has_summary
+    overview_data["shap_has_importance"] = shap_has_importance
+    overview_data["shap_has_waterfall"] = shap_has_waterfall
+    overview_data["shap_error"] = shap_error
+    overview_data["shap_feature_importance"] = shap_feature_importance
 
     overview_html = render_model_search_report(overview_data)
     overview_path = out_dir / f"{report_name}.html"

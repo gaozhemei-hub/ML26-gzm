@@ -18,6 +18,7 @@ from tabularx.core.split import split_data
 from tabularx.core.learning.model_registry import ModelRegistry, get_default_registry
 from tabularx.core.learning.model_search import search_models
 from tabularx.core.learning.ensemble_search import build_voting
+from tabularx.core.learning import explain_model
 from tabularx.core.learning.metrics import (
     resolve_primary_metric,
     compute_all_metrics,
@@ -42,6 +43,7 @@ from tabularx.schema.learning import (
     ModelRunResult,
     ModelSearchResult,
     FairnessConfig,
+    ShapResult,
 )
 from tabularx.exceptions import (
     TabularXError,
@@ -63,6 +65,7 @@ from tabularx.exceptions import (
     ModelNotAvailableError,
     ModelTrainingError,
     OptunaError,
+    ShapError,
 )
 
 __all__ = [
@@ -78,6 +81,7 @@ __all__ = [
     "get_default_registry",
     "search_models",
     "build_voting",
+    "explain_model",
     "resolve_primary_metric",
     "compute_all_metrics",
     "compute_regression_metrics",
@@ -103,6 +107,7 @@ __all__ = [
     "ModelRunResult",
     "ModelSearchResult",
     "FairnessConfig",
+    "ShapResult",
     # 参数配置
     "ProfileConfig",
     "SplitConfig",
@@ -129,4 +134,5 @@ __all__ = [
     "ModelNotAvailableError",
     "ModelTrainingError",
     "OptunaError",
+    "ShapError",
 ]
