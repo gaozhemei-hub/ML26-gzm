@@ -55,10 +55,16 @@ def _run_model_tuning(
     direction: str,
     n_trials: int,
     random_state: int,
+    fixed_params: dict[str, Any] | None = None,
+    search_space_overrides: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[str, OptunaResult | None, dict[str, float] | None, str | None]:
     """在子进程中运行单个模型的调参与评估。
 
     此函数为模块顶层函数，确保可被 ProcessPoolExecutor pickle。
+
+    Args:
+        fixed_params: 该模型的固定参数（不参与搜索）。
+        search_space_overrides: 该模型的搜索范围覆盖。
 
     Returns:
         (model_name, optuna_result, validation_metrics, error_message)
@@ -76,6 +82,8 @@ def _run_model_tuning(
             n_trials=n_trials,
             random_state=random_state,
             study_name=f"{spec.name}_{task_type}",
+            fixed_params=fixed_params,
+            search_space_overrides=search_space_overrides,
         )
 
         # 用最佳参数重新在训练集上训练，计算验证集完整指标
@@ -230,6 +238,8 @@ def search_models(
     if n_jobs <= 1:
         _results = []
         for spec in specs:
+            per_fixed = cfg.fixed_params.get(spec.name, {})
+            per_overrides = cfg.search_space_overrides.get(spec.name, {})
             name, opt_result, valid_metrics, error = _run_model_tuning(
                 spec=spec,
                 X_train=preprocessed_data.X_train,
@@ -241,12 +251,17 @@ def search_models(
                 direction=direction,
                 n_trials=cfg.n_trials,
                 random_state=cfg.random_state,
+                fixed_params=per_fixed,
+                search_space_overrides=per_overrides,
             )
             _results.append((name, opt_result, valid_metrics, error))
     else:
         with ProcessPoolExecutor(max_workers=n_jobs) as executor:
-            futures = {
-                executor.submit(
+            futures = {}
+            for spec in specs:
+                per_fixed = cfg.fixed_params.get(spec.name, {})
+                per_overrides = cfg.search_space_overrides.get(spec.name, {})
+                future = executor.submit(
                     _run_model_tuning,
                     spec=spec,
                     X_train=preprocessed_data.X_train,
@@ -258,9 +273,10 @@ def search_models(
                     direction=direction,
                     n_trials=cfg.n_trials,
                     random_state=cfg.random_state,
-                ): spec.name
-                for spec in specs
-            }
+                    fixed_params=per_fixed,
+                    search_space_overrides=per_overrides,
+                )
+                futures[future] = spec.name
             _results = []
             for future in as_completed(futures):
                 try:

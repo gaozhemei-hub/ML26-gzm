@@ -9,7 +9,36 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Literal
 
 import pandas as pd
-import optuna
+
+
+# ═══════════════════════════════════════════════════════════════
+# 参数定义
+# ═══════════════════════════════════════════════════════════════
+
+@dataclass
+class ParamDef:
+    """声明式搜索空间参数定义。
+
+    替代之前的 Callable 搜索空间函数，每个参数用数据描述，
+    使 Optuna 调参器可以统一遍历并生成 trial.suggest_*() 调用。
+    """
+
+    name: str
+    """参数名，如 "n_estimators"、"max_depth" """
+    type: Literal["int", "float", "categorical"]
+    """参数类型"""
+    low: float | int | None = None
+    """int/float 时的搜索下限"""
+    high: float | int | None = None
+    """int/float 时的搜索上限"""
+    step: float | int | None = None
+    """int 的步长（可选）"""
+    log: bool = False
+    """float 是否使用对数尺度采样"""
+    choices: list[Any] | None = None
+    """categorical 的候选值列表"""
+    description: str | None = None
+    """参数说明（用于报告和文档）"""
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -29,8 +58,8 @@ class ModelSpec:
     """适用的任务类型"""
     factory: Callable[..., Any]
     """模型工厂函数，接收 **params 返回模型实例"""
-    search_space: Callable[[optuna.Trial], dict[str, Any]]
-    """Optuna 搜索空间函数，接收 trial 返回参数字典"""
+    search_space_defs: list[ParamDef]
+    """声明式搜索空间定义列表（替代 search_space 函数）"""
     default_params: dict[str, Any] | None = None
     """默认参数（始终注入到模型中），如 {"random_state": 42, "n_jobs": 1}"""
     supports_predict_proba: bool = False
@@ -179,6 +208,7 @@ class FairnessConfig:
 
 
 __all__ = [
+    "ParamDef",
     "ModelSpec",
     "TrialRecord",
     "OptunaResult",

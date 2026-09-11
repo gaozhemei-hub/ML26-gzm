@@ -43,6 +43,7 @@ from tabularx.schema.learning import (
     ModelRunResult,
     ModelSearchResult,
     FairnessConfig,
+    ParamDef,
 )
 from tabularx.schema.preprocess import PreprocessedData
 from tabularx.schema.profile import DataProfile, ColumnFact, TargetFact
@@ -206,14 +207,14 @@ class TestModelRegistry:
         def dummy_factory(**params):
             return "dummy_model"
 
-        def dummy_search_space(trial):
-            return {"param": 1}
-
         spec = ModelSpec(
             name="my_custom_model",
             task_type="regression",
             factory=dummy_factory,
-            search_space=dummy_search_space,
+            search_space_defs=[
+                ParamDef("param1", "int", low=1, high=10,
+                         description="dummy param"),
+            ],
         )
         registry = ModelRegistry()
         registry.register(spec)
@@ -391,6 +392,47 @@ class TestModelSearch:
                 profile=profile,
                 config=config,
             )
+
+    def test_search_with_fixed_params(self, preprocessed_and_profile):
+        """验证 fixed_params 使指定参数跳过 Optuna 搜索。"""
+        ppd, profile = preprocessed_and_profile
+
+        config = ModelSearchConfig(
+            models=["random_forest"],
+            n_trials=2,
+            fixed_params={"random_forest": {"max_depth": 5, "n_estimators": 100}},
+        )
+
+        result = search_models(
+            preprocessed_data=ppd,
+            profile=profile,
+            config=config,
+        )
+
+        assert result.best_model_name == "random_forest"
+        assert result.best_model_params["max_depth"] == 5
+        assert result.best_model_params["n_estimators"] == 100
+
+    def test_search_with_search_space_overrides(self, preprocessed_and_profile):
+        """验证 search_space_overrides 改变了搜索边界。"""
+        ppd, profile = preprocessed_and_profile
+
+        config = ModelSearchConfig(
+            models=["random_forest"],
+            n_trials=3,
+            search_space_overrides={
+                "random_forest": {"n_estimators": {"low": 100, "high": 200}}
+            },
+        )
+
+        result = search_models(
+            preprocessed_data=ppd,
+            profile=profile,
+            config=config,
+        )
+
+        assert result.n_models_succeeded >= 0
+        assert result.best_model_name == "random_forest"
 
 
 # ============================================================

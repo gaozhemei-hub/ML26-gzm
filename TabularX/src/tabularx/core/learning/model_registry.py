@@ -2,7 +2,7 @@
 
 统一管理所有可用模型，每个模型提供：
 - 工厂函数（惰性导入，处理可选依赖）
-- Optuna 搜索空间函数
+- 声明式 ParamDef 搜索空间（可被配置层覆盖）
 - 默认参数
 - 元信息（任务类型、是否支持 predict_proba 等）
 
@@ -14,97 +14,97 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
-
-import optuna
+from typing import Any
 
 from tabularx.exceptions.learning import ModelNotAvailableError
-from tabularx.schema.learning import ModelSpec
+from tabularx.schema.learning import ModelSpec, ParamDef
 
 
 # ═══════════════════════════════════════════════════════════════
-# 搜索空间定义
+# 搜索空间定义（声明式 ParamDef 列表）
 # ═══════════════════════════════════════════════════════════════
 
 
-def _rf_search_space(trial: optuna.Trial) -> dict[str, Any]:
-    """Random Forest 搜索空间。"""
-    return {
-        "n_estimators": trial.suggest_int("n_estimators", 50, 500, step=50),
-        "max_depth": trial.suggest_int("max_depth", 3, 30, step=3),
-        "min_samples_split": trial.suggest_int("min_samples_split", 2, 20),
-        "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 10),
-        "max_features": trial.suggest_categorical(
-            "max_features", ["sqrt", "log2", None]
-        ),
-        "ccp_alpha": trial.suggest_float("ccp_alpha", 0.0, 0.05, step=0.005),
-    }
+_RF_SEARCH_SPACE: list[ParamDef] = [
+    ParamDef("n_estimators", "int", low=50, high=500, step=50,
+             description="树的数量"),
+    ParamDef("max_depth", "int", low=3, high=30, step=3,
+             description="树的最大深度"),
+    ParamDef("min_samples_split", "int", low=2, high=20,
+             description="内部节点再划分所需最小样本数"),
+    ParamDef("min_samples_leaf", "int", low=1, high=10,
+             description="叶子节点最少样本数"),
+    ParamDef("max_features", "categorical", choices=["sqrt", "log2", None],
+             description="每棵树随机采样的特征数策略"),
+    ParamDef("ccp_alpha", "float", low=0.0, high=0.05, step=0.005,
+             description="剪枝参数"),
+]
 
 
-def _xgboost_search_space(trial: optuna.Trial) -> dict[str, Any]:
-    """XGBoost 搜索空间。"""
-    return {
-        "n_estimators": trial.suggest_int("n_estimators", 50, 500, step=50),
-        "max_depth": trial.suggest_int("max_depth", 3, 15),
-        "learning_rate": trial.suggest_float(
-            "learning_rate", 1e-3, 0.3, log=True
-        ),
-        "subsample": trial.suggest_float("subsample", 0.5, 1.0),
-        "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
-        "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
-        "gamma": trial.suggest_float("gamma", 0.0, 5.0),
-        "reg_alpha": trial.suggest_float("reg_alpha", 1e-8, 10.0, log=True),
-        "reg_lambda": trial.suggest_float("reg_lambda", 1e-8, 10.0, log=True),
-    }
+_XGBOOST_SEARCH_SPACE: list[ParamDef] = [
+    ParamDef("n_estimators", "int", low=50, high=500, step=50,
+             description="弱学习器数量"),
+    ParamDef("max_depth", "int", low=3, high=15,
+             description="树的最大深度"),
+    ParamDef("learning_rate", "float", low=1e-3, high=0.3, log=True,
+             description="学习率"),
+    ParamDef("subsample", "float", low=0.5, high=1.0,
+             description="行采样比例"),
+    ParamDef("colsample_bytree", "float", low=0.5, high=1.0,
+             description="每棵树的列采样比例"),
+    ParamDef("min_child_weight", "int", low=1, high=10,
+             description="叶子节点最小权重和"),
+    ParamDef("gamma", "float", low=0.0, high=5.0,
+             description="分裂最小损失减少"),
+    ParamDef("reg_alpha", "float", low=1e-8, high=10.0, log=True,
+             description="L1 正则化系数"),
+    ParamDef("reg_lambda", "float", low=1e-8, high=10.0, log=True,
+             description="L2 正则化系数"),
+]
 
 
-def _lightgbm_search_space(trial: optuna.Trial) -> dict[str, Any]:
-    """LightGBM 搜索空间。"""
-    return {
-        "n_estimators": trial.suggest_int("n_estimators", 50, 500, step=50),
-        "max_depth": trial.suggest_int("max_depth", 3, 15),
-        "learning_rate": trial.suggest_float(
-            "learning_rate", 1e-3, 0.3, log=True
-        ),
-        "subsample": trial.suggest_float("subsample", 0.5, 1.0),
-        "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
-        "min_child_samples": trial.suggest_int("min_child_samples", 5, 100),
-        "num_leaves": trial.suggest_int("num_leaves", 15, 127),
-        "reg_alpha": trial.suggest_float("reg_alpha", 1e-8, 10.0, log=True),
-        "reg_lambda": trial.suggest_float("reg_lambda", 1e-8, 10.0, log=True),
-    }
+_LIGHTGBM_SEARCH_SPACE: list[ParamDef] = [
+    ParamDef("n_estimators", "int", low=50, high=500, step=50,
+             description="弱学习器数量"),
+    ParamDef("max_depth", "int", low=3, high=15,
+             description="树的最大深度"),
+    ParamDef("learning_rate", "float", low=1e-3, high=0.3, log=True,
+             description="学习率"),
+    ParamDef("subsample", "float", low=0.5, high=1.0,
+             description="行采样比例"),
+    ParamDef("colsample_bytree", "float", low=0.5, high=1.0,
+             description="列采样比例"),
+    ParamDef("min_child_samples", "int", low=5, high=100,
+             description="叶子节点最少样本数"),
+    ParamDef("num_leaves", "int", low=15, high=127,
+             description="叶子节点数量（控制模型复杂度）"),
+    ParamDef("reg_alpha", "float", low=1e-8, high=10.0, log=True,
+             description="L1 正则化系数"),
+    ParamDef("reg_lambda", "float", low=1e-8, high=10.0, log=True,
+             description="L2 正则化系数"),
+]
 
 
-def _catboost_search_space(trial: optuna.Trial) -> dict[str, Any]:
-    """CatBoost 搜索空间。"""
-    return {
-        "iterations": trial.suggest_int("iterations", 50, 500, step=50),
-        "depth": trial.suggest_int("depth", 3, 10),
-        "learning_rate": trial.suggest_float(
-            "learning_rate", 1e-3, 0.3, log=True
-        ),
-        "subsample": trial.suggest_float("subsample", 0.5, 1.0),
-        "colsample_bylevel": trial.suggest_float(
-            "colsample_bylevel", 0.5, 1.0
-        ),
-        "min_data_in_leaf": trial.suggest_int("min_data_in_leaf", 1, 50),
-        "l2_leaf_reg": trial.suggest_float("l2_leaf_reg", 1e-8, 10.0, log=True),
-        "random_strength": trial.suggest_float(
-            "random_strength", 1e-8, 10.0, log=True
-        ),
-        "bagging_temperature": trial.suggest_float(
-            "bagging_temperature", 0.0, 1.0
-        ),
-    }
-
-
-def _lr_search_space(trial: optuna.Trial) -> dict[str, Any]:
-    """线性模型（Ridge / LogisticRegression）搜索空间。"""
-    return {
-        "C" if _is_logistic else "alpha": trial.suggest_float(
-            "C", 1e-4, 1e2, log=True
-        ),
-    }
+_CATBOOST_SEARCH_SPACE: list[ParamDef] = [
+    ParamDef("iterations", "int", low=50, high=500, step=50,
+             description="迭代轮数"),
+    ParamDef("depth", "int", low=3, high=10,
+             description="树深度"),
+    ParamDef("learning_rate", "float", low=1e-3, high=0.3, log=True,
+             description="学习率"),
+    ParamDef("subsample", "float", low=0.5, high=1.0,
+             description="行采样比例"),
+    ParamDef("colsample_bylevel", "float", low=0.5, high=1.0,
+             description="每层列采样比例"),
+    ParamDef("min_data_in_leaf", "int", low=1, high=50,
+             description="叶子节点最少样本数"),
+    ParamDef("l2_leaf_reg", "float", low=1e-8, high=10.0, log=True,
+             description="L2 正则化系数"),
+    ParamDef("random_strength", "float", low=1e-8, high=10.0, log=True,
+             description="随机噪声强度"),
+    ParamDef("bagging_temperature", "float", low=0.0, high=1.0,
+             description="贝叶斯自助采样温度"),
+]
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -223,7 +223,7 @@ _MODELS: list[ModelSpec] = [
         name="random_forest",
         task_type="regression",
         factory=_make_random_forest_regressor,
-        search_space=_rf_search_space,
+        search_space_defs=_RF_SEARCH_SPACE,
         default_params=_DEFAULT_PARAMS_RF,
         supports_feature_importance=True,
     ),
@@ -231,7 +231,7 @@ _MODELS: list[ModelSpec] = [
         name="xgboost",
         task_type="regression",
         factory=_make_xgboost_regressor,
-        search_space=_xgboost_search_space,
+        search_space_defs=_XGBOOST_SEARCH_SPACE,
         default_params=_DEFAULT_PARAMS_XGB,
         supports_feature_importance=True,
         optional_dependency="xgboost",
@@ -240,7 +240,7 @@ _MODELS: list[ModelSpec] = [
         name="lightgbm",
         task_type="regression",
         factory=_make_lightgbm_regressor,
-        search_space=_lightgbm_search_space,
+        search_space_defs=_LIGHTGBM_SEARCH_SPACE,
         default_params=_DEFAULT_PARAMS_LGBM,
         supports_feature_importance=True,
         optional_dependency="lightgbm",
@@ -249,7 +249,7 @@ _MODELS: list[ModelSpec] = [
         name="catboost",
         task_type="regression",
         factory=_make_catboost_regressor,
-        search_space=_catboost_search_space,
+        search_space_defs=_CATBOOST_SEARCH_SPACE,
         default_params=_DEFAULT_PARAMS_CATB,
         supports_feature_importance=True,
         optional_dependency="catboost",
@@ -259,7 +259,7 @@ _MODELS: list[ModelSpec] = [
         name="random_forest",
         task_type="classification",
         factory=_make_random_forest_classifier,
-        search_space=_rf_search_space,
+        search_space_defs=_RF_SEARCH_SPACE,
         default_params=_DEFAULT_PARAMS_RF,
         supports_predict_proba=True,
         supports_feature_importance=True,
@@ -268,7 +268,7 @@ _MODELS: list[ModelSpec] = [
         name="xgboost",
         task_type="classification",
         factory=_make_xgboost_classifier,
-        search_space=_xgboost_search_space,
+        search_space_defs=_XGBOOST_SEARCH_SPACE,
         default_params=_DEFAULT_PARAMS_XGB,
         supports_predict_proba=True,
         supports_feature_importance=True,
@@ -278,7 +278,7 @@ _MODELS: list[ModelSpec] = [
         name="lightgbm",
         task_type="classification",
         factory=_make_lightgbm_classifier,
-        search_space=_lightgbm_search_space,
+        search_space_defs=_LIGHTGBM_SEARCH_SPACE,
         default_params=_DEFAULT_PARAMS_LGBM,
         supports_predict_proba=True,
         supports_feature_importance=True,
@@ -288,7 +288,7 @@ _MODELS: list[ModelSpec] = [
         name="catboost",
         task_type="classification",
         factory=_make_catboost_classifier,
-        search_space=_catboost_search_space,
+        search_space_defs=_CATBOOST_SEARCH_SPACE,
         default_params=_DEFAULT_PARAMS_CATB,
         supports_predict_proba=True,
         supports_feature_importance=True,

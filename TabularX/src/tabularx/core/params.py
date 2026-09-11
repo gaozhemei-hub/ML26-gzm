@@ -419,6 +419,19 @@ class ModelSearchConfig:
     save_models: bool = True
     """是否保存所有模型的最终版本到本地"""
 
+    # ── 搜索空间定制 ────────────────────────────────────────
+    fixed_params: dict[str, dict[str, Any]] = field(default_factory=dict)
+    """固定参数（不参与搜索），按模型名 → 参数名 → 值 索引。
+       被列出的参数将跳过 trial.suggest_*() 调用，直接使用固定值。
+       示例:
+         {"random_forest": {"max_depth": 8, "n_estimators": 200}}"""
+    search_space_overrides: dict[str, dict[str, dict[str, Any]]] = field(default_factory=dict)
+    """搜索范围覆盖，按模型名 → 参数名 → 覆盖字段 三层索引。
+       可覆盖字段: low, high, step, log, choices。
+       示例:
+         {"xgboost": {"n_estimators": {"high": 1000},
+                       "learning_rate": {"low": 1e-4, "high": 0.5}}}"""
+
     _COMMENTS: ClassVar[dict[str, str]] = {
         "n_jobs": "并行进程数（同时跑几个模型的 Optuna）",
         "n_trials": "每个模型 Optuna 搜索的 trial 数量",
@@ -428,6 +441,8 @@ class ModelSearchConfig:
         "primary_metric": "模型选择的主指标，auto 根据 task_type 自动选择",
         "retrain_on_train_valid": "选出最佳模型后是否用 train+valid 重训再评估 test",
         "save_models": "是否保存所有模型的最终版本到本地",
+        "fixed_params": "固定参数（不参与搜索），按模型名索引",
+        "search_space_overrides": "搜索范围覆盖，按模型名 → 参数名 → 字段 三层索引",
     }
     _RANGES: ClassVar[dict[str, _Range]] = {
         "n_jobs": (1, None),
