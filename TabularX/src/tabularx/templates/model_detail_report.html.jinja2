@@ -12,24 +12,16 @@
     th, td { border: 1px solid #ddd; padding: .5rem .75rem; text-align: left; font-size: .9rem; }
     th { background: #f5f6fa; font-weight: 600; }
     tr:nth-child(even) td { background: #fafbfc; }
-    .badge { display: inline-block; border-radius: 3px; padding: .1rem .5rem; margin: .1rem .2rem; font-size: .8rem; }
-    .badge-ok { background: #d4edda; color: #155724; }
-    .badge-warn { background: #fef3cd; color: #856404; }
-    .badge-info { background: #cce5ff; color: #004085; }
     .summary { display: flex; gap: 1rem; flex-wrap: wrap; }
     .card { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; min-width: 120px; }
     .card .num { font-size: 1.5rem; font-weight: 700; color: #2c3e50; }
     .card .label { font-size: .8rem; color: #7f8c8d; }
-    .conclusion { background: #eaf4fd; border-left: 4px solid #3498db; padding: .75rem 1rem; margin: 1rem 0; border-radius: 4px; }
-    .conclusion-good { background: #d4edda; border-left: 4px solid #28a745; padding: .75rem 1rem; margin: 1rem 0; border-radius: 4px; }
-    .conclusion-bad { background: #f8d7da; border-left: 4px solid #dc3545; padding: .75rem 1rem; margin: 1rem 0; border-radius: 4px; }
     .hint { color: #7f8c8d; font-size: .85rem; }
     .chart-container { background: #fff; border: 1px solid #eee; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
     .param-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .5rem; margin: 1rem 0; }
     .param-item { background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; padding: .5rem .75rem; }
     .param-item .name { font-size: .8rem; color: #7f8c8d; }
     .param-item .value { font-size: .9rem; font-weight: 600; color: #2c3e50; word-break: break-all; }
-    .evaluation-text { font-size: .95rem; line-height: 1.7; padding: .5rem 0; }
     .plot-grid { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
     .plot-item { flex: 1; min-width: 320px; border: 1px solid #eee; border-radius: 6px; padding: .5rem; text-align: center; }
     .plot-item img { max-width: 100%; height: auto; border-radius: 4px; }
@@ -55,53 +47,7 @@
   </section>
 
   <!-- ══════════════════════════════════════════════════════════
-       第 2 部分：评价
-       ══════════════════════════════════════════════════════════ -->
-  {% if data.run.model_name == data.best_model_name %}
-  <div class="conclusion-good">
-    <b>最优模型（{{ data.primary_metric }} = {{ "%.4f"|format(data.run.validation_metrics.get(data.primary_metric, 0)) }}）</b>
-    <div class="evaluation-text">
-      该模型在验证集上取得了最佳 {{ data.primary_metric }} 表现，被选为最终模型。
-      {% if data.run.test_metrics %}
-      在测试集上 {{ data.primary_metric }} 为 {{ "%.4f"|format(data.run.test_metrics.get(data.primary_metric, 0)) }}，
-      与验证集表现较为一致。
-      {% endif %}
-    </div>
-  </div>
-  {% elif data.run.status == "failed" %}
-  <div class="conclusion-bad">
-    <b>调参失败</b>
-    <div class="evaluation-text">错误原因：{{ data.run.error }}</div>
-  </div>
-  {% else %}
-    {% set best_val = data.best_validation_metrics.get(data.primary_metric, 0) %}
-    {% set this_val = data.run.validation_metrics.get(data.primary_metric, 0) %}
-    {% if best_val != 0 and (best_val - this_val)|abs / best_val|abs < 0.01 %}
-    <div class="conclusion-good">
-      <b>表现与最优模型相当</b>
-      <div class="evaluation-text">
-        {{ data.primary_metric }} = {{ "%.4f"|format(this_val) }}，与最优模型（{{ "%.4f"|format(best_val) }}）差距在 1% 以内。
-      </div>
-    </div>
-    {% elif best_val != 0 and (best_val - this_val)|abs / best_val|abs < 0.05 %}
-    <div class="conclusion">
-      <b>表现略低于最优模型</b>
-      <div class="evaluation-text">
-        {{ data.primary_metric }} = {{ "%.4f"|format(this_val) }}，与最优模型（{{ "%.4f"|format(best_val) }}）差距在 5% 以内。
-      </div>
-    </div>
-    {% else %}
-    <div class="conclusion-bad">
-      <b>表现显著低于最优模型</b>
-      <div class="evaluation-text">
-        {{ data.primary_metric }} = {{ "%.4f"|format(this_val) }}，与最优模型（{{ "%.4f"|format(best_val) }}）差距超过 5%。
-      </div>
-    </div>
-    {% endif %}
-  {% endif %}
-
-  <!-- ══════════════════════════════════════════════════════════
-       第 3 部分：调参轨迹图（仅成功模型）
+       第 2 部分：调参轨迹图（仅成功模型）
        ══════════════════════════════════════════════════════════ -->
   {% if data.run.status == "success" and data.run.optuna_trials %}
   <section>
@@ -161,22 +107,23 @@
   {% endif %}
 
   <!-- ══════════════════════════════════════════════════════════
-       第 4 部分：分类评估图
+       第 3 部分：分类评估图（仅分类任务）
        ══════════════════════════════════════════════════════════ -->
   {% if data.run.status == "success" and data.is_classification and data.artifact_dir %}
+  {% set has_section_2 = data.run.optuna_trials %}
   <section>
-    {% if data.run.optuna_trials %}<h2>③ 分类评估图</h2>{% else %}<h2>② 分类评估图</h2>{% endif %}
+    <h2>③ 分类评估图</h2>
     <div class="plot-grid">
       {% if data.has_confusion_matrix %}
       <div class="plot-item">
         <img src="{{ data.artifact_dir }}/{{ data.run.model_name }}_confusion_matrix.png" alt="混淆矩阵">
-        <div class="caption">混淆矩阵</div>
+        <div class="caption">混淆矩阵（测试集）</div>
       </div>
       {% endif %}
       {% if data.has_roc_curve %}
       <div class="plot-item">
         <img src="{{ data.artifact_dir }}/{{ data.run.model_name }}_roc_curve.png" alt="ROC 曲线">
-        <div class="caption">ROC 曲线</div>
+        <div class="caption">ROC 曲线（测试集）</div>
       </div>
       {% endif %}
     </div>
@@ -187,11 +134,8 @@
        第 4 部分：三集表现对比
        ══════════════════════════════════════════════════════════ -->
   {% if data.run.status == "success" %}
-  {% set has_trials = data.run.optuna_trials %}
-  {% set has_plots = data.is_classification and data.artifact_dir %}
-  {% set section_num = "④" if has_trials and has_plots else "③" if (has_trials or has_plots) else "②" %}
   <section>
-    <h2>{{ section_num }} 三集表现对比</h2>
+    <h2>④ 三集表现对比</h2>
     <table>
       <thead>
         <tr>
@@ -202,6 +146,16 @@
         </tr>
       </thead>
       <tbody>
+        <tr>
+          <td><b>训练集</b></td>
+          {% for metric_name in data.run.validation_metrics %}
+          <td>
+            {% if metric_name in data.run.train_metrics %}
+              {{ "%.4f"|format(data.run.train_metrics[metric_name]) }}
+            {% else %}<span class="hint">—</span>{% endif %}
+          </td>
+          {% endfor %}
+        </tr>
         <tr style="background: #f0fdf4;">
           <td><b>验证集</b></td>
           {% for metric_name, metric_val in data.run.validation_metrics.items() %}
@@ -231,6 +185,15 @@
         <div class="value">{{ v }}</div>
       </div>
       {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if data.run.status == "failed" %}
+  <section>
+    <h2>② 错误信息</h2>
+    <div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; padding: 1rem;">
+      <pre>{{ data.run.error }}</pre>
     </div>
   </section>
   {% endif %}

@@ -119,11 +119,13 @@ class ModelRunResult:
     optuna_trials: list[TrialRecord] | None = None
     """Optuna 每次 trial 的完整记录（用于画调参轨迹图）"""
 
-    # ── 验证集指标 ──────────────────────────────────────────
+    # ── 三集指标 ────────────────────────────────────────────
+    train_metrics: dict[str, float] = field(default_factory=dict)
+    """训练集指标（用最佳参数在 X_train 上评估）"""
     validation_metrics: dict[str, float] = field(default_factory=dict)
-
-    # ── 最终（测试集）指标 ──────────────────────────────────
+    """验证集指标"""
     test_metrics: dict[str, float] | None = None
+    """测试集指标（用 best_params 在 train+valid 重训后在 test 上评估）"""
 
     # ── 保存路径 ────────────────────────────────────────────
     model_path: str | None = None
@@ -152,6 +154,7 @@ class ModelSearchResult:
     # ── 最佳单模型 ──────────────────────────────────────────
     best_model_name: str | None = None
     best_model_params: dict[str, Any] | None = None
+    best_train_metrics: dict[str, float] = field(default_factory=dict)
     best_validation_metrics: dict[str, float] = field(default_factory=dict)
     best_test_metrics: dict[str, float] | None = None
 

@@ -57,17 +57,13 @@ def _run_model_tuning(
     random_state: int,
     fixed_params: dict[str, Any] | None = None,
     search_space_overrides: dict[str, dict[str, Any]] | None = None,
-) -> tuple[str, OptunaResult | None, dict[str, float] | None, str | None]:
+) -> tuple[str, OptunaResult | None, dict[str, float] | None, dict[str, float] | None, str | None]:
     """在子进程中运行单个模型的调参与评估。
 
     此函数为模块顶层函数，确保可被 ProcessPoolExecutor pickle。
 
-    Args:
-        fixed_params: 该模型的固定参数（不参与搜索）。
-        search_space_overrides: 该模型的搜索范围覆盖。
-
     Returns:
-        (model_name, optuna_result, validation_metrics, error_message)
+        (model_name, optuna_result, train_metrics, valid_metrics, error_message)
     """
     try:
         optuna_result = tune_model(
@@ -86,7 +82,7 @@ def _run_model_tuning(
             search_space_overrides=search_space_overrides,
         )
 
-        # 用最佳参数重新在训练集上训练，计算验证集完整指标
+        # 用最佳参数重新在训练集上训练，计算训练集和验证集完整指标
         params = dict(optuna_result.best_params)
         if spec.default_params:
             for k, v in spec.default_params.items():
@@ -95,6 +91,23 @@ def _run_model_tuning(
 
         model = spec.factory(**params)
         model.fit(X_train, y_train)
+
+        # 训练集指标
+        y_train_pred = model.predict(X_train)
+        y_train_prob = None
+        if task_type != "regression" and spec.supports_predict_proba:
+            try:
+                y_train_prob = model.predict_proba(X_train)
+            except Exception:
+                y_train_prob = None
+        train_metrics = compute_all_metrics(
+            task_type=task_type,
+            y_true=y_train,
+            y_pred=y_train_pred,
+            y_prob=y_train_prob,
+        )
+
+        # 验证集指标
         y_pred = model.predict(X_valid)
         y_prob = None
         if task_type != "regression" and spec.supports_predict_proba:
@@ -110,10 +123,10 @@ def _run_model_tuning(
             y_prob=y_prob,
         )
 
-        return spec.name, optuna_result, valid_metrics, None
+        return spec.name, optuna_result, train_metrics, valid_metrics, None
 
     except Exception as e:
-        return spec.name, None, None, str(e)
+        return spec.name, None, None, None, str(e)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -242,7 +255,7 @@ def search_models(
         for spec in specs:
             per_fixed = cfg.fixed_params.get(spec.name, {})
             per_overrides = cfg.search_space_overrides.get(spec.name, {})
-            name, opt_result, valid_metrics, error = _run_model_tuning(
+            name, opt_result, train_metrics, valid_metrics, error = _run_model_tuning(
                 spec=spec,
                 X_train=preprocessed_data.X_train,
                 y_train=preprocessed_data.y_train,
@@ -256,7 +269,7 @@ def search_models(
                 fixed_params=per_fixed,
                 search_space_overrides=per_overrides,
             )
-            _results.append((name, opt_result, valid_metrics, error))
+            _results.append((name, opt_result, train_metrics, valid_metrics, error))
     else:
         with ProcessPoolExecutor(max_workers=n_jobs) as executor:
             futures = {}
@@ -285,10 +298,10 @@ def search_models(
                     _results.append(future.result())
                 except Exception as e:
                     name = futures[future]
-                    _results.append((name, None, None, str(e)))
+                    _results.append((name, None, None, None, str(e)))
 
     # ── 4. 组装 ModelRunResult ─────────────────────────────
-    for name, opt_result, valid_metrics, error in _results:
+    for name, opt_result, train_metrics, valid_metrics, error in _results:
         if opt_result is not None and valid_metrics is not None:
             model_results.append(
                 ModelRunResult(
@@ -299,6 +312,7 @@ def search_models(
                     n_trials=opt_result.n_trials,
                     optuna_duration_seconds=opt_result.duration_seconds,
                     optuna_trials=opt_result.trials,
+                    train_metrics=train_metrics or {},
                     validation_metrics=valid_metrics,
                 )
             )
@@ -365,6 +379,7 @@ def search_models(
         model_results=model_results,
         best_model_name=best_model_name,
         best_model_params=best_model_params,
+        best_train_metrics=best_run.train_metrics if succeeded else {},
         best_validation_metrics=best_run.validation_metrics if succeeded else {},
         best_test_metrics=best_test_metrics,
         n_models_total=len(specs),
