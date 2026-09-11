@@ -17,7 +17,7 @@ from tabularx.core.params import ModelSearchConfig
 from tabularx.core.learning import search_models, build_voting
 from tabularx.core.learning.model_registry import get_default_registry
 from tabularx.core.learning.shap_explainer import explain_model
-from tabularx.reports import render_model_search_report, render_model_detail_report, render_voting_report
+from tabularx.reports import render_model_search_report, render_model_detail_report, render_voting_report, render_explanation_report
 from tabularx.schema.learning import ModelSearchResult
 from tabularx.schema.preprocess import PreprocessedData
 from tabularx.schema.profile import DataProfile, TargetFact
@@ -199,6 +199,35 @@ def main():
             detail_html = render_model_detail_report(detail_data)
         (models_dir / f"{run.model_name}.html").write_text(detail_html, encoding="utf-8")
         print(f"  [OK] {run.model_name}.html")
+
+    # 生成可解释性与公平性报告
+    if shap_available:
+        shap_n_features = len(ppd.feature_names_out)
+        shap_n_explain_samples = shap_result.n_explain_samples if hasattr(shap_result, 'n_explain_samples') else 0
+        shap_top_k_explained_ratio = shap_result.top_k_explained_ratio if hasattr(shap_result, 'top_k_explained_ratio') else 0.0
+        shap_sum_total = shap_result.shap_sum_total if hasattr(shap_result, 'shap_sum_total') else 1.0
+        shap_top_k_stats = shap_result.top_k_stats if hasattr(shap_result, 'top_k_stats') else {}
+        task_type = profile.target.task_type
+        explanation_data = dict(
+            shap_available=True,
+            best_model_name=result.best_model_name,
+            shap_artifact_dir="models/assets",
+            shap_has_summary=shap_has_summary,
+            shap_has_importance=shap_has_importance,
+            shap_has_waterfall=shap_has_waterfall,
+            shap_feature_importance=shap_feature_importance,
+            shap_error=shap_error,
+            shap_n_features=shap_n_features,
+            shap_n_explain_samples=shap_n_explain_samples,
+            shap_top_k_explained_ratio=shap_top_k_explained_ratio,
+            shap_sum_total=shap_sum_total,
+            shap_top_k_stats=shap_top_k_stats,
+            task_type=task_type,
+        )
+        explanation_html = render_explanation_report(explanation_data)
+        explanation_path = out_dir / "explanation.html"
+        explanation_path.write_text(explanation_html, encoding="utf-8")
+        print(f"  解释: {explanation_path}")
 
     print(f"\n完成: {overview_path}")
 

@@ -229,6 +229,14 @@ class ShapResult:
     """预测类型："binary" / "multiclass" / "regression" """
     n_features: int = 0
     """参与解释的特征数"""
+    n_explain_samples: int = 0
+    """实际解释的样本数"""
+    shap_sum_total: float = 0.0
+    """所有特征的平均 |SHAP| 总和，用于计算各特征的解释力占比"""
+    top_k_explained_ratio: float = 0.0
+    """Top-K 特征累计解释力占比 (0~1)，K=min(10, n_features)"""
+    top_k_stats: dict[str, dict[str, float]] = field(default_factory=dict)
+    """Top-10 特征的详细统计，如 {"f0": {"mean":0.5, "std":0.3, "min":-2.1, "max":3.0}} """
     artifact_paths: dict[str, str] = field(default_factory=dict)
     """图片路径，如 {"shap_summary": "assets/xgboost_shap_summary.png"} """
     error: str | None = None

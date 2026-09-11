@@ -34,6 +34,7 @@ from tabularx.reports import (
     render_model_search_report,
     render_model_detail_report,
     render_voting_report,
+    render_explanation_report,
 )
 from tabularx.schema.preprocess import PreprocessedData, TransformRecord
 from tabularx.schema.profile import DataProfile, ColumnFact, TargetFact, Evidence
@@ -95,6 +96,7 @@ __all__ = [
     "render_model_search_report",
     "render_model_detail_report",
     "render_voting_report",
+    "render_explanation_report",
     # schema 类型
     "DataProfile",
     "ColumnFact",

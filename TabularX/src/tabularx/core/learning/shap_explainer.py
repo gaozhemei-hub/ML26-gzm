@@ -372,6 +372,35 @@ def explain_model(
     feature_importance = _extract_feature_importance(shap_values, feature_names)
     top_k = list(feature_importance.keys())
 
+    # ── 3.5 计算更多统计数据 ─────────────────────────────────
+    shap_sum_total = sum(feature_importance.values()) or 1.0
+    top_k_count = min(10, len(top_k))
+    top_k_ratio = sum(list(feature_importance.values())[:top_k_count]) / shap_sum_total if shap_sum_total > 0 else 0.0
+
+    top_k_stats: dict[str, dict[str, float]] = {}
+    values = shap_values.values if hasattr(shap_values, "values") else shap_values
+    if values.ndim == 3:
+        # 多分类：取平均 |SHAP| 最高的类
+        abs_means = np.abs(values).mean(axis=(0, 1))
+        top_class = int(np.argmax(abs_means))
+        shap_2d = values[:, :, top_class]
+    else:
+        shap_2d = values
+
+    for feat_name in top_k[:top_k_count]:
+        if feat_name in feature_names:
+            idx = feature_names.index(feat_name)
+            vals = shap_2d[:, idx]
+            top_k_stats[feat_name] = {
+                "mean": float(np.mean(vals)),
+                "std": float(np.std(vals)),
+                "min": float(np.min(vals)),
+                "max": float(np.max(vals)),
+                "median": float(np.median(vals)),
+            }
+
+    n_explain_samples = shap_2d.shape[0]
+
     # ── 4. 生成图表 ──────────────────────────────────────────
     artifact_paths = _generate_plots(
         shap_values=shap_values,
@@ -387,6 +416,10 @@ def explain_model(
         top_k_features=top_k,
         prediction_type=task_type,
         n_features=len(feature_names),
+        n_explain_samples=n_explain_samples,
+        shap_sum_total=shap_sum_total,
+        top_k_explained_ratio=top_k_ratio,
+        top_k_stats=top_k_stats,
         artifact_paths=artifact_paths,
     )
 
