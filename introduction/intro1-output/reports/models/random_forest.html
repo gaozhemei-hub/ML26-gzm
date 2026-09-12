@@ -41,7 +41,7 @@
     <h2>① 基本信息</h2>
     <div class="summary">
       <div class="card"><div class="num">30</div><div class="label">Trial 次数</div></div>
-      <div class="card"><div class="num">14.7s</div><div class="label">调参耗时</div></div>
+      <div class="card"><div class="num">14.6s</div><div class="label">调参耗时</div></div>
       <div class="card"><div class="num" style="font-size:1.1rem">random_forest</div><div class="label">算法</div></div>
     </div>
   </section>
@@ -56,8 +56,8 @@
       <canvas id="trialChart" height="300"></canvas>
     </div>
     <p class="hint">
-      横轴为 Trial 序号，纵轴为主指标（）。
-      每个点代表一次 trial 的验证集  值。
+      横轴为 Trial 序号，纵轴为主指标（roc_auc）。
+      每个点代表一次 trial 的验证集 roc_auc 值。
       值越高越好。
     </p>
     <script>
@@ -155,7 +155,7 @@
                 type: 'linear',
                 ticks: { stepSize: 1, precision: 0 }
               },
-              y: { title: { display: true, text: '' } }
+              y: { title: { display: true, text: 'roc_auc' } }
             }
           }
         });
@@ -167,6 +167,25 @@
   <!-- ══════════════════════════════════════════════════════════
        第 3 部分：分类评估图（仅分类任务）
        ══════════════════════════════════════════════════════════ -->
+  
+  
+  <section>
+    <h2>③ 分类评估图</h2>
+    <div class="plot-grid">
+      
+      <div class="plot-item">
+        <img src="assets/random_forest_confusion_matrix.png" alt="混淆矩阵">
+        <div class="caption">混淆矩阵（测试集）</div>
+      </div>
+      
+      
+      <div class="plot-item">
+        <img src="assets/random_forest_roc_curve.png" alt="ROC 曲线">
+        <div class="caption">ROC 曲线（测试集）</div>
+      </div>
+      
+    </div>
+  </section>
   
 
   <!-- ══════════════════════════════════════════════════════════

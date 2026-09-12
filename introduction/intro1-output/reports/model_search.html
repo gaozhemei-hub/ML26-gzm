@@ -333,6 +333,22 @@ flowchart TB
 
     
     
+    <h3>3.3 分类评估图</h3>
+    <div class="plot-grid">
+      
+      <div class="plot-item">
+        <img src="assets/xgboost_confusion_matrix.png" alt="混淆矩阵">
+        <div class="caption">混淆矩阵（测试集）</div>
+      </div>
+      
+      
+      <div class="plot-item">
+        <img src="assets/xgboost_roc_curve.png" alt="ROC 曲线">
+        <div class="caption">ROC 曲线（测试集）</div>
+      </div>
+      
+    </div>
+    
   </section>
   
 
@@ -442,7 +458,7 @@ flowchart TB
               0.9911
             
           </td>
-          <td>25.5s</td>
+          <td>6.1s</td>
           <td><a class="model-link" href="models/xgboost.html">详情</a></td>
         </tr>
         
@@ -460,7 +476,7 @@ flowchart TB
               0.9911
             
           </td>
-          <td>14.7s</td>
+          <td>14.6s</td>
           <td><a class="model-link" href="models/random_forest.html">详情</a></td>
         </tr>
         
@@ -478,7 +494,7 @@ flowchart TB
               0.9907
             
           </td>
-          <td>81.4s</td>
+          <td>79.4s</td>
           <td><a class="model-link" href="models/catboost.html">详情</a></td>
         </tr>
         
@@ -496,7 +512,7 @@ flowchart TB
               0.9881
             
           </td>
-          <td>4.4s</td>
+          <td>4.5s</td>
           <td><a class="model-link" href="models/lightgbm.html">详情</a></td>
         </tr>
         
@@ -530,6 +546,17 @@ flowchart TB
   <!-- ══════════════════════════════════════════════════════════
        第 6 部分：可解释性与公平性
        ══════════════════════════════════════════════════════════ -->
+  
+  <section>
+    <h2>⑥ 可解释性与公平性</h2>
+    <div class="conclusion">
+      <b>SHAP 可解释性分析</b> — 对最优模型 <b>xgboost</b> 的决策逻辑进行了可视化解构。
+      <br>
+      已生成特征重要性排序、SHAP Summary 图和单样本解释。
+      <br>
+      <a class="model-link" href="explanation.html" style="font-weight: 700;">查看完整可解释性报告 →</a>
+    </div>
+  </section>
   
 
   <footer>

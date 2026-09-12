@@ -4,6 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TabularX 实验报告</title>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+    window.__mermaid = mermaid;
+  </script>
   <style>
     /* ── Reset & Base ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -159,6 +164,15 @@
     document.getElementById('nextBtn').disabled = idx === total - 1;
     document.getElementById('pageIndicator').textContent = (idx + 1) + ' / ' + total;
     document.getElementById('progressBar').style.width = ((idx + 1) / total * 100) + '%';
+
+    // 重新渲染当前页的 Mermaid 流程图（已被隐藏时中断渲染）
+    if (window.__mermaid && window.__mermaid.run) {
+      const currentPage = pages[idx];
+      const mermaidElements = currentPage.querySelectorAll('.mermaid');
+      if (mermaidElements.length > 0) {
+        window.__mermaid.run({ nodes: mermaidElements });
+      }
+    }
   }
 
   function nextPage() { if (current < total - 1) showPage(current + 1); }
