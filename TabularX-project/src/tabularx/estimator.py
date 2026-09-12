@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import re
 import warnings
 from datetime import datetime
 from pathlib import Path
@@ -395,6 +396,9 @@ class AutoEstimator:
             body = sec_renderer(sec_data, body_only=True)
             # report.html 在根目录，图片在 reports/assets/，需修正路径
             body = body.replace('src="assets/', 'src="reports/assets/')
+            # 翻页模式下链接无效，去掉所有 <a> 标签
+            body = re.sub(r'<a\s+[^>]*>', '', body)
+            body = body.replace('</a>', '')
             sections.append({"id": sec_id, "title": sec_title, "body": body})
 
         dataset_info = {}
