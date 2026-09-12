@@ -50,6 +50,8 @@ from tabularx.schema.learning import (
     FairnessGroupResult,
     ShapResult,
 )
+from tabularx.schema.estimator import AutoResult
+from tabularx.estimator import AutoEstimator
 from tabularx.exceptions import (
     TabularXError,
     DataError,
@@ -118,6 +120,9 @@ __all__ = [
     "FairnessFeatureResult",
     "FairnessGroupResult",
     "ShapResult",
+    # 高阶封装
+    "AutoEstimator",
+    "AutoResult",
     # 参数配置
     "ProfileConfig",
     "SplitConfig",
