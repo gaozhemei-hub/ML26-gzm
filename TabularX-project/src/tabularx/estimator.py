@@ -1,7 +1,7 @@
 """AutoEstimator：一键建模的高阶封装。
 
 用法：
-    ae = AutoEstimator(task="binary", output_dir="./output")
+    ae = AutoEstimator(task="classification", output_dir="./output")
     ae.fit(X, y, sensitive_features=["gender"])
     print(ae.result.profile.overview())
 """
@@ -39,7 +39,7 @@ class AutoEstimator:
     """一键建模：配置 → 训练 → 解释 → 公平性评估。
 
     Attributes:
-        task: 任务类型 "auto" / "binary" / "multiclass" / "regression"。
+        task: 任务类型 "auto"（默认，自动推断）| "classification" | "regression"。
         output_dir: 报告和工件保存目录。
         param: TabularXParams 实例，配置各阶段参数。
         result_: fit() 完成后自动生成的 AutoResult 实例。
@@ -235,11 +235,14 @@ class AutoEstimator:
 
         # ── Voting 报告 ─────────────────────────────────────
         if result.searched.ensemble_result:
+            best_single_val = (result.searched.best_test_metrics or {}).get(
+                result.searched.primary_metric, float("nan")
+            )
             voting_data = {
                 "run": result.searched.ensemble_result,
                 "primary_metric": result.searched.primary_metric,
                 "optimization_direction": result.searched.optimization_direction,
-                "best_single_test": result.searched.best_test_metrics,
+                "best_single_test": best_single_val,
                 "is_classification": self.task in ("binary", "multiclass"),
                 "succeeded_results": result.searched.succeeded_results,
             }
