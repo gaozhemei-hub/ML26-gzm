@@ -2,72 +2,88 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TabularX 实验报告</title>
   <style>
-    /* ── 基础 ── */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; color: #333; line-height: 1.6; background: #fff; }
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; font-family: "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; color: #333; background: #fff; }
+
+    /* ── 翻页容器 ── */
+    .deck { width: 100vw; height: 100vh; position: relative; overflow: hidden; }
+    .page { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; overflow-y: auto; padding: 5vh 6vw; display: none; }
+    .page.active { display: flex; flex-direction: column; justify-content: flex-start; }
+    .page.cover-active, .page.closing-active { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+
+    /* ── 导航 ── */
+    .nav-arrows { position: fixed; bottom: 2rem; right: 2rem; z-index: 1000; display: flex; gap: .5rem; }
+    .nav-arrows button { width: 44px; height: 44px; border: 1px solid #ccc; border-radius: 50%; background: rgba(255,255,255,.9); cursor: pointer; font-size: 1.2rem; color: #555; transition: all .2s; display: flex; align-items: center; justify-content: center; user-select: none; }
+    .nav-arrows button:hover { background: #3498db; color: #fff; border-color: #3498db; }
+    .nav-arrows button:disabled { opacity: .3; cursor: default; background: rgba(255,255,255,.6); color: #aaa; border-color: #ddd; }
+
+    .page-indicator { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 1000; font-size: .85rem; color: #95a5a6; background: rgba(255,255,255,.85); padding: .3rem 1rem; border-radius: 12px; border: 1px solid #eee; user-select: none; }
+
+    /* ── 进度条 ── */
+    .progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: #3498db; z-index: 1001; transition: width .3s ease; }
+
+    /* ── 点击翻页区 ── */
+    .click-left, .click-right { position: fixed; top: 0; width: 25vw; height: 100vh; z-index: 500; cursor: pointer; }
+    .click-left { left: 0; }
+    .click-right { right: 0; }
+    .click-left:hover::after, .click-right:hover::after { content: ""; position: absolute; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-style: solid; opacity: .15; }
+    .click-left:hover::after { left: 2vw; border-width: 12px 16px 12px 0; border-color: transparent #333 transparent transparent; }
+    .click-right:hover::after { right: 2vw; border-width: 12px 0 12px 16px; border-color: transparent transparent transparent #333; }
+
+    /* ── 页面内容 ── */
+    .page h1 { font-size: 1.6rem; color: #2c3e50; margin-bottom: .75rem; }
+    .page h2 { font-size: 1.3rem; color: #34495e; margin: 1rem 0 .5rem; }
+    .page h3 { font-size: 1.05rem; color: #555; margin: .75rem 0 .4rem; }
+    .page p { margin: .4rem 0; }
+    .page table { border-collapse: collapse; width: 100%; margin: .6rem 0; }
+    .page th, .page td { border: 1px solid #ddd; padding: .35rem .5rem; text-align: left; font-size: .85rem; }
+    .page th { background: #f5f6fa; font-weight: 600; }
+    .page tr:nth-child(even) td { background: #fafbfc; }
+    .page .summary { display: flex; gap: .8rem; flex-wrap: wrap; margin: .5rem 0; }
+    .page .card { border: 1px solid #ddd; border-radius: 6px; padding: .75rem 1rem; min-width: 100px; flex: 1; }
+    .page .card .num { font-size: 1.3rem; font-weight: 700; color: #2c3e50; }
+    .page .card .label { font-size: .78rem; color: #7f8c8d; }
+    .page .badge { display: inline-block; background: #ecf0f1; border-radius: 3px; padding: .1rem .45rem; margin: .1rem .15rem; font-size: .75rem; }
+    .page .badge-warn { background: #fef3cd; color: #856404; }
+    .page .badge-ok { background: #d4edda; color: #155724; }
+    .page .badge-info { background: #cce5ff; color: #004085; }
+    .page .conclusion { background: #eaf4fd; border-left: 4px solid #3498db; padding: .5rem .75rem; margin: .6rem 0; border-radius: 4px; font-size: .9rem; }
+    .page .evidence { background: #f8f9fa; border: 1px solid #eee; border-left: 3px solid #27ae60; padding: .5rem .75rem; margin: .5rem 0; border-radius: 4px; font-size: .85rem; }
+    .page .hint { color: #7f8c8d; font-size: .8rem; }
+    .page img { max-width: 100%; height: auto; border: 1px solid #eee; border-radius: 4px; margin: .5rem 0; }
+    .page ul, .page ol { padding-left: 1.5rem; margin: .4rem 0; }
+    .page li { margin: .2rem 0; font-size: .9rem; }
 
     /* ── 封面 ── */
-    .cover { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; text-align: center; padding: 2rem; }
-    .cover h1 { font-size: 2.8rem; color: #2c3e50; margin-bottom: .5rem; }
-    .cover .subtitle { font-size: 1.2rem; color: #7f8c8d; margin-bottom: 2rem; }
-    .cover .meta { font-size: .95rem; color: #95a5a6; line-height: 2; }
-    .cover .meta span { display: inline-block; margin: 0 1rem; }
-
-    /* ── 目录 ── */
-    .toc { max-width: 720px; margin: 3rem auto; padding: 0 2rem; }
-    .toc h2 { font-size: 1.5rem; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: .5rem; margin-bottom: 1rem; }
-    .toc ul { list-style: none; }
-    .toc li { padding: .4rem 0; font-size: 1rem; }
-    .toc li a { color: #3498db; text-decoration: none; }
-    .toc li a:hover { text-decoration: underline; }
-    .toc .page { float: right; color: #95a5a6; font-size: .85rem; }
-
-    /* ── 节间距 ── */
-    section { max-width: 960px; margin: 2rem auto; padding: 0 2rem 3rem; }
-    section h2.section-title { font-size: 1.6rem; color: #2c3e50; border-left: 4px solid #3498db; padding-left: .75rem; margin-bottom: 1.5rem; }
-
-    /* ── 子报告内容（直接嵌入） ── */
-    section h1 { font-size: 1.3rem; color: #34495e; margin: 1.5rem 0 .75rem; }
-    section h2 { font-size: 1.1rem; color: #34495e; margin: 1.2rem 0 .6rem; }
-    section h3 { font-size: 1rem; color: #555; margin: 1rem 0 .5rem; }
-    section table { border-collapse: collapse; width: 100%; margin: .75rem 0; }
-    section th, section td { border: 1px solid #ddd; padding: .4rem .6rem; text-align: left; font-size: .88rem; }
-    section th { background: #f5f6fa; font-weight: 600; }
-    section tr:nth-child(even) td { background: #fafbfc; }
-    section .summary { display: flex; gap: 1rem; flex-wrap: wrap; }
-    section .card { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; min-width: 120px; }
-    section .card .num { font-size: 1.3rem; font-weight: 700; color: #2c3e50; }
-    section .card .label { font-size: .8rem; color: #7f8c8d; }
-    section .badge { display: inline-block; background: #ecf0f1; border-radius: 3px; padding: .1rem .5rem; margin: .1rem .2rem; font-size: .78rem; }
-    section .badge-warn { background: #fef3cd; color: #856404; }
-    section .badge-ok { background: #d4edda; color: #155724; }
-    section .badge-info { background: #cce5ff; color: #004085; }
-    section .conclusion { background: #eaf4fd; border-left: 4px solid #3498db; padding: .6rem 1rem; margin: .75rem 0; border-radius: 4px; }
-    section .evidence { background: #f8f9fa; border: 1px solid #eee; border-left: 3px solid #27ae60; padding: .6rem 1rem; margin: .6rem 0; border-radius: 4px; font-size: .88rem; }
-    section .hint { color: #7f8c8d; font-size: .82rem; }
-    section img { max-width: 100%; height: auto; border: 1px solid #eee; border-radius: 4px; margin: .75rem 0; }
-    section footer { margin-top: 2rem; padding-top: .75rem; border-top: 1px solid #eee; color: #95a5a6; font-size: .82rem; }
+    .page-cover { text-align: center; }
+    .page-cover h1 { font-size: 2.8rem; color: #2c3e50; margin-bottom: .5rem; }
+    .page-cover .subtitle { font-size: 1.2rem; color: #7f8c8d; margin-bottom: 1.5rem; }
+    .page-cover .meta { font-size: .95rem; color: #95a5a6; line-height: 2; }
 
     /* ── 尾页 ── */
-    .closing { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 60vh; text-align: center; padding: 2rem; color: #7f8c8d; }
-    .closing h2 { font-size: 1.8rem; color: #2c3e50; margin-bottom: 1rem; }
-    .closing p { font-size: 1rem; max-width: 560px; line-height: 1.8; }
+    .page-closing { text-align: center; }
+    .page-closing h2 { font-size: 1.8rem; color: #2c3e50; margin-bottom: 1rem; }
+    .page-closing p { font-size: 1rem; max-width: 560px; line-height: 1.8; color: #7f8c8d; }
 
-    /* ── 打印 ── */
-    @media print {
-      .cover, .closing { page-break-after: always; min-height: auto; padding: 4rem 2rem; }
-      section { page-break-inside: avoid; }
-    }
+    /* ── 标题页眉 ── */
+    .page-header { font-size: .75rem; color: #bdc3c7; border-bottom: 1px solid #ecf0f1; padding-bottom: .4rem; margin-bottom: .8rem; display: flex; justify-content: space-between; }
   </style>
 </head>
 <body>
 
-  <!-- ════════════════════════════════════════════════════════
-       封面
-       ════════════════════════════════════════════════════════ -->
-  <div class="cover">
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- ════════════════════════════════════════════════════════════
+     翻页容器
+     ════════════════════════════════════════════════════════════ -->
+<div class="deck" id="deck">
+
+  <!-- ── 封面 ── -->
+  <div class="page cover-active page-cover" data-index="0">
     <h1>TabularX 实验报告</h1>
     <p class="subtitle">面向可解释性与可复现性的自动化表格建模</p>
     <div class="meta">
@@ -82,34 +98,22 @@
       {% endif %}
       {% if data.best_model_name %}<p>最佳模型：{{ data.best_model_name }}</p>{% endif %}
     </div>
+    <p style="margin-top:2rem;color:#bdc3c7;font-size:.85rem;">← 点击左右两侧或按键盘方向键翻页 →</p>
   </div>
 
-  <!-- ════════════════════════════════════════════════════════
-       目录
-       ════════════════════════════════════════════════════════ -->
-  <div class="toc">
-    <h2>目录</h2>
-    <ul>
-      {% for section in data.sections %}
-      <li><a href="#section-{{ section.id }}">{{ section.title }}</a></li>
-      {% endfor %}
-    </ul>
-  </div>
-
-  <!-- ════════════════════════════════════════════════════════
-       各节
-       ════════════════════════════════════════════════════════ -->
+  <!-- ── 各节 ── -->
   {% for section in data.sections %}
-  <section id="section-{{ section.id }}">
-    <h2 class="section-title">{{ section.title }}</h2>
+  <div class="page" data-index="{{ loop.index }}">
+    <div class="page-header">
+      <span>{{ section.title }}</span>
+      <span>TabularX</span>
+    </div>
     {{ section.body | safe }}
-  </section>
+  </div>
   {% endfor %}
 
-  <!-- ════════════════════════════════════════════════════════
-       尾页
-       ════════════════════════════════════════════════════════ -->
-  <div class="closing">
+  <!-- ── 尾页 ── -->
+  <div class="page closing-active page-closing" data-index="{{ data.sections | length + 1 }}">
     <h2>报告结束</h2>
     <p>
       本报告由 <strong>TabularX</strong> 自动生成。<br>
@@ -117,6 +121,79 @@
       如需复现，请保存完整的实验输出目录。
     </p>
   </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     导航控件
+     ════════════════════════════════════════════════════════════ -->
+<div class="click-left" id="clickLeft"></div>
+<div class="click-right" id="clickRight"></div>
+
+<div class="nav-arrows">
+  <button id="prevBtn" title="上一页 (←)">◀</button>
+  <button id="nextBtn" title="下一页 (→)">▶</button>
+</div>
+
+<div class="page-indicator" id="pageIndicator">1 / 1</div>
+
+<script>
+(function() {
+  const pages = document.querySelectorAll('.page');
+  const total = pages.length;
+  let current = 0;
+
+  function showPage(idx) {
+    if (idx < 0 || idx >= total) return;
+    pages.forEach((p, i) => {
+      p.classList.remove('active', 'cover-active', 'closing-active');
+      p.style.display = 'none';
+      if (i === idx) {
+        p.style.display = 'flex';
+        if (i === 0) p.classList.add('cover-active');
+        else if (i === total - 1) p.classList.add('closing-active');
+        else p.classList.add('active');
+      }
+    });
+    current = idx;
+    document.getElementById('prevBtn').disabled = idx === 0;
+    document.getElementById('nextBtn').disabled = idx === total - 1;
+    document.getElementById('pageIndicator').textContent = (idx + 1) + ' / ' + total;
+    document.getElementById('progressBar').style.width = ((idx + 1) / total * 100) + '%';
+  }
+
+  function nextPage() { if (current < total - 1) showPage(current + 1); }
+  function prevPage() { if (current > 0) showPage(current - 1); }
+
+  // 键盘
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      e.preventDefault(); nextPage();
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault(); prevPage();
+    }
+  });
+
+  // 翻页按钮
+  document.getElementById('nextBtn').addEventListener('click', nextPage);
+  document.getElementById('prevBtn').addEventListener('click', prevPage);
+
+  // 点击左右区域
+  document.getElementById('clickRight').addEventListener('click', nextPage);
+  document.getElementById('clickLeft').addEventListener('click', prevPage);
+
+  // 触摸滑动
+  let touchStartX = 0;
+  document.addEventListener('touchstart', function(e) { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', function(e) {
+    const diff = touchStartX - e.changedTouches[0].screenX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) nextPage(); else prevPage();
+    }
+  });
+
+  showPage(0);
+})();
+</script>
 
 </body>
 </html>
