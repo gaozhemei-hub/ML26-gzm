@@ -37,7 +37,6 @@
     .chart-container { background: #fff; border: 1px solid #eee; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
     footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #95a5a6; font-size: .85rem; }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
 <body>
   <p><a href="../model_search.html" style="color: #2980b9;">← 返回总览</a></p>
@@ -98,47 +97,14 @@
        第 2 部分：主指标对比图
        ══════════════════════════════════════════════════════════ -->
   {% if data.succeeded_results %}
-  {% set all_valid = data.succeeded_results + [run] %}
   <section>
     <h2>② 主指标对比（{{ primary }}）</h2>
-    <div class="chart-container">
-      <canvas id="comparisonChart" height="300"></canvas>
+    {% if data.has_voting_comparison %}
+    <div class="plot-item">
+      <img src="{{ data.artifact_dir }}/voting_comparison.png" alt="模型对比">
+      <div class="caption">橙色柱为 Voting 组合，蓝色柱为各单模型。纵轴为 {{ primary }}。</div>
     </div>
-    <p class="hint">
-      橙色柱为 Voting 组合，蓝色柱为各单模型。纵轴为测试集 {{ primary }}。
-      {% if data.optimization_direction == "maximize" %}值越高越好。{% else %}值越低越好。{% endif %}
-    </p>
-    <script>
-      (function() {
-        const colors = [];
-        const labels = [];
-        const values = [];
-        {% for m in data.succeeded_results %}
-          labels.push('{{ m.model_name }}');
-          values.push({{ m.test_metrics.get(primary, m.validation_metrics.get(primary, 0)) }});
-          colors.push('#3498db');
-        {% endfor %}
-        labels.push('Voting');
-        values.push({{ voting_test }});
-        colors.push('#e67e22');
-
-        new Chart(document.getElementById('comparisonChart'), {
-          type: 'bar',
-          data: {
-            labels: labels,
-            datasets: [{
-              data: values,
-              backgroundColor: colors,
-              borderRadius: 4,
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
+    {% endif %}
                   label: function(ctx) {
                     return ctx.parsed.y.toFixed(4);
                   }

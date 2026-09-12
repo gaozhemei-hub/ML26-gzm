@@ -49,60 +49,13 @@
   <!-- ══════════════════════════════════════════════════════════
        第 2 部分：调参轨迹图（仅成功模型）
        ══════════════════════════════════════════════════════════ -->
-  {% if data.run.status == "success" and data.run.optuna_trials %}
+  {% if data.run.status == "success" and data.run.optuna_trials and data.has_trial_trajectory %}
   <section>
     <h2>② 调参轨迹</h2>
-    <div class="chart-container">
-      <canvas id="trialChart" height="300"></canvas>
+    <div class="plot-item">
+      <img src="{{ data.artifact_dir }}/{{ data.run.model_name }}_trial_trajectory.png" alt="调参轨迹">
+      <div class="caption">横轴为 Trial 序号，纵轴为主指标（{{ data.primary_metric }}）。每个点代表一次 trial 的验证集 {{ data.primary_metric }} 值。</div>
     </div>
-    <p class="hint">
-      横轴为 Trial 序号，纵轴为主指标（{{ data.primary_metric }}）。
-      每个点代表一次 trial 的验证集 {{ data.primary_metric }} 值。
-      {% if data.optimization_direction == "minimize" %}值越低越好。{% else %}值越高越好。{% endif %}
-    </p>
-    <script>
-      (function() {
-        const trials = [
-          {% for t in data.run.optuna_trials %}
-            { number: {{ t.trial_number }}, value: {{ t.value }} },
-          {% endfor %}
-        ];
-
-        new Chart(document.getElementById('trialChart'), {
-          type: 'scatter',
-          data: {
-            datasets: [{
-              label: 'Trial',
-              data: trials.map(t => ({ x: t.number, y: t.value })),
-              backgroundColor: '#3498db',
-              pointRadius: 5,
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: function(ctx) {
-                    return 'Trial ' + ctx.parsed.x + ': ' + ctx.parsed.y.toFixed(4);
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                title: { display: true, text: 'Trial 序号' },
-                type: 'linear',
-                ticks: { stepSize: 1, precision: 0 }
-              },
-              y: { title: { display: true, text: '{{ data.primary_metric }}' } }
-            }
-          }
-        });
-      })();
-    </script>
   </section>
   {% endif %}
 

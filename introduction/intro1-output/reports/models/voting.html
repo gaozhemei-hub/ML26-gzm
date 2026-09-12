@@ -37,7 +37,6 @@
     .chart-container { background: #fff; border: 1px solid #eee; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
     footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #95a5a6; font-size: .85rem; }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
 <body>
   <p><a href="../model_search.html" style="color: #2980b9;">← 返回总览</a></p>
@@ -94,59 +93,14 @@
        第 2 部分：主指标对比图
        ══════════════════════════════════════════════════════════ -->
   
-  
   <section>
     <h2>② 主指标对比（roc_auc）</h2>
-    <div class="chart-container">
-      <canvas id="comparisonChart" height="300"></canvas>
+    
+    <div class="plot-item">
+      <img src="../assets/voting_comparison.png" alt="模型对比">
+      <div class="caption">橙色柱为 Voting 组合，蓝色柱为各单模型。纵轴为 roc_auc。</div>
     </div>
-    <p class="hint">
-      橙色柱为 Voting 组合，蓝色柱为各单模型。纵轴为测试集 roc_auc。
-      值越高越好。
-    </p>
-    <script>
-      (function() {
-        const colors = [];
-        const labels = [];
-        const values = [];
-        
-          labels.push('lightgbm');
-          values.push(0.9880952380952381);
-          colors.push('#3498db');
-        
-          labels.push('xgboost');
-          values.push(0.9910714285714286);
-          colors.push('#3498db');
-        
-          labels.push('random_forest');
-          values.push(0.9910714285714286);
-          colors.push('#3498db');
-        
-          labels.push('catboost');
-          values.push(0.9907407407407407);
-          colors.push('#3498db');
-        
-        labels.push('Voting');
-        values.push(0.9927248677248677);
-        colors.push('#e67e22');
-
-        new Chart(document.getElementById('comparisonChart'), {
-          type: 'bar',
-          data: {
-            labels: labels,
-            datasets: [{
-              data: values,
-              backgroundColor: colors,
-              borderRadius: 4,
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
+    
                   label: function(ctx) {
                     return ctx.parsed.y.toFixed(4);
                   }
@@ -277,13 +231,13 @@
     <div class="plot-grid">
       
       <div class="plot-item">
-        <img src="assets/voting_confusion_matrix.png" alt="混淆矩阵">
+        <img src="../assets/voting_confusion_matrix.png" alt="混淆矩阵">
         <div class="caption">混淆矩阵（测试集）</div>
       </div>
       
       
       <div class="plot-item">
-        <img src="assets/voting_roc_curve.png" alt="ROC 曲线">
+        <img src="../assets/voting_roc_curve.png" alt="ROC 曲线">
         <div class="caption">ROC 曲线（测试集）</div>
       </div>
       

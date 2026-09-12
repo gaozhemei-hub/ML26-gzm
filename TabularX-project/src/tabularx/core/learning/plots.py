@@ -156,6 +156,38 @@ def save_voting_plots(
                     fig.savefig(assets_path / "voting_roc_curve.png", dpi=120)
                     plt.close(fig)
                     ensemble_run.artifact_paths["roc_curve"] = "assets/voting_roc_curve.png"
+
+        # Voting 对比柱状图（所有模型 vs Voting）
+        try:
+            primary = search_result.primary_metric
+            labels = []
+            values = []
+            colors = []
+            for r in search_result.succeeded_results:
+                labels.append(r.model_name)
+                val = r.test_metrics.get(primary, r.validation_metrics.get(primary, 0))
+                values.append(val)
+                colors.append("#3498db")
+            labels.append("Voting")
+            voting_val = (ensemble_run.test_metrics or ensemble_run.validation_metrics).get(primary, 0)
+            values.append(voting_val)
+            colors.append("#e67e22")
+
+            fig, ax = plt.subplots(figsize=(7, 4))
+            bars = ax.bar(range(len(labels)), values, color=colors, edgecolor="white")
+            ax.set_xticks(range(len(labels)))
+            ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=9)
+            ax.set_ylabel(primary)
+            ax.set_title("Model Comparison")
+            for bar, val in zip(bars, values):
+                ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                        f"{val:.4f}", ha="center", va="bottom", fontsize=7)
+            fig.tight_layout()
+            fig.savefig(assets_path / "voting_comparison.png", dpi=120)
+            plt.close(fig)
+            ensemble_run.artifact_paths["voting_comparison"] = "assets/voting_comparison.png"
+        except Exception:
+            pass
     except Exception:
         pass
 
@@ -189,7 +221,7 @@ def save_trial_trajectory_plot(
                label=f"Best: {best_val:.4f}")
     ax.set_xlabel("Trial")
     ax.set_ylabel(primary_metric)
-    ax.set_title(f"{run.model_name} - 调参轨迹")
+    ax.set_title(f"{run.model_name} - Trial Trajectory")
     ax.legend(fontsize=8)
     fig.tight_layout()
     fig.savefig(assets_path / f"{safe_name}_trial_trajectory.png", dpi=120)

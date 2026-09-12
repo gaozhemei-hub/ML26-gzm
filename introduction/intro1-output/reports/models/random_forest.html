@@ -41,7 +41,7 @@
     <h2>① 基本信息</h2>
     <div class="summary">
       <div class="card"><div class="num">30</div><div class="label">Trial 次数</div></div>
-      <div class="card"><div class="num">14.6s</div><div class="label">调参耗时</div></div>
+      <div class="card"><div class="num">14.9s</div><div class="label">调参耗时</div></div>
       <div class="card"><div class="num" style="font-size:1.1rem">random_forest</div><div class="label">算法</div></div>
     </div>
   </section>
@@ -52,115 +52,10 @@
   
   <section>
     <h2>② 调参轨迹</h2>
-    <div class="chart-container">
-      <canvas id="trialChart" height="300"></canvas>
+    <div class="plot-item">
+      <img src="../assets/random_forest_trial_trajectory.png" alt="调参轨迹">
+      <div class="caption">横轴为 Trial 序号，纵轴为主指标（roc_auc）。每个点代表一次 trial 的验证集 roc_auc 值。</div>
     </div>
-    <p class="hint">
-      横轴为 Trial 序号，纵轴为主指标（roc_auc）。
-      每个点代表一次 trial 的验证集 roc_auc 值。
-      值越高越好。
-    </p>
-    <script>
-      (function() {
-        const trials = [
-          
-            { number: 0, value: 0.985260399606944 },
-          
-            { number: 1, value: 0.9859154929577465 },
-          
-            { number: 2, value: 0.985260399606944 },
-          
-            { number: 3, value: 0.9862430396331477 },
-          
-            { number: 4, value: 0.9769079593842124 },
-          
-            { number: 5, value: 0.9872256796593515 },
-          
-            { number: 6, value: 0.985260399606944 },
-          
-            { number: 7, value: 0.9788732394366197 },
-          
-            { number: 8, value: 0.9859154929577464 },
-          
-            { number: 9, value: 0.986570586308549 },
-          
-            { number: 10, value: 0.9829675728791353 },
-          
-            { number: 11, value: 0.9875532263347526 },
-          
-            { number: 12, value: 0.9855879462823453 },
-          
-            { number: 13, value: 0.9872256796593515 },
-          
-            { number: 14, value: 0.9859154929577464 },
-          
-            { number: 15, value: 0.9865705863085489 },
-          
-            { number: 16, value: 0.986570586308549 },
-          
-            { number: 17, value: 0.9855879462823453 },
-          
-            { number: 18, value: 0.9855879462823453 },
-          
-            { number: 19, value: 0.9852603996069439 },
-          
-            { number: 20, value: 0.9734687192924992 },
-          
-            { number: 21, value: 0.9859154929577465 },
-          
-            { number: 22, value: 0.9842777595807403 },
-          
-            { number: 23, value: 0.9860792662954472 },
-          
-            { number: 24, value: 0.9868981329839502 },
-          
-            { number: 25, value: 0.9846053062561415 },
-          
-            { number: 26, value: 0.987880773010154 },
-          
-            { number: 27, value: 0.9872256796593515 },
-          
-            { number: 28, value: 0.9888634130363577 },
-          
-            { number: 29, value: 0.986570586308549 },
-          
-        ];
-
-        new Chart(document.getElementById('trialChart'), {
-          type: 'scatter',
-          data: {
-            datasets: [{
-              label: 'Trial',
-              data: trials.map(t => ({ x: t.number, y: t.value })),
-              backgroundColor: '#3498db',
-              pointRadius: 5,
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: function(ctx) {
-                    return 'Trial ' + ctx.parsed.x + ': ' + ctx.parsed.y.toFixed(4);
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                title: { display: true, text: 'Trial 序号' },
-                type: 'linear',
-                ticks: { stepSize: 1, precision: 0 }
-              },
-              y: { title: { display: true, text: 'roc_auc' } }
-            }
-          }
-        });
-      })();
-    </script>
   </section>
   
 
@@ -174,13 +69,13 @@
     <div class="plot-grid">
       
       <div class="plot-item">
-        <img src="assets/random_forest_confusion_matrix.png" alt="混淆矩阵">
+        <img src="../assets/random_forest_confusion_matrix.png" alt="混淆矩阵">
         <div class="caption">混淆矩阵（测试集）</div>
       </div>
       
       
       <div class="plot-item">
-        <img src="assets/random_forest_roc_curve.png" alt="ROC 曲线">
+        <img src="../assets/random_forest_roc_curve.png" alt="ROC 曲线">
         <div class="caption">ROC 曲线（测试集）</div>
       </div>
       

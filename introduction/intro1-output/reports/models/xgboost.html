@@ -41,7 +41,7 @@
     <h2>① 基本信息</h2>
     <div class="summary">
       <div class="card"><div class="num">30</div><div class="label">Trial 次数</div></div>
-      <div class="card"><div class="num">6.1s</div><div class="label">调参耗时</div></div>
+      <div class="card"><div class="num">6.0s</div><div class="label">调参耗时</div></div>
       <div class="card"><div class="num" style="font-size:1.1rem">xgboost</div><div class="label">算法</div></div>
     </div>
   </section>
@@ -52,115 +52,10 @@
   
   <section>
     <h2>② 调参轨迹</h2>
-    <div class="chart-container">
-      <canvas id="trialChart" height="300"></canvas>
+    <div class="plot-item">
+      <img src="../assets/xgboost_trial_trajectory.png" alt="调参轨迹">
+      <div class="caption">横轴为 Trial 序号，纵轴为主指标（roc_auc）。每个点代表一次 trial 的验证集 roc_auc 值。</div>
     </div>
-    <p class="hint">
-      横轴为 Trial 序号，纵轴为主指标（roc_auc）。
-      每个点代表一次 trial 的验证集 roc_auc 值。
-      值越高越好。
-    </p>
-    <script>
-      (function() {
-        const trials = [
-          
-            { number: 0, value: 0.9924664264657714 },
-          
-            { number: 1, value: 0.9921388797903702 },
-          
-            { number: 2, value: 0.9842777595807403 },
-          
-            { number: 3, value: 0.9865705863085489 },
-          
-            { number: 4, value: 0.9855879462823453 },
-          
-            { number: 5, value: 0.982640026203734 },
-          
-            { number: 6, value: 0.9831313462168358 },
-          
-            { number: 7, value: 0.9883720930232559 },
-          
-            { number: 8, value: 0.9883720930232559 },
-          
-            { number: 9, value: 0.9754339993449066 },
-          
-            { number: 10, value: 0.9852603996069439 },
-          
-            { number: 11, value: 0.9931215198165739 },
-          
-            { number: 12, value: 0.9934490664919752 },
-          
-            { number: 13, value: 0.9901735997379626 },
-          
-            { number: 14, value: 0.9849328529315428 },
-          
-            { number: 15, value: 0.9911562397641663 },
-          
-            { number: 16, value: 0.9891909597117589 },
-          
-            { number: 17, value: 0.9911562397641664 },
-          
-            { number: 18, value: 0.991320013101867 },
-          
-            { number: 19, value: 0.9837864395676383 },
-          
-            { number: 20, value: 0.9908286930887652 },
-          
-            { number: 21, value: 0.987880773010154 },
-          
-            { number: 22, value: 0.9911562397641664 },
-          
-            { number: 23, value: 0.9905011464133638 },
-          
-            { number: 24, value: 0.9846053062561415 },
-          
-            { number: 25, value: 0.9914837864395676 },
-          
-            { number: 26, value: 0.989190959711759 },
-          
-            { number: 27, value: 0.9921388797903702 },
-          
-            { number: 28, value: 0.9918113331149688 },
-          
-            { number: 29, value: 0.9875532263347527 },
-          
-        ];
-
-        new Chart(document.getElementById('trialChart'), {
-          type: 'scatter',
-          data: {
-            datasets: [{
-              label: 'Trial',
-              data: trials.map(t => ({ x: t.number, y: t.value })),
-              backgroundColor: '#3498db',
-              pointRadius: 5,
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: function(ctx) {
-                    return 'Trial ' + ctx.parsed.x + ': ' + ctx.parsed.y.toFixed(4);
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                title: { display: true, text: 'Trial 序号' },
-                type: 'linear',
-                ticks: { stepSize: 1, precision: 0 }
-              },
-              y: { title: { display: true, text: 'roc_auc' } }
-            }
-          }
-        });
-      })();
-    </script>
   </section>
   
 
@@ -174,13 +69,13 @@
     <div class="plot-grid">
       
       <div class="plot-item">
-        <img src="assets/xgboost_confusion_matrix.png" alt="混淆矩阵">
+        <img src="../assets/xgboost_confusion_matrix.png" alt="混淆矩阵">
         <div class="caption">混淆矩阵（测试集）</div>
       </div>
       
       
       <div class="plot-item">
-        <img src="assets/xgboost_roc_curve.png" alt="ROC 曲线">
+        <img src="../assets/xgboost_roc_curve.png" alt="ROC 曲线">
         <div class="caption">ROC 曲线（测试集）</div>
       </div>
       

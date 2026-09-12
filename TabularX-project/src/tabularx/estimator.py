@@ -123,6 +123,7 @@ class AutoEstimator:
             feature_names=preprocessed.feature_names_out,
             task_type=self.task,
             output_dir=str(assets_dir),
+            model_name=searched.best_model_name,
             config=self.param.shap,
         )
 
@@ -291,9 +292,10 @@ class AutoEstimator:
                 "primary_metric": result.searched.primary_metric,
                 "optimization_direction": result.searched.optimization_direction,
                 "is_classification": is_cls,
-                "artifact_dir": "assets",
+                "artifact_dir": "../assets",
                 "has_confusion_matrix": has_cm,
                 "has_roc_curve": has_roc,
+                "has_trial_trajectory": "trial_trajectory" in run.artifact_paths,
             }
             _write_html(models_dir / f"{safe_name}.html",
                         render_model_detail_report(detail_data))
@@ -310,9 +312,10 @@ class AutoEstimator:
                 "optimization_direction": result.searched.optimization_direction,
                 "best_single_test": best_val,
                 "is_classification": is_cls,
-                "artifact_dir": "assets",
+                "artifact_dir": "../assets",
                 "has_confusion_matrix": has_cm,
                 "has_roc_curve": has_roc,
+                "has_voting_comparison": "voting_comparison" in er.artifact_paths,
                 "succeeded_results": result.searched.succeeded_results,
             }
             _write_html(models_dir / "voting.html", render_voting_report(voting_data))
@@ -358,6 +361,7 @@ class AutoEstimator:
                 "artifact_dir": "assets",
                 "has_confusion_matrix": has_cm,
                 "has_roc_curve": has_roc,
+                "has_trial_trajectory": "trial_trajectory" in run.artifact_paths,
             }
             section_defs.append(
                 ("model_" + safe_name, f"模型：{run.model_name}",
@@ -378,6 +382,7 @@ class AutoEstimator:
                 "artifact_dir": "assets",
                 "has_confusion_matrix": has_cm,
                 "has_roc_curve": has_roc,
+                "has_voting_comparison": "voting_comparison" in er.artifact_paths,
                 "succeeded_results": result.searched.succeeded_results,
             }
             section_defs.append(
@@ -387,11 +392,10 @@ class AutoEstimator:
             ("explanation", "解释与公平性", explanation_data, render_explanation_report))
 
         for sec_id, sec_title, sec_data, sec_renderer in section_defs:
-            sections.append({
-                "id": sec_id,
-                "title": sec_title,
-                "body": sec_renderer(sec_data, body_only=True),
-            })
+            body = sec_renderer(sec_data, body_only=True)
+            # report.html 在根目录，图片在 reports/assets/，需修正路径
+            body = body.replace('src="assets/', 'src="reports/assets/')
+            sections.append({"id": sec_id, "title": sec_title, "body": body})
 
         dataset_info = {}
         try:

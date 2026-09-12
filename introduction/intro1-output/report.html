@@ -92,7 +92,7 @@
     <h1>TabularX 实验报告</h1>
     <p class="subtitle">面向可解释性与可复现性的自动化表格建模</p>
     <div class="meta">
-      <p>生成时间：2026-09-12 21:17:40</p>
+      <p>生成时间：2026-09-12 22:22:24</p>
       <p>任务类型：binary</p>
       
         <p>
@@ -3702,13 +3702,13 @@ flowchart TB
     <div class="plot-grid">
       
       <div class="plot-item">
-        <img src="assets/xgboost_confusion_matrix.png" alt="混淆矩阵">
+        <img src="reports/assets/xgboost_confusion_matrix.png" alt="混淆矩阵">
         <div class="caption">混淆矩阵（测试集）</div>
       </div>
       
       
       <div class="plot-item">
-        <img src="assets/xgboost_roc_curve.png" alt="ROC 曲线">
+        <img src="reports/assets/xgboost_roc_curve.png" alt="ROC 曲线">
         <div class="caption">ROC 曲线（测试集）</div>
       </div>
       
@@ -3823,7 +3823,7 @@ flowchart TB
               0.9911
             
           </td>
-          <td>6.1s</td>
+          <td>6.0s</td>
           <td><a class="model-link" href="models/xgboost.html">详情</a></td>
         </tr>
         
@@ -3841,7 +3841,7 @@ flowchart TB
               0.9911
             
           </td>
-          <td>14.6s</td>
+          <td>14.9s</td>
           <td><a class="model-link" href="models/random_forest.html">详情</a></td>
         </tr>
         
@@ -3859,7 +3859,7 @@ flowchart TB
               0.9907
             
           </td>
-          <td>79.4s</td>
+          <td>80.9s</td>
           <td><a class="model-link" href="models/catboost.html">详情</a></td>
         </tr>
         
@@ -3877,7 +3877,7 @@ flowchart TB
               0.9881
             
           </td>
-          <td>4.5s</td>
+          <td>4.4s</td>
           <td><a class="model-link" href="models/lightgbm.html">详情</a></td>
         </tr>
         
@@ -3946,7 +3946,7 @@ flowchart TB
     <h2>① 基本信息</h2>
     <div class="summary">
       <div class="card"><div class="num">30</div><div class="label">Trial 次数</div></div>
-      <div class="card"><div class="num">4.5s</div><div class="label">调参耗时</div></div>
+      <div class="card"><div class="num">4.4s</div><div class="label">调参耗时</div></div>
       <div class="card"><div class="num" style="font-size:1.1rem">lightgbm</div><div class="label">算法</div></div>
     </div>
   </section>
@@ -3957,115 +3957,10 @@ flowchart TB
   
   <section>
     <h2>② 调参轨迹</h2>
-    <div class="chart-container">
-      <canvas id="trialChart" height="300"></canvas>
+    <div class="plot-item">
+      <img src="reports/assets/lightgbm_trial_trajectory.png" alt="调参轨迹">
+      <div class="caption">横轴为 Trial 序号，纵轴为主指标（roc_auc）。每个点代表一次 trial 的验证集 roc_auc 值。</div>
     </div>
-    <p class="hint">
-      横轴为 Trial 序号，纵轴为主指标（roc_auc）。
-      每个点代表一次 trial 的验证集 roc_auc 值。
-      值越高越好。
-    </p>
-    <script>
-      (function() {
-        const trials = [
-          
-            { number: 0, value: 0.9911562397641663 },
-          
-            { number: 1, value: 0.9944317065181788 },
-          
-            { number: 2, value: 0.9921388797903701 },
-          
-            { number: 3, value: 0.9857517196200459 },
-          
-            { number: 4, value: 0.9914837864395677 },
-          
-            { number: 5, value: 0.9905011464133638 },
-          
-            { number: 6, value: 0.9834588928922372 },
-          
-            { number: 7, value: 0.9852603996069439 },
-          
-            { number: 8, value: 0.9860792662954471 },
-          
-            { number: 9, value: 0.9862430396331477 },
-          
-            { number: 10, value: 0.99737962659679 },
-          
-            { number: 11, value: 0.996069439895185 },
-          
-            { number: 12, value: 0.9950867998689813 },
-          
-            { number: 13, value: 0.9970520799213889 },
-          
-            { number: 14, value: 0.9970520799213888 },
-          
-            { number: 15, value: 0.990501146413364 },
-          
-            { number: 16, value: 0.9941041598427776 },
-          
-            { number: 17, value: 0.9941041598427776 },
-          
-            { number: 18, value: 0.9832951195545365 },
-          
-            { number: 19, value: 0.9963969865705863 },
-          
-            { number: 20, value: 0.9882083196855551 },
-          
-            { number: 21, value: 0.996069439895185 },
-          
-            { number: 22, value: 0.9963969865705863 },
-          
-            { number: 23, value: 0.9977071732721913 },
-          
-            { number: 24, value: 0.99737962659679 },
-          
-            { number: 25, value: 0.99737962659679 },
-          
-            { number: 26, value: 0.9967245332459876 },
-          
-            { number: 27, value: 0.9937766131673763 },
-          
-            { number: 28, value: 0.9957418932197838 },
-          
-            { number: 29, value: 0.9970520799213888 },
-          
-        ];
-
-        new Chart(document.getElementById('trialChart'), {
-          type: 'scatter',
-          data: {
-            datasets: [{
-              label: 'Trial',
-              data: trials.map(t => ({ x: t.number, y: t.value })),
-              backgroundColor: '#3498db',
-              pointRadius: 5,
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: function(ctx) {
-                    return 'Trial ' + ctx.parsed.x + ': ' + ctx.parsed.y.toFixed(4);
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                title: { display: true, text: 'Trial 序号' },
-                type: 'linear',
-                ticks: { stepSize: 1, precision: 0 }
-              },
-              y: { title: { display: true, text: 'roc_auc' } }
-            }
-          }
-        });
-      })();
-    </script>
   </section>
   
 
@@ -4079,13 +3974,13 @@ flowchart TB
     <div class="plot-grid">
       
       <div class="plot-item">
-        <img src="assets/lightgbm_confusion_matrix.png" alt="混淆矩阵">
+        <img src="reports/assets/lightgbm_confusion_matrix.png" alt="混淆矩阵">
         <div class="caption">混淆矩阵（测试集）</div>
       </div>
       
       
       <div class="plot-item">
-        <img src="assets/lightgbm_roc_curve.png" alt="ROC 曲线">
+        <img src="reports/assets/lightgbm_roc_curve.png" alt="ROC 曲线">
         <div class="caption">ROC 曲线（测试集）</div>
       </div>
       
@@ -4312,7 +4207,7 @@ flowchart TB
     <h2>① 基本信息</h2>
     <div class="summary">
       <div class="card"><div class="num">30</div><div class="label">Trial 次数</div></div>
-      <div class="card"><div class="num">6.1s</div><div class="label">调参耗时</div></div>
+      <div class="card"><div class="num">6.0s</div><div class="label">调参耗时</div></div>
       <div class="card"><div class="num" style="font-size:1.1rem">xgboost</div><div class="label">算法</div></div>
     </div>
   </section>
@@ -4323,115 +4218,10 @@ flowchart TB
   
   <section>
     <h2>② 调参轨迹</h2>
-    <div class="chart-container">
-      <canvas id="trialChart" height="300"></canvas>
+    <div class="plot-item">
+      <img src="reports/assets/xgboost_trial_trajectory.png" alt="调参轨迹">
+      <div class="caption">横轴为 Trial 序号，纵轴为主指标（roc_auc）。每个点代表一次 trial 的验证集 roc_auc 值。</div>
     </div>
-    <p class="hint">
-      横轴为 Trial 序号，纵轴为主指标（roc_auc）。
-      每个点代表一次 trial 的验证集 roc_auc 值。
-      值越高越好。
-    </p>
-    <script>
-      (function() {
-        const trials = [
-          
-            { number: 0, value: 0.9924664264657714 },
-          
-            { number: 1, value: 0.9921388797903702 },
-          
-            { number: 2, value: 0.9842777595807403 },
-          
-            { number: 3, value: 0.9865705863085489 },
-          
-            { number: 4, value: 0.9855879462823453 },
-          
-            { number: 5, value: 0.982640026203734 },
-          
-            { number: 6, value: 0.9831313462168358 },
-          
-            { number: 7, value: 0.9883720930232559 },
-          
-            { number: 8, value: 0.9883720930232559 },
-          
-            { number: 9, value: 0.9754339993449066 },
-          
-            { number: 10, value: 0.9852603996069439 },
-          
-            { number: 11, value: 0.9931215198165739 },
-          
-            { number: 12, value: 0.9934490664919752 },
-          
-            { number: 13, value: 0.9901735997379626 },
-          
-            { number: 14, value: 0.9849328529315428 },
-          
-            { number: 15, value: 0.9911562397641663 },
-          
-            { number: 16, value: 0.9891909597117589 },
-          
-            { number: 17, value: 0.9911562397641664 },
-          
-            { number: 18, value: 0.991320013101867 },
-          
-            { number: 19, value: 0.9837864395676383 },
-          
-            { number: 20, value: 0.9908286930887652 },
-          
-            { number: 21, value: 0.987880773010154 },
-          
-            { number: 22, value: 0.9911562397641664 },
-          
-            { number: 23, value: 0.9905011464133638 },
-          
-            { number: 24, value: 0.9846053062561415 },
-          
-            { number: 25, value: 0.9914837864395676 },
-          
-            { number: 26, value: 0.989190959711759 },
-          
-            { number: 27, value: 0.9921388797903702 },
-          
-            { number: 28, value: 0.9918113331149688 },
-          
-            { number: 29, value: 0.9875532263347527 },
-          
-        ];
-
-        new Chart(document.getElementById('trialChart'), {
-          type: 'scatter',
-          data: {
-            datasets: [{
-              label: 'Trial',
-              data: trials.map(t => ({ x: t.number, y: t.value })),
-              backgroundColor: '#3498db',
-              pointRadius: 5,
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: function(ctx) {
-                    return 'Trial ' + ctx.parsed.x + ': ' + ctx.parsed.y.toFixed(4);
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                title: { display: true, text: 'Trial 序号' },
-                type: 'linear',
-                ticks: { stepSize: 1, precision: 0 }
-              },
-              y: { title: { display: true, text: 'roc_auc' } }
-            }
-          }
-        });
-      })();
-    </script>
   </section>
   
 
@@ -4445,13 +4235,13 @@ flowchart TB
     <div class="plot-grid">
       
       <div class="plot-item">
-        <img src="assets/xgboost_confusion_matrix.png" alt="混淆矩阵">
+        <img src="reports/assets/xgboost_confusion_matrix.png" alt="混淆矩阵">
         <div class="caption">混淆矩阵（测试集）</div>
       </div>
       
       
       <div class="plot-item">
-        <img src="assets/xgboost_roc_curve.png" alt="ROC 曲线">
+        <img src="reports/assets/xgboost_roc_curve.png" alt="ROC 曲线">
         <div class="caption">ROC 曲线（测试集）</div>
       </div>
       
@@ -4678,7 +4468,7 @@ flowchart TB
     <h2>① 基本信息</h2>
     <div class="summary">
       <div class="card"><div class="num">30</div><div class="label">Trial 次数</div></div>
-      <div class="card"><div class="num">14.6s</div><div class="label">调参耗时</div></div>
+      <div class="card"><div class="num">14.9s</div><div class="label">调参耗时</div></div>
       <div class="card"><div class="num" style="font-size:1.1rem">random_forest</div><div class="label">算法</div></div>
     </div>
   </section>
@@ -4689,115 +4479,10 @@ flowchart TB
   
   <section>
     <h2>② 调参轨迹</h2>
-    <div class="chart-container">
-      <canvas id="trialChart" height="300"></canvas>
+    <div class="plot-item">
+      <img src="reports/assets/random_forest_trial_trajectory.png" alt="调参轨迹">
+      <div class="caption">横轴为 Trial 序号，纵轴为主指标（roc_auc）。每个点代表一次 trial 的验证集 roc_auc 值。</div>
     </div>
-    <p class="hint">
-      横轴为 Trial 序号，纵轴为主指标（roc_auc）。
-      每个点代表一次 trial 的验证集 roc_auc 值。
-      值越高越好。
-    </p>
-    <script>
-      (function() {
-        const trials = [
-          
-            { number: 0, value: 0.985260399606944 },
-          
-            { number: 1, value: 0.9859154929577465 },
-          
-            { number: 2, value: 0.985260399606944 },
-          
-            { number: 3, value: 0.9862430396331477 },
-          
-            { number: 4, value: 0.9769079593842124 },
-          
-            { number: 5, value: 0.9872256796593515 },
-          
-            { number: 6, value: 0.985260399606944 },
-          
-            { number: 7, value: 0.9788732394366197 },
-          
-            { number: 8, value: 0.9859154929577464 },
-          
-            { number: 9, value: 0.986570586308549 },
-          
-            { number: 10, value: 0.9829675728791353 },
-          
-            { number: 11, value: 0.9875532263347526 },
-          
-            { number: 12, value: 0.9855879462823453 },
-          
-            { number: 13, value: 0.9872256796593515 },
-          
-            { number: 14, value: 0.9859154929577464 },
-          
-            { number: 15, value: 0.9865705863085489 },
-          
-            { number: 16, value: 0.986570586308549 },
-          
-            { number: 17, value: 0.9855879462823453 },
-          
-            { number: 18, value: 0.9855879462823453 },
-          
-            { number: 19, value: 0.9852603996069439 },
-          
-            { number: 20, value: 0.9734687192924992 },
-          
-            { number: 21, value: 0.9859154929577465 },
-          
-            { number: 22, value: 0.9842777595807403 },
-          
-            { number: 23, value: 0.9860792662954472 },
-          
-            { number: 24, value: 0.9868981329839502 },
-          
-            { number: 25, value: 0.9846053062561415 },
-          
-            { number: 26, value: 0.987880773010154 },
-          
-            { number: 27, value: 0.9872256796593515 },
-          
-            { number: 28, value: 0.9888634130363577 },
-          
-            { number: 29, value: 0.986570586308549 },
-          
-        ];
-
-        new Chart(document.getElementById('trialChart'), {
-          type: 'scatter',
-          data: {
-            datasets: [{
-              label: 'Trial',
-              data: trials.map(t => ({ x: t.number, y: t.value })),
-              backgroundColor: '#3498db',
-              pointRadius: 5,
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: function(ctx) {
-                    return 'Trial ' + ctx.parsed.x + ': ' + ctx.parsed.y.toFixed(4);
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                title: { display: true, text: 'Trial 序号' },
-                type: 'linear',
-                ticks: { stepSize: 1, precision: 0 }
-              },
-              y: { title: { display: true, text: 'roc_auc' } }
-            }
-          }
-        });
-      })();
-    </script>
   </section>
   
 
@@ -4811,13 +4496,13 @@ flowchart TB
     <div class="plot-grid">
       
       <div class="plot-item">
-        <img src="assets/random_forest_confusion_matrix.png" alt="混淆矩阵">
+        <img src="reports/assets/random_forest_confusion_matrix.png" alt="混淆矩阵">
         <div class="caption">混淆矩阵（测试集）</div>
       </div>
       
       
       <div class="plot-item">
-        <img src="assets/random_forest_roc_curve.png" alt="ROC 曲线">
+        <img src="reports/assets/random_forest_roc_curve.png" alt="ROC 曲线">
         <div class="caption">ROC 曲线（测试集）</div>
       </div>
       
@@ -5029,7 +4714,7 @@ flowchart TB
     <h2>① 基本信息</h2>
     <div class="summary">
       <div class="card"><div class="num">30</div><div class="label">Trial 次数</div></div>
-      <div class="card"><div class="num">79.4s</div><div class="label">调参耗时</div></div>
+      <div class="card"><div class="num">80.9s</div><div class="label">调参耗时</div></div>
       <div class="card"><div class="num" style="font-size:1.1rem">catboost</div><div class="label">算法</div></div>
     </div>
   </section>
@@ -5040,115 +4725,10 @@ flowchart TB
   
   <section>
     <h2>② 调参轨迹</h2>
-    <div class="chart-container">
-      <canvas id="trialChart" height="300"></canvas>
+    <div class="plot-item">
+      <img src="reports/assets/catboost_trial_trajectory.png" alt="调参轨迹">
+      <div class="caption">横轴为 Trial 序号，纵轴为主指标（roc_auc）。每个点代表一次 trial 的验证集 roc_auc 值。</div>
     </div>
-    <p class="hint">
-      横轴为 Trial 序号，纵轴为主指标（roc_auc）。
-      每个点代表一次 trial 的验证集 roc_auc 值。
-      值越高越好。
-    </p>
-    <script>
-      (function() {
-        const trials = [
-          
-            { number: 0, value: 0.9868981329839502 },
-          
-            { number: 1, value: 0.9898460530625615 },
-          
-            { number: 2, value: 0.9911562397641663 },
-          
-            { number: 3, value: 0.985260399606944 },
-          
-            { number: 4, value: 0.9905011464133638 },
-          
-            { number: 5, value: 0.9888634130363576 },
-          
-            { number: 6, value: 0.9960694398951851 },
-          
-            { number: 7, value: 0.9911562397641664 },
-          
-            { number: 8, value: 0.990501146413364 },
-          
-            { number: 9, value: 0.9875532263347527 },
-          
-            { number: 10, value: 0.9927939731411726 },
-          
-            { number: 11, value: 0.9927939731411726 },
-          
-            { number: 12, value: 0.9921388797903701 },
-          
-            { number: 13, value: 0.9911562397641663 },
-          
-            { number: 14, value: 0.9944317065181788 },
-          
-            { number: 15, value: 0.9908286930887651 },
-          
-            { number: 16, value: 0.9918113331149689 },
-          
-            { number: 17, value: 0.9957418932197838 },
-          
-            { number: 18, value: 0.9911562397641664 },
-          
-            { number: 19, value: 0.9927939731411726 },
-          
-            { number: 20, value: 0.9941041598427776 },
-          
-            { number: 21, value: 0.9911562397641664 },
-          
-            { number: 22, value: 0.9908286930887652 },
-          
-            { number: 23, value: 0.9937766131673763 },
-          
-            { number: 24, value: 0.9914837864395676 },
-          
-            { number: 25, value: 0.9957418932197838 },
-          
-            { number: 26, value: 0.9868981329839502 },
-          
-            { number: 27, value: 0.9944317065181788 },
-          
-            { number: 28, value: 0.9934490664919751 },
-          
-            { number: 29, value: 0.9875532263347526 },
-          
-        ];
-
-        new Chart(document.getElementById('trialChart'), {
-          type: 'scatter',
-          data: {
-            datasets: [{
-              label: 'Trial',
-              data: trials.map(t => ({ x: t.number, y: t.value })),
-              backgroundColor: '#3498db',
-              pointRadius: 5,
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: function(ctx) {
-                    return 'Trial ' + ctx.parsed.x + ': ' + ctx.parsed.y.toFixed(4);
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                title: { display: true, text: 'Trial 序号' },
-                type: 'linear',
-                ticks: { stepSize: 1, precision: 0 }
-              },
-              y: { title: { display: true, text: 'roc_auc' } }
-            }
-          }
-        });
-      })();
-    </script>
   </section>
   
 
@@ -5162,13 +4742,13 @@ flowchart TB
     <div class="plot-grid">
       
       <div class="plot-item">
-        <img src="assets/catboost_confusion_matrix.png" alt="混淆矩阵">
+        <img src="reports/assets/catboost_confusion_matrix.png" alt="混淆矩阵">
         <div class="caption">混淆矩阵（测试集）</div>
       </div>
       
       
       <div class="plot-item">
-        <img src="assets/catboost_roc_curve.png" alt="ROC 曲线">
+        <img src="reports/assets/catboost_roc_curve.png" alt="ROC 曲线">
         <div class="caption">ROC 曲线（测试集）</div>
       </div>
       
@@ -5434,59 +5014,14 @@ flowchart TB
        第 2 部分：主指标对比图
        ══════════════════════════════════════════════════════════ -->
   
-  
   <section>
     <h2>② 主指标对比（roc_auc）</h2>
-    <div class="chart-container">
-      <canvas id="comparisonChart" height="300"></canvas>
+    
+    <div class="plot-item">
+      <img src="reports/assets/voting_comparison.png" alt="模型对比">
+      <div class="caption">橙色柱为 Voting 组合，蓝色柱为各单模型。纵轴为 roc_auc。</div>
     </div>
-    <p class="hint">
-      橙色柱为 Voting 组合，蓝色柱为各单模型。纵轴为测试集 roc_auc。
-      值越高越好。
-    </p>
-    <script>
-      (function() {
-        const colors = [];
-        const labels = [];
-        const values = [];
-        
-          labels.push('lightgbm');
-          values.push(0.9880952380952381);
-          colors.push('#3498db');
-        
-          labels.push('xgboost');
-          values.push(0.9910714285714286);
-          colors.push('#3498db');
-        
-          labels.push('random_forest');
-          values.push(0.9910714285714286);
-          colors.push('#3498db');
-        
-          labels.push('catboost');
-          values.push(0.9907407407407407);
-          colors.push('#3498db');
-        
-        labels.push('Voting');
-        values.push(0.9927248677248677);
-        colors.push('#e67e22');
-
-        new Chart(document.getElementById('comparisonChart'), {
-          type: 'bar',
-          data: {
-            labels: labels,
-            datasets: [{
-              data: values,
-              backgroundColor: colors,
-              borderRadius: 4,
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
+    
                   label: function(ctx) {
                     return ctx.parsed.y.toFixed(4);
                   }
@@ -5617,13 +5152,13 @@ flowchart TB
     <div class="plot-grid">
       
       <div class="plot-item">
-        <img src="assets/voting_confusion_matrix.png" alt="混淆矩阵">
+        <img src="reports/assets/voting_confusion_matrix.png" alt="混淆矩阵">
         <div class="caption">混淆矩阵（测试集）</div>
       </div>
       
       
       <div class="plot-item">
-        <img src="assets/voting_roc_curve.png" alt="ROC 曲线">
+        <img src="reports/assets/voting_roc_curve.png" alt="ROC 曲线">
         <div class="caption">ROC 曲线（测试集）</div>
       </div>
       
@@ -5960,19 +5495,19 @@ flowchart TB
     <div class="plot-grid">
       
       <div class="plot-item">
-        <img src="assets/xgboost_shap_summary.png" alt="SHAP Summary">
+        <img src="reports/assets/xgboost_shap_summary.png" alt="SHAP Summary">
         <div class="caption">SHAP Summary（beeswarm）— 每个点代表一个样本的 SHAP 值</div>
       </div>
       
       
       <div class="plot-item">
-        <img src="assets/xgboost_shap_importance.png" alt="SHAP 特征重要性">
+        <img src="reports/assets/xgboost_shap_importance.png" alt="SHAP 特征重要性">
         <div class="caption">特征重要性排序（平均 |SHAP| 值）</div>
       </div>
       
       
       <div class="plot-item">
-        <img src="assets/xgboost_shap_waterfall.png" alt="SHAP Waterfall">
+        <img src="reports/assets/xgboost_shap_waterfall.png" alt="SHAP Waterfall">
         <div class="caption">单个样本的 SHAP Waterfall 解释</div>
       </div>
       
