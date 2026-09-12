@@ -33,6 +33,7 @@ class ReportType(str, Enum):
     MODEL_DETAIL = "model_detail_report.html.jinja2"
     VOTING = "voting_report.html.jinja2"
     EXPLANATION = "explanation_report.html.jinja2"
+    FULL = "full_report.html.jinja2"
 
 
 # 模板文件名 → 渲染上下文 key（模板里用什么变量名访问数据）
@@ -44,6 +45,7 @@ TEMPLATE_CONTEXT_KEY: dict[ReportType, str] = {
     ReportType.MODEL_DETAIL: "data",
     ReportType.VOTING: "data",
     ReportType.EXPLANATION: "data",
+    ReportType.FULL: "data",
 }
 
 
@@ -93,12 +95,22 @@ def _get_env(template_dir: str | Path | None = None) -> Environment:
 T = TypeVar("T")
 
 
+def _extract_body(html: str) -> str:
+    """从完整 HTML 中提取 <body>...</body> 之间的内容。"""
+    start = html.find("<body>")
+    end = html.find("</body>")
+    if start == -1 or end == -1:
+        return html
+    return html[start + len("<body>"): end]
+
+
 def render_template(
     template_file: str,
     data: Any,
     *,
     context_key: str = "data",
     template_dir: str | Path | None = None,
+    body_only: bool = False,
 ) -> str:
     """底层通用渲染：模板文件名（任意）+ 数据对象 → HTML 字符串（纯函数，无 IO）。
 
@@ -110,6 +122,7 @@ def render_template(
         data: 要渲染的数据对象（dataclass / dict / 任意有属性的对象）。
         context_key: 模板中访问数据的变量名（默认 "data"，即模板里用 {{ data.x }}）。
         template_dir: 可选注入模板目录（默认包内 templates/）。
+        body_only: 为 True 时只返回 <body>...</body> 内的内容（用于拼接完整报告）。
 
     Returns:
         渲染好的 HTML 字符串。
@@ -119,7 +132,10 @@ def render_template(
     """
     env = _get_env(template_dir)
     template = env.get_template(template_file)
-    return template.render(**{context_key: data})
+    html = template.render(**{context_key: data})
+    if body_only:
+        return _extract_body(html)
+    return html
 
 
 def render_report(
@@ -127,31 +143,29 @@ def render_report(
     data: Any,
     *,
     template_dir: str | Path | None = None,
+    body_only: bool = False,
 ) -> str:
     """通用渲染函数（注册表入口）：报告类型 + 数据对象 → HTML 字符串（纯函数，无 IO）。
 
-    通过 ReportType 枚举从注册表选择模板，正常使用只需这一层。
-
     Args:
         report_type: 报告类型（枚举，决定用哪个模板）。
-        data: 要渲染的数据对象（dataclass / dict / 任意有属性的对象）。
-        template_dir: 可选注入模板目录（默认包内 templates/）。
+        data: 要渲染的数据对象。
+        template_dir: 可选注入模板目录。
+        body_only: 为 True 时只返回 <body> 内内容（用于拼接完整报告）。
 
     Returns:
-        渲染好的 HTML 字符串。
-
-    Raises:
-        jinja2.TemplateNotFound: 注册表指向的模板文件不存在。
+        HTML 字符串。
     """
     return render_template(
         report_type.value,
         data,
         context_key=TEMPLATE_CONTEXT_KEY[report_type],
         template_dir=template_dir,
+        body_only=body_only,
     )
 
 
-def render_profile_report(data: Any, *, template_dir: str | Path | None = None) -> str:
+def render_profile_report(data: Any, *, template_dir: str | Path | None = None, body_only: bool = False) -> str:
     """便捷函数：渲染数据概况报告（profile）。
 
     Args:
@@ -161,10 +175,10 @@ def render_profile_report(data: Any, *, template_dir: str | Path | None = None) 
     Returns:
         HTML 字符串。
     """
-    return render_report(ReportType.PROFILE, data, template_dir=template_dir)
+    return render_report(ReportType.PROFILE, data, template_dir=template_dir, body_only=body_only)
 
 
-def render_split_report(data: Any, *, template_dir: str | Path | None = None) -> str:
+def render_split_report(data: Any, *, template_dir: str | Path | None = None, body_only: bool = False) -> str:
     """便捷函数：渲染数据划分报告（split）。
 
     Args:
@@ -174,10 +188,10 @@ def render_split_report(data: Any, *, template_dir: str | Path | None = None) ->
     Returns:
         HTML 字符串。
     """
-    return render_report(ReportType.SPLIT, data, template_dir=template_dir)
+    return render_report(ReportType.SPLIT, data, template_dir=template_dir, body_only=body_only)
 
 
-def render_preprocess_report(data: Any, *, template_dir: str | Path | None = None) -> str:
+def render_preprocess_report(data: Any, *, template_dir: str | Path | None = None, body_only: bool = False) -> str:
     """便捷函数：渲染数据预处理报告（preprocess）。
 
     Args:
@@ -187,61 +201,32 @@ def render_preprocess_report(data: Any, *, template_dir: str | Path | None = Non
     Returns:
         HTML 字符串。
     """
-    return render_report(ReportType.PREPROCESS, data, template_dir=template_dir)
+    return render_report(ReportType.PREPROCESS, data, template_dir=template_dir, body_only=body_only)
 
 
-def render_model_search_report(data: Any, *, template_dir: str | Path | None = None) -> str:
-    """便捷函数：渲染模型搜索总览报告（model_search）。
-
-    Args:
-        data: ModelSearchResult 实例。
-        template_dir: 可选注入模板目录。
-
-    Returns:
-        HTML 字符串。
-    """
-    return render_report(ReportType.MODEL_SEARCH, data, template_dir=template_dir)
+def render_model_search_report(data: Any, *, template_dir: str | Path | None = None, body_only: bool = False) -> str:
+    """便捷函数：渲染模型搜索总览报告（model_search）。"""
+    return render_report(ReportType.MODEL_SEARCH, data, template_dir=template_dir, body_only=body_only)
 
 
-def render_model_detail_report(data: Any, *, template_dir: str | Path | None = None) -> str:
-    """便捷函数：渲染单个模型详情报告（model_detail）。
-
-    Args:
-        data: 包含目标变量名的 ModelRunResult 字典。
-        template_dir: 可选注入模板目录。
-
-    Returns:
-        HTML 字符串。
-    """
-    return render_report(ReportType.MODEL_DETAIL, data, template_dir=template_dir)
+def render_model_detail_report(data: Any, *, template_dir: str | Path | None = None, body_only: bool = False) -> str:
+    """便捷函数：渲染单个模型详情报告（model_detail）。"""
+    return render_report(ReportType.MODEL_DETAIL, data, template_dir=template_dir, body_only=body_only)
 
 
-def render_voting_report(data: Any, *, template_dir: str | Path | None = None) -> str:
-    """便捷函数：渲染 Voting 组合模型报告（voting）。
-
-    Args:
-        data: 包含 Voting ModelRunResult 及其对比信息的字典。
-              必需键：run (ModelRunResult), primary_metric, optimization_direction,
-              best_single_test, is_classification, succeeded_results。
-        template_dir: 可选注入模板目录。
-
-    Returns:
-        HTML 字符串。
-    """
-    return render_report(ReportType.VOTING, data, template_dir=template_dir)
+def render_voting_report(data: Any, *, template_dir: str | Path | None = None, body_only: bool = False) -> str:
+    """便捷函数：渲染 Voting 组合模型报告（voting）。"""
+    return render_report(ReportType.VOTING, data, template_dir=template_dir, body_only=body_only)
 
 
-def render_explanation_report(data: Any, *, template_dir: str | Path | None = None) -> str:
-    """便捷函数：渲染可解释性与公平性报告（explanation）。
+def render_explanation_report(data: Any, *, template_dir: str | Path | None = None, body_only: bool = False) -> str:
+    """便捷函数：渲染可解释性与公平性报告（explanation）。"""
+    return render_report(ReportType.EXPLANATION, data, template_dir=template_dir, body_only=body_only)
 
-    Args:
-        data: 包含 SHAP 结果和公平性评估结果的字典。
-        template_dir: 可选注入模板目录。
 
-    Returns:
-        HTML 字符串。
-    """
-    return render_report(ReportType.EXPLANATION, data, template_dir=template_dir)
+def render_full_report(data: Any, *, template_dir: str | Path | None = None, body_only: bool = False) -> str:
+    """便捷函数：渲染完整合并报告（full）。"""
+    return render_report(ReportType.FULL, data, template_dir=template_dir, body_only=body_only)
 
 
 __all__ = [
@@ -255,5 +240,6 @@ __all__ = [
     "render_model_detail_report",
     "render_voting_report",
     "render_explanation_report",
+    "render_full_report",
     "render_template",
 ]

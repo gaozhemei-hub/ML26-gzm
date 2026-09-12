@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>TabularX 实验报告</title>
+  <style>
+    /* ── 基础 ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; color: #333; line-height: 1.6; background: #fff; }
+
+    /* ── 封面 ── */
+    .cover { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; text-align: center; padding: 2rem; }
+    .cover h1 { font-size: 2.8rem; color: #2c3e50; margin-bottom: .5rem; }
+    .cover .subtitle { font-size: 1.2rem; color: #7f8c8d; margin-bottom: 2rem; }
+    .cover .meta { font-size: .95rem; color: #95a5a6; line-height: 2; }
+    .cover .meta span { display: inline-block; margin: 0 1rem; }
+
+    /* ── 目录 ── */
+    .toc { max-width: 720px; margin: 3rem auto; padding: 0 2rem; }
+    .toc h2 { font-size: 1.5rem; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: .5rem; margin-bottom: 1rem; }
+    .toc ul { list-style: none; }
+    .toc li { padding: .4rem 0; font-size: 1rem; }
+    .toc li a { color: #3498db; text-decoration: none; }
+    .toc li a:hover { text-decoration: underline; }
+    .toc .page { float: right; color: #95a5a6; font-size: .85rem; }
+
+    /* ── 节间距 ── */
+    section { max-width: 960px; margin: 2rem auto; padding: 0 2rem 3rem; }
+    section h2.section-title { font-size: 1.6rem; color: #2c3e50; border-left: 4px solid #3498db; padding-left: .75rem; margin-bottom: 1.5rem; }
+
+    /* ── 子报告内容（直接嵌入） ── */
+    section h1 { font-size: 1.3rem; color: #34495e; margin: 1.5rem 0 .75rem; }
+    section h2 { font-size: 1.1rem; color: #34495e; margin: 1.2rem 0 .6rem; }
+    section h3 { font-size: 1rem; color: #555; margin: 1rem 0 .5rem; }
+    section table { border-collapse: collapse; width: 100%; margin: .75rem 0; }
+    section th, section td { border: 1px solid #ddd; padding: .4rem .6rem; text-align: left; font-size: .88rem; }
+    section th { background: #f5f6fa; font-weight: 600; }
+    section tr:nth-child(even) td { background: #fafbfc; }
+    section .summary { display: flex; gap: 1rem; flex-wrap: wrap; }
+    section .card { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; min-width: 120px; }
+    section .card .num { font-size: 1.3rem; font-weight: 700; color: #2c3e50; }
+    section .card .label { font-size: .8rem; color: #7f8c8d; }
+    section .badge { display: inline-block; background: #ecf0f1; border-radius: 3px; padding: .1rem .5rem; margin: .1rem .2rem; font-size: .78rem; }
+    section .badge-warn { background: #fef3cd; color: #856404; }
+    section .badge-ok { background: #d4edda; color: #155724; }
+    section .badge-info { background: #cce5ff; color: #004085; }
+    section .conclusion { background: #eaf4fd; border-left: 4px solid #3498db; padding: .6rem 1rem; margin: .75rem 0; border-radius: 4px; }
+    section .evidence { background: #f8f9fa; border: 1px solid #eee; border-left: 3px solid #27ae60; padding: .6rem 1rem; margin: .6rem 0; border-radius: 4px; font-size: .88rem; }
+    section .hint { color: #7f8c8d; font-size: .82rem; }
+    section img { max-width: 100%; height: auto; border: 1px solid #eee; border-radius: 4px; margin: .75rem 0; }
+    section footer { margin-top: 2rem; padding-top: .75rem; border-top: 1px solid #eee; color: #95a5a6; font-size: .82rem; }
+
+    /* ── 尾页 ── */
+    .closing { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 60vh; text-align: center; padding: 2rem; color: #7f8c8d; }
+    .closing h2 { font-size: 1.8rem; color: #2c3e50; margin-bottom: 1rem; }
+    .closing p { font-size: 1rem; max-width: 560px; line-height: 1.8; }
+
+    /* ── 打印 ── */
+    @media print {
+      .cover, .closing { page-break-after: always; min-height: auto; padding: 4rem 2rem; }
+      section { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════════════════════
+       封面
+       ════════════════════════════════════════════════════════ -->
+  <div class="cover">
+    <h1>TabularX 实验报告</h1>
+    <p class="subtitle">面向可解释性与可复现性的自动化表格建模</p>
+    <div class="meta">
+      {% if data.generated_at %}<p>生成时间：{{ data.generated_at }}</p>{% endif %}
+      {% if data.task_type %}<p>任务类型：{{ data.task_type }}</p>{% endif %}
+      {% if data.dataset_info %}
+        <p>
+          {% if data.dataset_info.n_rows %}样本数：{{ data.dataset_info.n_rows }} &nbsp;|&nbsp; {% endif %}
+          {% if data.dataset_info.n_cols %}特征数：{{ data.dataset_info.n_cols }} &nbsp;|&nbsp; {% endif %}
+          {% if data.dataset_info.n_classes %}类别数：{{ data.dataset_info.n_classes }}{% endif %}
+        </p>
+      {% endif %}
+      {% if data.best_model_name %}<p>最佳模型：{{ data.best_model_name }}</p>{% endif %}
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       目录
+       ════════════════════════════════════════════════════════ -->
+  <div class="toc">
+    <h2>目录</h2>
+    <ul>
+      {% for section in data.sections %}
+      <li><a href="#section-{{ section.id }}">{{ section.title }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       各节
+       ════════════════════════════════════════════════════════ -->
+  {% for section in data.sections %}
+  <section id="section-{{ section.id }}">
+    <h2 class="section-title">{{ section.title }}</h2>
+    {{ section.body | safe }}
+  </section>
+  {% endfor %}
+
+  <!-- ════════════════════════════════════════════════════════
+       尾页
+       ════════════════════════════════════════════════════════ -->
+  <div class="closing">
+    <h2>报告结束</h2>
+    <p>
+      本报告由 <strong>TabularX</strong> 自动生成。<br>
+      所有模型训练、评估、可解释性分析及公平性审计均在本地执行。<br>
+      如需复现，请保存完整的实验输出目录。
+    </p>
+  </div>
+
+</body>
+</html>

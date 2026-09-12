@@ -8,6 +8,8 @@
 
 from __future__ import annotations
 
+import warnings
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -31,6 +33,7 @@ from tabularx.core.reports import (
     render_model_detail_report,
     render_voting_report,
     render_explanation_report,
+    render_full_report,
 )
 from tabularx.schema.estimator import AutoResult
 
@@ -41,6 +44,7 @@ class AutoEstimator:
     Attributes:
         task: 任务类型 "auto"（默认，自动推断）| "classification" | "regression"。
         output_dir: 报告和工件保存目录。
+        pdf_report: 是否额外生成 PDF 版完整报告（需安装 weasyprint）。
         param: TabularXParams 实例，配置各阶段参数。
         result_: fit() 完成后自动生成的 AutoResult 实例。
     """
@@ -49,9 +53,11 @@ class AutoEstimator:
         self,
         task: str = "auto",
         output_dir: str | Path = "./tabularx_output",
+        pdf_report: bool = False,
     ):
         self.task = task
         self.output_dir = Path(output_dir)
+        self.pdf_report = pdf_report
         self.param = TabularXParams()
         self.result_: AutoResult | None = None
 
@@ -126,8 +132,8 @@ class AutoEstimator:
             output_dir=self.output_dir,
         )
 
-        # ── 9. 保存报告 ───────────────────────────────────────
-        self._save_reports()
+        # ── 9. 保存报告与模型 ─────────────────────────────────
+        self._save_all()
 
         return self
 
@@ -198,21 +204,44 @@ class AutoEstimator:
             config=self.param.fairness,
         )
 
-    # ── 内部：保存报告 ─────────────────────────────────────
+    # ── 内部：保存全部输出 ─────────────────────────────────
 
-    def _save_reports(self) -> None:
-        """将所有阶段报告渲染为 HTML 并写入 output_dir。"""
+    def _get_best_model(self, searched, preprocessed):
+        """重建最优模型的 sklearn  estimator。"""
+        if not searched.best_model_name:
+            return None
+        registry = get_default_registry()
+        registry_task = (
+            "classification"
+            if self.task in ("binary", "multiclass")
+            else "regression"
+        )
+        best_spec = registry.get(searched.best_model_name, registry_task)
+        model = best_spec.factory(
+            **searched.best_model_params,
+            **(best_spec.default_params or {}),
+        )
+        X_train_full = pd.concat([preprocessed.X_train, preprocessed.X_valid])
+        y_train_full = pd.concat([preprocessed.y_train, preprocessed.y_valid])
+        model.fit(X_train_full, y_train_full)
+        return model
+
+    def _save_all(self) -> None:
+        """保存报告、模型文件和完整报告。"""
         result = self.result_
         output_dir = self.output_dir
 
+        # ── 目录结构 ─────────────────────────────────────────
         reports_dir = output_dir / "reports"
-        models_dir = output_dir / "models"
+        models_dir = reports_dir / "models"   # models 移入 reports 下
         reports_dir.mkdir(parents=True, exist_ok=True)
         models_dir.mkdir(parents=True, exist_ok=True)
 
         target_name = _resolve_target_name(result.preprocessed)
 
-        # ── 各阶段报告 ──────────────────────────────────────
+        # ══════════════════════════════════════════════════════
+        # 1) 各阶段独立报告
+        # ══════════════════════════════════════════════════════
         _write_html(reports_dir / "profile.html", render_profile_report(result.profile))
         _write_html(reports_dir / "split.html", render_split_report(result.split))
         _write_html(
@@ -224,7 +253,9 @@ class AutoEstimator:
             render_model_search_report(result.searched),
         )
 
-        # ── 各模型详情 ──────────────────────────────────────
+        # ══════════════════════════════════════════════════════
+        # 2) 各模型详情 HTML
+        # ══════════════════════════════════════════════════════
         for run in result.searched.succeeded_results:
             detail_data = {"run": run, "target_name": target_name}
             safe_name = run.model_name.replace(" ", "_")
@@ -251,7 +282,9 @@ class AutoEstimator:
                 render_voting_report(voting_data),
             )
 
-        # ── 可解释性 + 公平性报告 ────────────────────────────
+        # ══════════════════════════════════════════════════════
+        # 3) 可解释性 + 公平性报告
+        # ══════════════════════════════════════════════════════
         explanation_data = {
             "shap_result": result.shap,
             "fairness_result": result.fairness,
@@ -263,6 +296,69 @@ class AutoEstimator:
             render_explanation_report(explanation_data),
         )
 
+        # ══════════════════════════════════════════════════════
+        # 4) 最优模型文件（joblib）
+        # ══════════════════════════════════════════════════════
+        if result.searched.best_model_name:
+            model = self._get_best_model(result.searched, result.preprocessed)
+            model_path = output_dir / "best_model.joblib"
+            try:
+                import joblib
+                joblib.dump(model, model_path)
+            except ImportError:
+                # joblib 是 sklearn 的依赖，通常已有
+                import pickle
+                with open(output_dir / "best_model.pkl", "wb") as f:
+                    pickle.dump(model, f)
+
+        # ══════════════════════════════════════════════════════
+        # 5) 完整合并报告（封面 + 各节 body + 尾页）
+        # ══════════════════════════════════════════════════════
+        sections = []
+        section_defs = [
+            ("profile", "数据概况", result.profile, render_profile_report),
+            ("split", "数据划分", result.split, render_split_report),
+            ("preprocess", "数据预处理", result.preprocessed, render_preprocess_report),
+            ("model_search", "模型搜索", result.searched, render_model_search_report),
+            ("explanation", "解释与公平性", explanation_data, render_explanation_report),
+        ]
+
+        for sec_id, sec_title, sec_data, sec_renderer in section_defs:
+            body = sec_renderer(sec_data, body_only=True)
+            sections.append({"id": sec_id, "title": sec_title, "body": body})
+
+        dataset_info = {}
+        try:
+            dataset_info["n_rows"] = result.profile.n_rows
+            dataset_info["n_cols"] = result.profile.n_cols
+            if result.profile.target.n_classes is not None:
+                dataset_info["n_classes"] = result.profile.target.n_classes
+        except Exception:
+            pass
+
+        full_data = {
+            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "task_type": self.task,
+            "best_model_name": result.searched.best_model_name,
+            "dataset_info": dataset_info,
+            "sections": sections,
+        }
+
+        html_path = output_dir / "report.html"
+        _write_html(html_path, render_full_report(full_data))
+
+        # ── 可选 PDF ────────────────────────────────────────
+        if self.pdf_report:
+            try:
+                import weasyprint
+                pdf_path = output_dir / "report.pdf"
+                weasyprint.HTML(filename=str(html_path)).write_pdf(pdf_path)
+            except ImportError:
+                warnings.warn(
+                    "weasyprint 未安装，跳过 PDF 生成。"
+                    " 通过 pip install weasyprint 安装。"
+                )
+
         # 记录已生成路径
         result.report_paths = {
             "profile": str(reports_dir / "profile.html"),
@@ -270,6 +366,7 @@ class AutoEstimator:
             "preprocess": str(reports_dir / "preprocess.html"),
             "model_search": str(reports_dir / "model_search.html"),
             "explanation": str(reports_dir / "explanation.html"),
+            "full": str(html_path),
         }
 
     # ── 属性访问 ───────────────────────────────────────────
