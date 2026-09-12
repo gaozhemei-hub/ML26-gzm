@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>TabularX 数据概况报告</title>
+  <style>
+    body { font-family: "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; margin: 2rem; color: #333; line-height: 1.6; }
+    h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: .5rem; }
+    h2 { color: #34495e; margin-top: 2rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ddd; padding: .5rem .75rem; text-align: left; font-size: .9rem; }
+    th { background: #f5f6fa; font-weight: 600; }
+    tr:nth-child(even) td { background: #fafbfc; }
+    .badge { display: inline-block; background: #ecf0f1; border-radius: 3px; padding: .1rem .5rem; margin: .1rem .2rem; font-size: .8rem; }
+    .badge-warn { background: #fef3cd; color: #856404; }
+    .badge-ok { background: #d4edda; color: #155724; }
+    .badge-info { background: #cce5ff; color: #004085; }
+    .summary { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .card { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; min-width: 140px; }
+    .card .num { font-size: 1.5rem; font-weight: 700; color: #2c3e50; word-break: break-all; }
+    .card .label { font-size: .8rem; color: #7f8c8d; }
+    .conclusion { background: #eaf4fd; border-left: 4px solid #3498db; padding: .75rem 1rem; margin: 1rem 0; border-radius: 4px; }
+    .evidence { background: #f8f9fa; border: 1px solid #eee; border-left: 3px solid #27ae60; padding: .75rem 1rem; margin: .75rem 0; border-radius: 4px; font-size: .9rem; }
+    .evidence .rule { color: #7f8c8d; font-size: .85rem; margin-top: .25rem; }
+    .hint { color: #7f8c8d; font-size: .85rem; }
+    .mermaid-note { background: #f5f6fa; border: 1px dashed #bdc3c7; padding: 1rem; border-radius: 6px; margin: 1rem 0; font-size: .85rem; color: #7f8c8d; }
+    footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #95a5a6; font-size: .85rem; }
+    /* Mermaid 流程图样式 */
+    .mermaid { background: #fff; padding: 1rem; border-radius: 6px; border: 1px solid #eee; }
+  </style>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+  </script>
+</head>
+<body>
+  <h1>TabularX 数据概况报告</h1>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 1 部分：摘要（输入 / 输出 / 结论）
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>① 摘要</h2>
+
+    <h3>输入</h3>
+    <div class="summary">
+      <div class="card"><div class="num">150</div><div class="label">样本数（行）</div></div>
+      <div class="card"><div class="num">4</div><div class="label">特征数（列）</div></div>
+      <div class="card"><div class="num" style="font-size:1rem">e3bca5965109b73b</div><div class="label">数据指纹</div></div>
+    </div>
+
+    <h3>输出（结论）</h3>
+    <div class="conclusion">
+      
+        判定为 <b>multiclass 分类任务</b>，
+        共 3 个类别。
+      
+    </div>
+
+    <h3>关键发现</h3>
+    <ul>
+      
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+      <li>4 列建议标准化（scale_needed）</li>
+      <li>0 列存在缺失值（has_missing）</li>
+      <li>0 列为常数列、0 列为全空列（预处理器将丢弃）</li>
+      <li>0 列为高基数文本列</li>
+      <li>0 列分布偏斜（skewed，建议 log 变换或缩尾）</li>
+      <li>0 列高基数类别（high_cardinality，建议目标编码）</li>
+    </ul>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 2 部分：判断流程与证据（核心解释）
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>② 判断流程与证据</h2>
+
+    <!-- 2.1 判断流程图 -->
+    <h3>2.1 判断流程图</h3>
+    <div class="mermaid">
+flowchart TD
+  Start([开始：接收 X, y]) --> InputCheck{输入类型检查}
+  InputCheck -->|X 不是 DataFrame 或 y 不是 Series| InvalidInput[失败：InvalidDataError]
+  InputCheck -->|类型正确| ShapeCheck{数据非空检查}
+  ShapeCheck -->|X 无行/无列，或 y 无样本| EmptyData[失败：EmptyDataError]
+  ShapeCheck -->|数据非空| AlignCheck{X/y 长度检查}
+  AlignCheck -->|行数不一致| LengthError[失败：MismatchedLengthError]
+  AlignCheck -->|长度一致| TaskCheck{任务类型判断}
+  TaskCheck -->|y 全为空| EmptyTarget[失败：EmptyTargetError]
+  TaskCheck -->|task_type 非法或无法推断| TaskError[失败：TaskTypeError]
+  TaskCheck -->|唯一值 = 2| Binary[二分类任务]
+  TaskCheck -->|唯一值 3~20| Multi[多分类任务]
+  TaskCheck -->|连续值或浮点且唯一值 > 20| Reg[回归任务]
+  Binary --> Imbalance{类别不平衡检测}
+  Multi --> Imbalance
+  Reg --> ColLoop[逐列分析]
+  Imbalance -->|最小类别占比 < 10%| Imbalanced[标记 imbalanced]
+  Imbalance -->|否则| Balanced[类别分布较均衡]
+  Imbalanced --> ColLoop
+  Balanced --> ColLoop
+  ColLoop --> EmptyColCheck{是否全空列？}
+  EmptyColCheck -->|是：非缺失值 = 0| EmptyColumn[标记 empty_column]
+  EmptyColCheck -->|否| ConstantCheck{是否常数列？}
+  ConstantCheck -->|是：唯一值 = 1| ConstantColumn[标记 constant_column]
+  ConstantCheck -->|否| ColType{列类型判断}
+  EmptyColumn --> Done([完成：输出 DataProfile])
+  ConstantColumn --> Done
+  ColType -->|datetime| DateTime[日期时间列]
+  ColType -->|boolean| Boolean[布尔列]
+  ColType -->|整数且唯一值 ≤ 20| Cate[类别列]
+  ColType -->|整数且唯一值 > 20 或浮点| Num[数值列]
+  ColType -->|object/str/category| Cat{唯一值与行唯一率}
+  Cat -->|唯一值 > 200 且 >50% 行唯一| Text[文本列]
+  Cat -->|其他| Cate
+  Cate --> HighCard{基数检测}
+  HighCard -->|unique > 50| HighCardYes[标记 high_cardinality]
+  HighCard -->|unique ≤ 50| LowCard[基数正常]
+  HighCardYes --> Miss{缺失值检查}
+  LowCard --> Miss
+  Num --> Scale{scale 判据}
+  Scale -->|‖mean‖>0.5 或 std>1.5| ScaleYes[标记 scale_needed]
+  Scale -->|否则| ScaleNo[无需标准化]
+  ScaleYes --> Skew{偏度检测}
+  ScaleNo --> Skew
+  Skew -->|‖skew‖ > 1| Skewed[标记 skewed]
+  Skew -->|否则| NoSkew[分布风险较低]
+  Skewed --> Miss{缺失值检查}
+  NoSkew --> Miss
+  DateTime --> Miss
+  Boolean --> Miss
+  Text --> Miss
+  Miss -->|n_missing > 0| MissYes[标记 has_missing]
+  Miss -->|无缺失| Done
+  MissYes --> Done
+  classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
+  classDef warning fill:#fff3cd,stroke:#856404,stroke-width:1px;
+  class InvalidInput,EmptyData,LengthError,EmptyTarget,TaskError error;
+  class EmptyColumn,ConstantColumn,MissYes,ScaleYes,Skewed,HighCardYes,Imbalanced warning;
+    </div>
+    <div class="mermaid-note">↑ profile 阶段完整判断流程。后续阶段：Split → Preprocess → Model Search。</div>
+
+    <!-- 2.2 目标变量判断依据 -->
+    <h3>2.2 目标变量判断依据</h3>
+    <div class="evidence">
+      <b>任务类型：multiclass</b>
+      <ul style="margin: .5rem 0 0 0;">
+        
+          <li><b>task_type_source</b> = <code>user+auto</code>
+            <span class="hint">— 用户手动指定分类任务；按唯一值数 3 细分为 multiclass</span>
+          </li>
+        
+      </ul>
+      <div class="rule">规则：唯一值 ≤2 → 二分类；3~20 → 多分类；浮点连续且唯一值 &gt;20 → 回归</div>
+    </div>
+
+    
+
+    <!-- 2.3 特征列判断依据（仅列特殊情况的列） -->
+    <h3>2.3 特征列判断依据（仅列特殊情况）</h3>
+    
+    
+      
+      <div class="evidence">
+        <b>sepal length (cm)</b>
+        <span class="badge badge-warn">numeric, scale_needed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=5.8433, std=0.8253，满足判据 → scale_needed</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>sepal width (cm)</b>
+        <span class="badge badge-warn">numeric, scale_needed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=3.0573, std=0.4344，满足判据 → scale_needed</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>petal length (cm)</b>
+        <span class="badge badge-warn">numeric, scale_needed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=3.7580, std=1.7594，满足判据 → scale_needed</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>petal width (cm)</b>
+        <span class="badge badge-warn">numeric, scale_needed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=1.1993, std=0.7597，满足判据 → scale_needed</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+    
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 3 部分：详细描述性统计
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>③ 详细描述性统计</h2>
+
+    <h3>目标变量</h3>
+    <table>
+      <tr><th>任务类型</th><td>multiclass</td></tr>
+      
+        <tr><th>类别数</th><td>3</td></tr>
+        <tr><th>类别分布</th>
+          <td>
+            
+              <span class="badge badge-info">0: 33.3%</span>
+            
+              <span class="badge badge-info">1: 33.3%</span>
+            
+              <span class="badge badge-info">2: 33.3%</span>
+            
+          </td>
+        </tr>
+      
+      <tr><th>缺失率</th><td>0.00%</td></tr>
+    </table>
+
+    <h3>特征列</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>列名</th><th>类型</th><th>dtype</th><th>缺失数</th><th>缺失率</th>
+          <th>唯一值</th><th>标签</th><th>均值</th><th>标准差</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td>sepal length (cm)</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>35</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+          </td>
+          <td>5.8433</td>
+          <td>0.8253</td>
+        </tr>
+        
+        <tr>
+          <td>sepal width (cm)</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>23</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+          </td>
+          <td>3.0573</td>
+          <td>0.4344</td>
+        </tr>
+        
+        <tr>
+          <td>petal length (cm)</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>43</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+          </td>
+          <td>3.7580</td>
+          <td>1.7594</td>
+        </tr>
+        
+        <tr>
+          <td>petal width (cm)</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>22</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+          </td>
+          <td>1.1993</td>
+          <td>0.7597</td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    <p>由 TabularX 自动生成 · 数据指纹 e3bca5965109b73b</p>
+  </footer>
+</body>
+</html>
