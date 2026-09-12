@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>TabularX 数据预处理报告</title>
+  <style>
+    body { font-family: "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; margin: 2rem; color: #333; line-height: 1.6; }
+    h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: .5rem; }
+    h2 { color: #34495e; margin-top: 2rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ddd; padding: .5rem .75rem; text-align: left; font-size: .9rem; }
+    th { background: #f5f6fa; font-weight: 600; }
+    tr:nth-child(even) td { background: #fafbfc; }
+    .badge { display: inline-block; background: #ecf0f1; border-radius: 3px; padding: .1rem .5rem; margin: .1rem .2rem; font-size: .8rem; }
+    .badge-warn { background: #fef3cd; color: #856404; }
+    .badge-ok { background: #d4edda; color: #155724; }
+    .badge-info { background: #cce5ff; color: #004085; }
+    .badge-drop { background: #f8d7da; color: #721c24; }
+    .summary { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .card { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; min-width: 120px; }
+    .card .num { font-size: 1.5rem; font-weight: 700; color: #2c3e50; }
+    .card .label { font-size: .8rem; color: #7f8c8d; }
+    .conclusion { background: #eaf4fd; border-left: 4px solid #3498db; padding: .75rem 1rem; margin: 1rem 0; border-radius: 4px; }
+    .evidence { background: #f8f9fa; border: 1px solid #eee; border-left: 3px solid #27ae60; padding: .75rem 1rem; margin: .75rem 0; border-radius: 4px; font-size: .9rem; }
+    .evidence .rule { color: #7f8c8d; font-size: .85rem; margin-top: .25rem; }
+    .hint { color: #7f8c8d; font-size: .85rem; }
+    footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #95a5a6; font-size: .85rem; }
+    /* Mermaid 流程图样式 */
+    .mermaid { background: #fff; padding: 1rem; border-radius: 6px; border: 1px solid #eee; }
+    .mermaid-note { background: #f5f6fa; border: 1px dashed #bdc3c7; padding: 1rem; border-radius: 6px; margin: 1rem 0; font-size: .85rem; color: #7f8c8d; }
+  </style>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+  </script>
+</head>
+<body>
+  <h1>TabularX 数据预处理报告</h1>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 1 部分：摘要
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>① 摘要</h2>
+
+    <h3>输入 / 输出</h3>
+    <div class="summary">
+      <div class="card"><div class="num">31</div><div class="label">输入特征数</div></div>
+      <div class="card"><div class="num">33</div><div class="label">输出特征数</div></div>
+      <div class="card"><div class="num">0</div><div class="label">丢弃列数</div></div>
+      <div class="card"><div class="num">341</div><div class="label">训练集样本数</div></div>
+      <div class="card"><div class="num">114</div><div class="label">验证集样本数</div></div>
+      <div class="card"><div class="num">114</div><div class="label">测试集样本数</div></div>
+    </div>
+
+    <h3>关键结论</h3>
+    <div class="conclusion">
+      
+        没有列被丢弃。
+      
+      <br>
+      
+        特征数量从 <b>31</b> 变为 <b>33</b>
+        （增加
+        了 2 列）。
+      
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 2 部分：判断流程
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>② 判断流程</h2>
+
+    <div class="mermaid">
+flowchart TD
+  Start([开始：接收 X, y, profile, split_result, config]) --> Slice[阶段 1：切片数据]
+  Slice -->|提取 train/valid/test 索引| ColLoop[阶段 2：逐列处理]
+
+  ColLoop --> EmptyCol{常数列或全空列？}
+  EmptyCol -->|是| Drop[丢弃此列]
+  EmptyCol -->|否| TextCol{文本列？}
+  TextCol -->|是，handle_text=drop| Drop
+  TextCol -->|是，handle_text=keep| TextError[报错：暂不支持 NLP]
+  TextCol -->|否| DtCol{日期列？}
+  DtCol -->|handle_datetime=drop| Drop
+  DtCol -->|handle_datetime=keep| Keep[原样保留]
+  DtCol -->|handle_datetime=extract| DtExtract[提取年/月/日数值特征]
+
+  Drop --> NextCol
+  TextError --> NextCol
+  Keep --> NextCol
+  DtExtract --> NextCol
+
+  DtCol -->|否| NumCol{数值列？}
+  NumCol -->|是| NumImpute[填补缺失值]
+  NumImpute --> ScaleQuery{需要标准化？}
+  ScaleQuery -->|是| SkewQuery1{分布偏斜？}
+  ScaleQuery -->|否| SkewQuery2{分布偏斜？}
+  SkewQuery1 -->|是| YeoJohnson[Yeo-Johnson 变换<br/>兼作标准化]
+  SkewQuery1 -->|否| Scale[标准化]
+  SkewQuery2 -->|是| YeoJohnson2[Yeo-Johnson 变换]
+  SkewQuery2 -->|否| NoOp[无需处理]
+  YeoJohnson --> NextCol
+  Scale --> NextCol
+  YeoJohnson2 --> NextCol
+  NoOp --> NextCol
+
+  NumCol -->|否| BoolCol{布尔列？}
+  BoolCol -->|是| BoolProc["填补缺失 转 int(0/1)"]
+  BoolProc --> NextCol
+  BoolCol -->|否| CateCol{类别列？}
+  CateCol -->|是| CateImpute[填补缺失值]
+  CateImpute --> HighCard{高基数？}
+  HighCard -->|unique > max_onehot_categories| HighEnc{高基数编码}
+  HighEnc -->|target| TargetEncode[目标编码]
+  HighEnc -->|frequency| FreqEncode[频率编码]
+  HighCard -->|否| LowEnc{低基数编码}
+  LowEnc -->|onehot| OneHot[OneHot 编码]
+  LowEnc -->|label| LabelEncode[标签编码]
+  TargetEncode --> NextCol
+  FreqEncode --> NextCol
+  OneHot --> NextCol
+  LabelEncode --> NextCol
+
+  CateCol -->|否| Unknown[未知类型 原样保留]
+  Unknown --> NextCol
+
+  NextCol{还有下一列？}
+  NextCol -->|是| ColLoop
+  NextCol -->|否| Done([完成：输出 PreprocessedData])
+
+  classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
+  classDef decision fill:#fff3cd,stroke:#856404,stroke-width:1px;
+  class Drop,TextError error;
+  class EmptyCol,TextCol,DtCol,NumCol,BoolCol,CateCol,ScaleQuery,SkewQuery1,SkewQuery2,HighCard,HighEnc,LowEnc decision;
+    </div>
+    <div class="mermaid-note">↑ preprocess 阶段决策流程。灰色背景节点为决策分支，红色为错误出口。</div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 3 部分：逐列变换记录
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>③ 逐列变换记录</h2>
+
+    
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+
+    <p class="hint">
+      总计 31 列 · 
+      标准化 11 列 · 填补 0 列 · 编码 0 列 · 丢弃 0 列
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>列名</th>
+          <th>原始 dtype</th>
+          <th>原始唯一值</th>
+          <th>变换动作</th>
+          <th>输出特征数</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td><b>mean radius</b></td>
+          <td><code>float64</code></td>
+          <td>456</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">standard_scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>mean texture</b></td>
+          <td><code>float64</code></td>
+          <td>479</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">standard_scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>mean perimeter</b></td>
+          <td><code>float64</code></td>
+          <td>522</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">standard_scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>mean area</b></td>
+          <td><code>float64</code></td>
+          <td>539</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson+scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>mean smoothness</b></td>
+          <td><code>float64</code></td>
+          <td>474</td>
+          <td>
+            
+              <span class="badge badge-ok">保留</span>
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>mean compactness</b></td>
+          <td><code>float64</code></td>
+          <td>537</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>mean concavity</b></td>
+          <td><code>float64</code></td>
+          <td>537</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>mean concave points</b></td>
+          <td><code>float64</code></td>
+          <td>542</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>mean symmetry</b></td>
+          <td><code>float64</code></td>
+          <td>432</td>
+          <td>
+            
+              <span class="badge badge-ok">保留</span>
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>mean fractal dimension</b></td>
+          <td><code>float64</code></td>
+          <td>499</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>radius error</b></td>
+          <td><code>float64</code></td>
+          <td>540</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>texture error</b></td>
+          <td><code>float64</code></td>
+          <td>519</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson+scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>perimeter error</b></td>
+          <td><code>float64</code></td>
+          <td>533</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson+scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>area error</b></td>
+          <td><code>float64</code></td>
+          <td>528</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson+scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>smoothness error</b></td>
+          <td><code>float64</code></td>
+          <td>547</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>compactness error</b></td>
+          <td><code>float64</code></td>
+          <td>541</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>concavity error</b></td>
+          <td><code>float64</code></td>
+          <td>533</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>concave points error</b></td>
+          <td><code>float64</code></td>
+          <td>507</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>symmetry error</b></td>
+          <td><code>float64</code></td>
+          <td>498</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>fractal dimension error</b></td>
+          <td><code>float64</code></td>
+          <td>545</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>worst radius</b></td>
+          <td><code>float64</code></td>
+          <td>457</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson+scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>worst texture</b></td>
+          <td><code>float64</code></td>
+          <td>511</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">standard_scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>worst perimeter</b></td>
+          <td><code>float64</code></td>
+          <td>514</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson+scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>worst area</b></td>
+          <td><code>float64</code></td>
+          <td>544</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson+scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>worst smoothness</b></td>
+          <td><code>float64</code></td>
+          <td>411</td>
+          <td>
+            
+              <span class="badge badge-ok">保留</span>
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>worst compactness</b></td>
+          <td><code>float64</code></td>
+          <td>529</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>worst concavity</b></td>
+          <td><code>float64</code></td>
+          <td>539</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>worst concave points</b></td>
+          <td><code>float64</code></td>
+          <td>492</td>
+          <td>
+            
+              <span class="badge badge-ok">保留</span>
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>worst symmetry</b></td>
+          <td><code>float64</code></td>
+          <td>500</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>worst fractal dimension</b></td>
+          <td><code>float64</code></td>
+          <td>535</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">yeo-johnson</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>radius_group</b></td>
+          <td><code>category</code></td>
+          <td>3</td>
+          <td>
+            
+              
+                <span class="badge badge-info">onehot(3)</span>
+              
+            
+          </td>
+          <td>3</td>
+          <td class="hint"></td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 4 部分：列映射关系（变换追踪）
+       ══════════════════════════════════════════════════════════ -->
+  
+  
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+      
+    
+  
+
+  
+  <section>
+    <h2>④ 列映射关系</h2>
+    <p class="hint">仅展示有变化的列（被丢弃、展开、重命名或提取）。未列出的列原样保留。</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>原始列名</th>
+          <th>变换后列名</th>
+          <th>输出特征数</th>
+          <th>状态</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td><b>radius_group</b></td>
+          <td>
+            
+              
+                <span class="badge badge-info">radius_group_large</span>
+              
+                <span class="badge badge-info">radius_group_medium</span>
+              
+                <span class="badge badge-info">radius_group_small</span>
+              
+            
+          </td>
+          <td>3</td>
+          <td>
+            
+              <span class="badge badge-ok">展开</span>
+            
+          </td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </section>
+  
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 5 部分：数据概况（各子集统计）
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>④ 数据概况</h2>
+
+    <h3>输出特征名</h3>
+    <p>
+      
+        <span class="badge badge-info">mean radius</span>
+      
+        <span class="badge badge-info">mean texture</span>
+      
+        <span class="badge badge-info">mean perimeter</span>
+      
+        <span class="badge badge-info">mean area</span>
+      
+        <span class="badge badge-info">mean smoothness</span>
+      
+        <span class="badge badge-info">mean compactness</span>
+      
+        <span class="badge badge-info">mean concavity</span>
+      
+        <span class="badge badge-info">mean concave points</span>
+      
+        <span class="badge badge-info">mean symmetry</span>
+      
+        <span class="badge badge-info">mean fractal dimension</span>
+      
+        <span class="badge badge-info">radius error</span>
+      
+        <span class="badge badge-info">texture error</span>
+      
+        <span class="badge badge-info">perimeter error</span>
+      
+        <span class="badge badge-info">area error</span>
+      
+        <span class="badge badge-info">smoothness error</span>
+      
+        <span class="badge badge-info">compactness error</span>
+      
+        <span class="badge badge-info">concavity error</span>
+      
+        <span class="badge badge-info">concave points error</span>
+      
+        <span class="badge badge-info">symmetry error</span>
+      
+        <span class="badge badge-info">fractal dimension error</span>
+      
+        <span class="badge badge-info">worst radius</span>
+      
+        <span class="badge badge-info">worst texture</span>
+      
+        <span class="badge badge-info">worst perimeter</span>
+      
+        <span class="badge badge-info">worst area</span>
+      
+        <span class="badge badge-info">worst smoothness</span>
+      
+        <span class="badge badge-info">worst compactness</span>
+      
+        <span class="badge badge-info">worst concavity</span>
+      
+        <span class="badge badge-info">worst concave points</span>
+      
+        <span class="badge badge-info">worst symmetry</span>
+      
+        <span class="badge badge-info">worst fractal dimension</span>
+      
+        <span class="badge badge-info">radius_group_large</span>
+      
+        <span class="badge badge-info">radius_group_medium</span>
+      
+        <span class="badge badge-info">radius_group_small</span>
+      
+    </p>
+
+    <h3>训练集描述性统计</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>列名</th>
+          <th>均值</th>
+          <th>标准差</th>
+          <th>最小值</th>
+          <th>最大值</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          
+          
+          <tr>
+            <td>mean radius</td>
+            <td>0.0000</td>
+            <td>1.0015</td>
+            <td>-1.9882</td>
+            <td>3.9711</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>mean texture</td>
+            <td>0.0000</td>
+            <td>1.0015</td>
+            <td>-2.0949</td>
+            <td>4.4438</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>mean perimeter</td>
+            <td>0.0000</td>
+            <td>1.0015</td>
+            <td>-1.9434</td>
+            <td>3.9624</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>mean area</td>
+            <td>0.0000</td>
+            <td>1.0015</td>
+            <td>-3.2571</td>
+            <td>2.6745</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>mean smoothness</td>
+            <td>0.0966</td>
+            <td>0.0135</td>
+            <td>0.0625</td>
+            <td>0.1425</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>mean compactness</td>
+            <td>-0.0000</td>
+            <td>1.0015</td>
+            <td>-2.4231</td>
+            <td>2.4261</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>mean concavity</td>
+            <td>0.0000</td>
+            <td>1.0015</td>
+            <td>-1.6039</td>
+            <td>2.0715</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>mean concave points</td>
+            <td>-0.0000</td>
+            <td>1.0015</td>
+            <td>-1.8194</td>
+            <td>2.0503</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>mean symmetry</td>
+            <td>0.1811</td>
+            <td>0.0281</td>
+            <td>0.1167</td>
+            <td>0.3040</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>mean fractal dimension</td>
+            <td>-0.0000</td>
+            <td>1.0015</td>
+            <td>-2.7083</td>
+            <td>2.5781</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>radius error</td>
+            <td>0.0000</td>
+            <td>1.0015</td>
+            <td>-2.1487</td>
+            <td>2.2590</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>texture error</td>
+            <td>-0.0000</td>
+            <td>1.0015</td>
+            <td>-2.4298</td>
+            <td>3.2078</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>perimeter error</td>
+            <td>0.0000</td>
+            <td>1.0015</td>
+            <td>-2.3460</td>
+            <td>2.5050</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>area error</td>
+            <td>0.0000</td>
+            <td>1.0015</td>
+            <td>-2.7590</td>
+            <td>2.4684</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>smoothness error</td>
+            <td>-0.0000</td>
+            <td>1.0015</td>
+            <td>-3.4730</td>
+            <td>2.5279</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>compactness error</td>
+            <td>-0.0000</td>
+            <td>1.0015</td>
+            <td>-2.2551</td>
+            <td>2.2689</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>concavity error</td>
+            <td>0.0000</td>
+            <td>1.0015</td>
+            <td>-1.9491</td>
+            <td>2.5693</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>concave points error</td>
+            <td>-0.0000</td>
+            <td>1.0015</td>
+            <td>-2.7892</td>
+            <td>3.1021</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>symmetry error</td>
+            <td>-0.0000</td>
+            <td>1.0015</td>
+            <td>-2.2717</td>
+            <td>2.3510</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>fractal dimension error</td>
+            <td>-0.0000</td>
+            <td>1.0015</td>
+            <td>-2.2305</td>
+            <td>2.4126</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>worst radius</td>
+            <td>0.0000</td>
+            <td>1.0015</td>
+            <td>-2.9872</td>
+            <td>2.2546</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>worst texture</td>
+            <td>-0.0000</td>
+            <td>1.0015</td>
+            <td>-2.0753</td>
+            <td>3.7012</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>worst perimeter</td>
+            <td>0.0000</td>
+            <td>1.0015</td>
+            <td>-2.9755</td>
+            <td>2.2817</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>worst area</td>
+            <td>-0.0000</td>
+            <td>1.0015</td>
+            <td>-3.0560</td>
+            <td>2.3016</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>worst smoothness</td>
+            <td>0.1326</td>
+            <td>0.0227</td>
+            <td>0.0712</td>
+            <td>0.2184</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>worst compactness</td>
+            <td>-0.0000</td>
+            <td>1.0015</td>
+            <td>-2.3134</td>
+            <td>2.4057</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>worst concavity</td>
+            <td>0.0000</td>
+            <td>1.0015</td>
+            <td>-1.7770</td>
+            <td>2.4025</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>worst concave points</td>
+            <td>0.1153</td>
+            <td>0.0681</td>
+            <td>0.0000</td>
+            <td>0.2910</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>worst symmetry</td>
+            <td>0.0000</td>
+            <td>1.0015</td>
+            <td>-3.0698</td>
+            <td>3.1460</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>worst fractal dimension</td>
+            <td>-0.0000</td>
+            <td>1.0015</td>
+            <td>-2.5804</td>
+            <td>2.6530</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>radius_group_large</td>
+            <td>0.0411</td>
+            <td>0.1987</td>
+            <td>0.0000</td>
+            <td>1.0000</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>radius_group_medium</td>
+            <td>0.3607</td>
+            <td>0.4809</td>
+            <td>0.0000</td>
+            <td>1.0000</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>radius_group_small</td>
+            <td>0.5982</td>
+            <td>0.4910</td>
+            <td>0.0000</td>
+            <td>1.0000</td>
+          </tr>
+          
+        
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    <p>由 TabularX 自动生成 · Preprocess 报告</p>
+  </footer>
+</body>
+</html>
