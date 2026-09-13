@@ -1,675 +1,350 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TabularX — 面向可解释性与可复现性的自动化表格建模工具包</title>
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { font-size: 22px; }
-  @media (max-width: 900px) { html { font-size: 18px; } }
-
-  body {
-    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
-    background: #1a1d23;
-    color: #e8eaed;
-    line-height: 1.6;
-    overflow: hidden;
-    height: 100vh;
-    width: 100vw;
-  }
-
-  .slides { position: relative; height: 100vh; width: 100vw; }
-  .slide {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column;
-    justify-content: center; align-items: center;
-    padding: 2rem 4%;
-    opacity: 0; visibility: hidden;
-    transition: opacity 0.35s ease, visibility 0.35s ease;
-    overflow-y: auto;
-    text-align: center;
-  }
-  .slide.active { opacity: 1; visibility: visible; }
-  .slide-content {
-    max-width: 960px;
-    width: 100%;
-    margin: 0 auto;
-  }
-
-  .slide-title { background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); }
-  .slide-section { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
-  .slide-content-page { background: #1e2229; }
-  .slide-end { background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); }
-  .slide-iframe { background: #fff; padding: 0; }
-
-  h1 { font-size: 2.8rem; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: 0.02em; }
-  h2 { font-size: 1.6rem; font-weight: 600; margin-bottom: 0.3rem; color: #80cbc4; }
-  h3 { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.8rem; color: #80cbc4; }
-  .subtitle { font-size: 1.1rem; color: #9aa0a6; margin-top: 0.5rem; }
-  .meta { font-size: 0.8rem; color: #5f6368; margin-top: 1.5rem; }
-  .slide p { margin-bottom: 0.8rem; }
-  .slide ul, .slide ol { text-align: left; margin: 0.6rem 0 0.6rem 1.5rem; }
-  .slide li { margin-bottom: 0.4rem; }
-  .highlight { color: #fdd835; font-weight: 600; }
-  .highlight-blue { color: #4fc3f7; font-weight: 600; }
-  .highlight-green { color: #81c784; font-weight: 600; }
-  .highlight-pink { color: #f48fb1; font-weight: 600; }
-
-  code {
-    background: #2d323b; padding: 0.1em 0.35em; border-radius: 4px;
-    font-size: 0.85em; font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
-  }
-  pre {
-    background: #2d323b; padding: 0.8rem 1rem; border-radius: 8px; text-align: left;
-    font-size: 0.7rem; line-height: 1.5; overflow-x: auto;
-    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
-    max-width: 100%; margin: 0.8rem auto; border: 1px solid #3c4048;
-  }
-
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 0.8rem 0; }
-  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin: 0.8rem 0; }
-  .card {
-    background: #262a33; border-radius: 10px; padding: 1rem;
-    border: 1px solid #343840; text-align: left;
-  }
-  .card h4 { font-size: 0.95rem; color: #fdd835; margin-bottom: 0.4rem; }
-  .card p, .card li { font-size: 0.8rem; }
-  .card ul { margin-left: 1rem; }
-  .card li { margin-bottom: 0.2rem; }
-  .principle-card { text-align: center; }
-  .principle-card .num {
-    display: inline-block; width: 2rem; height: 2rem; line-height: 2rem;
-    border-radius: 50%; background: #37474f; color: #80cbc4;
-    font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem;
-  }
-  .principle-card h4 { text-align: center; }
-  .tag {
-    display: inline-block; padding: 0.15rem 0.6rem;
-    border-radius: 12px; font-size: 0.65rem; font-weight: 600; vertical-align: middle;
-  }
-  .tag-mljar { background: #4a1a2e; color: #f48fb1; }
-  .tag-tbx { background: #0d3b4e; color: #4fc3f7; }
-  .tag-feat { background: #1b3b1b; color: #81c784; }
-  .arrow { color: #5f6368; font-size: 1.2rem; margin: 0 0.3rem; }
-  .small { font-size: 0.75rem; color: #9aa0a6; }
-  .text-left { text-align: left; }
-
-  .comp-table {
-    width: 100%; border-collapse: collapse; margin: 0.8rem auto;
-    font-size: 0.75rem; text-align: left;
-  }
-  .comp-table th {
-    background: #2d323b; padding: 0.5rem 0.7rem;
-    color: #80cbc4; font-weight: 600; border-bottom: 2px solid #3c4048;
-  }
-  .comp-table td { padding: 0.5rem 0.7rem; border-bottom: 1px solid #2d323b; vertical-align: top; }
-
-  /* iframe slide - report embedded full screen */
-  .report-iframe {
-    width: 100%; height: 100%; border: none;
-    background: #fff;
-  }
-  .iframe-wrapper {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column;
-  }
-  .iframe-wrapper .report-label {
-    background: rgba(0,0,0,0.7); color: #fff;
-    padding: 0.3rem 1rem; font-size: 0.7rem;
-    text-align: center; flex-shrink: 0;
-    backdrop-filter: blur(4px);
-    z-index: 10;
-  }
-  .iframe-wrapper iframe {
-    flex: 1; width: 100%; border: none;
-  }
-
-  .nav-bar {
-    position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
-    display: flex; align-items: center; gap: 0.8rem;
-    background: rgba(38,42,51,0.92);
-    padding: 0.5rem 1.2rem; border-radius: 2rem;
-    border: 1px solid #3c4048; backdrop-filter: blur(8px);
-    z-index: 100; font-size: 0.7rem;
-  }
-  .nav-bar button {
-    background: none; border: none; color: #9aa0a6;
-    cursor: pointer; padding: 0.3rem 0.6rem;
-    border-radius: 4px; font-size: 1rem; transition: all 0.2s;
-  }
-  .nav-bar button:hover { color: #e8eaed; background: #3c4048; }
-  .nav-bar .page-num { color: #9aa0a6; min-width: 4rem; text-align: center; }
-  .nav-bar .progress-dots { display: flex; gap: 4px; }
-  .nav-bar .dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #3c4048; transition: all 0.3s;
-  }
-  .nav-bar .dot.active { background: #80cbc4; width: 16px; border-radius: 3px; }
-
-  @media print {
-    @page { size: landscape; margin: 0.8in; }
-    body { background: #fff; color: #222; overflow: visible; height: auto; }
-    .slides { height: auto; width: 100%; }
-    .slide {
-      position: relative; opacity: 1 !important; visibility: visible !important;
-      page-break-after: always; break-after: page;
-      height: auto; min-height: 100vh;
-      padding: 2rem 5%; background: #fff !important;
-    }
-    .slide:last-child { page-break-after: auto; }
-    .nav-bar { display: none; }
-    .card { background: #f5f5f5; border-color: #ddd; }
-    .card h4 { color: #c77600; }
-    pre, code { background: #f0f0f0; color: #222; }
-    .comp-table th { background: #e0e0e0; color: #00695c; }
-    .comp-table td { border-color: #e0e0e0; }
-    h1 { color: #000; } h2, h3 { color: #00695c; }
-    .subtitle { color: #666; }
-    .highlight { color: #c77600; }
-    .highlight-blue { color: #0277bd; }
-    .highlight-green { color: #2e7d32; }
-    .highlight-pink { color: #ad1457; }
-    .slide-title, .slide-section, .slide-end { background: #fafafa !important; border-bottom: 4px solid #00695c; }
-    code { color: #222; } .meta { color: #999; }
-    .principle-card .num { background: #e0e0e0; color: #00695c; }
-    .tag-mljar { background: #fce4ec; color: #ad1457; }
-    .tag-tbx { background: #e1f5fe; color: #0277bd; }
-    .tag-feat { background: #e8f5e9; color: #2e7d32; }
-    .slide-iframe { padding: 0; }
-    .iframe-wrapper .report-label { background: rgba(0,0,0,0.8); color: #fff; }
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TabularX — 面向可解释性与可复现性的自动化表格建模工具包</title>
+  <style>
+    :root{--ink:#16243a;--muted:#60718a;--paper:#f6f8fc;--panel:rgba(255,255,255,.9);--line:#dbe3ef;--blue:#3971d4;--cyan:#1ca5a5;--violet:#5b6abf;--orange:#e88937;--green:#279779;--red:#ca5a65;--shadow:0 18px 50px rgba(28,49,85,.12)}
+    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden}body{font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;color:var(--ink);background:radial-gradient(circle at 91% 9%,rgba(68,121,221,.14),transparent 27rem),radial-gradient(circle at 7% 93%,rgba(35,174,153,.11),transparent 24rem),var(--paper)}
+    .deck{height:100%}.slide{display:none;width:min(1440px,100%);height:100%;margin:auto;padding:clamp(38px,5.6vw,82px) clamp(30px,7.7vw,120px) 96px;animation:enter .42s ease both}.slide.active{display:flex;flex-direction:column}@keyframes enter{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+    h1,h2,h3,p{margin:0}h1{max-width:1000px;font-size:clamp(45px,5.5vw,80px);line-height:1.1;letter-spacing:-.052em}h2{font-size:clamp(31px,3.2vw,51px);line-height:1.17;letter-spacing:-.043em;margin-top:12px}h3{font-size:19px;line-height:1.3}.eyebrow{display:flex;align-items:center;gap:11px;color:var(--blue);font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}.eyebrow:before{content:"";width:28px;height:3px;border-radius:4px;background:currentColor}.lead{max-width:900px;margin-top:23px;color:var(--muted);font-size:clamp(18px,1.75vw,25px);line-height:1.68}.accent{color:var(--blue)}.violet{color:var(--violet)}.orange{color:var(--orange)}.green{color:var(--green)}strong{color:var(--ink)}code{font-family:Consolas,monospace;color:var(--violet);background:#f0edff;padding:.13em .36em;border-radius:5px;font-size:.9em}
+    .title{justify-content:center}.title .lead{max-width:850px}.mark{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;width:180px;margin:43px 0 24px}.mark span{height:10px;border-radius:99px;background:var(--blue)}.mark span:nth-child(2){background:var(--cyan)}.mark span:nth-child(3){background:var(--violet)}.mark span:nth-child(4){background:var(--orange)}.agenda{display:flex;flex-wrap:wrap;gap:10px;margin-top:36px}.agenda span{padding:9px 14px;border:1px solid var(--line);border-radius:99px;background:rgba(255,255,255,.5);color:var(--muted);font-size:14px}.slide-head{margin-bottom:clamp(20px,4vh,42px)}
+    .grid{display:grid;gap:18px}.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}.card{padding:clamp(18px,2vw,28px);border:1px solid var(--line);border-radius:18px;background:var(--panel);box-shadow:0 9px 24px rgba(30,49,83,.05)}.card p{margin-top:10px;color:var(--muted);font-size:15px;line-height:1.65}.card ul{margin:8px 0 0;padding:0 0 0 18px;color:var(--muted);font-size:15px;line-height:1.65}.card li{margin-bottom:3px}.symbol{display:block;margin-bottom:10px;color:var(--blue);font-size:31px;font-weight:900}.card:nth-child(2) .symbol{color:var(--cyan)}.card:nth-child(3) .symbol{color:var(--violet)}.card:nth-child(4) .symbol{color:var(--orange)}
+    .callout{margin-top:18px;padding:16px 20px;border-left:4px solid var(--orange);border-radius:0 12px 12px 0;background:#fff8f0;color:#62492f;line-height:1.65}.callout strong{color:#804d19}.layout{display:grid;grid-template-columns:1.1fr .9fr;gap:30px;align-items:center;flex:1}.layers{display:grid;gap:12px}.layer{display:grid;grid-template-columns:145px 1fr;align-items:center;gap:18px;padding:21px 24px;border-radius:15px;color:#fff;box-shadow:0 11px 22px rgba(35,65,120,.13)}.layer b{font-size:17px}.layer span{font-size:14px;opacity:.9}.layer.core{background:linear-gradient(110deg,#4179d0,#2f60b5)}.layer.schema{background:linear-gradient(110deg,#7a64ca,#5e4db0)}.layer.estimator{background:linear-gradient(110deg,#2eaaa8,#218b91)}.layer.reports{background:linear-gradient(110deg,#e88937,#cc7529)}.annotation{display:grid;gap:13px}.annotation div{padding:15px 17px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--muted);font-size:15px;line-height:1.55}.annotation b{color:var(--blue)}
+    .flow{display:flex;align-items:stretch;gap:10px;margin:auto 0}.flow-step{flex:1;min-height:174px;padding:21px 17px;position:relative;border:1px solid var(--line);border-radius:16px;background:var(--panel)}.flow-step:not(:last-child):after{content:"→";position:absolute;right:-17px;top:50%;z-index:3;transform:translateY(-50%);color:var(--blue);font-size:27px;font-weight:300}.step{display:block;margin-bottom:11px;color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:.1em}.flow-step p{margin-top:9px;color:var(--muted);font-size:14px;line-height:1.55}
+    .roles{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:auto 0}.role{min-height:215px;padding:27px;border:1px solid var(--line);border-radius:19px;background:var(--panel);position:relative;overflow:hidden}.role:before{content:"";position:absolute;left:0;top:0;width:7px;height:100%;background:var(--blue)}.role:nth-child(2):before{background:var(--violet)}.role:nth-child(3):before{background:var(--cyan)}.role h3{font-size:23px}.role p{margin-top:12px;color:var(--muted);font-size:15px;line-height:1.65}.role .tag{display:inline-block;margin-top:22px;padding:6px 10px;border-radius:99px;background:#e8efff;color:var(--blue);font-size:13px;font-weight:800}.role:nth-child(2) .tag{background:#f0edff;color:var(--violet)}
+    .summary{display:grid;grid-template-columns:1.1fr .9fr;gap:32px;align-items:center;flex:1}.takeaways{display:grid;gap:13px}.takeaway{display:grid;grid-template-columns:36px 1fr;gap:13px;align-items:start}.takeaway i{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:#e8efff;color:var(--blue);font-style:normal;font-weight:800}.takeaway p{padding-top:4px;color:var(--muted);font-size:16px;line-height:1.55}.end-card{padding:38px;border-radius:24px;color:#fff;background:linear-gradient(135deg,#285fb9,#7157bd);box-shadow:var(--shadow)}.end-card h2{margin:0;font-size:36px}.end-card p{margin-top:16px;color:rgba(255,255,255,.86);font-size:16px;line-height:1.65}.end-card strong{color:#fff}
+    .progress{position:fixed;top:0;left:0;z-index:9;height:4px;background:linear-gradient(90deg,var(--cyan),var(--blue),var(--violet));transition:width .35s ease}.nav{position:fixed;z-index:9;bottom:26px;left:50%;display:flex;align-items:center;gap:12px;transform:translateX(-50%)}.nav button{width:43px;height:38px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.88);color:var(--blue);font-size:21px;cursor:pointer}.nav button:hover{background:#fff;box-shadow:0 4px 12px rgba(40,68,126,.14)}#counter{min-width:62px;color:var(--muted);text-align:center;font-size:14px}.hint{position:fixed;right:28px;bottom:33px;color:var(--muted);font-size:13px}
+    table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid var(--line);border-radius:15px;background:var(--panel)}th,td{padding:12px 15px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);font-size:14px;line-height:1.5}th{background:#f1f6ff;color:#245391;font-size:13px}tr:last-child td{border-bottom:none}td:first-child{font-weight:800;white-space:nowrap}
+    .dir-tree{padding:18px;border:1px solid var(--line);border-radius:15px;background:#f9fbff;font-family:Consolas,monospace;font-size:13px;line-height:1.7;color:#204275;white-space:pre}.demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.demo-card{padding:22px;border:1px solid var(--line);border-radius:16px;background:var(--panel);position:relative;overflow:hidden}.demo-card:before{content:"";position:absolute;left:0;top:0;width:5px;height:100%;background:var(--blue)}.demo-card:nth-child(2):before{background:var(--cyan)}.demo-card:nth-child(3):before{background:var(--violet)}.demo-card:nth-child(4):before{background:var(--orange)}.demo-card h3{font-size:20px;margin-bottom:6px}.demo-card .num{color:var(--muted);font-size:13px}.demo-card .val{font-size:28px;font-weight:800;color:var(--blue);margin:6px 0}.demo-card:nth-child(2) .val{color:var(--cyan)}.demo-card:nth-child(3) .val{color:var(--violet)}.demo-card:nth-child(4) .val{color:var(--orange)}.demo-card p{margin-top:8px;color:var(--muted);font-size:14px;line-height:1.5}
+    .report-iframe{width:100%;height:100%;border:none;background:#fff}.iframe-wrapper{position:absolute;inset:0;display:flex;flex-direction:column}.iframe-wrapper .report-label{background:rgba(0,0,0,.7);color:#fff;padding:.3rem 1rem;font-size:.7rem;text-align:center;flex-shrink:0;backdrop-filter:blur(4px);z-index:10}.iframe-wrapper iframe{flex:1;width:100%;border:none}.slide-iframe{background:#fff;padding:0}
+    @media(max-width:760px){.slide{overflow-y:auto;padding:42px 23px 92px}.grid-2,.grid-3,.layout,.roles,.summary{grid-template-columns:1fr}.flow{flex-direction:column;margin:0}.flow-step:not(:last-child):after{content:"↓";right:auto;top:auto;bottom:-20px;left:50%;transform:translateX(-50%)}.hint{display:none}table{display:block;overflow-x:auto;white-space:nowrap}.layer{grid-template-columns:1fr;gap:8px}.demo-grid{grid-template-columns:1fr}}
+  </style>
 </head>
 <body>
+  <main class="deck">
 
-<div class="slides" id="slides">
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- 0 · 标题 -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <section class="slide title active">
+      <div class="eyebrow">机器学习课程 · 选题十</div>
+      <h1><span class="accent">TabularX</span><br>面向可解释性与可复现性的自动化表格建模工具包</h1>
+      <p class="lead">不是做一个精度更高的 AutoML，而是让每次 <code>fit()</code> 都留下完整的、可追溯的实验记录。</p>
+      <div class="mark"><span></span><span></span><span></span><span></span></div>
+      <div class="agenda"><span>01 问题引入</span><span>02 Baseline：MLJAR</span><span>03 TabularX 架构</span><span>04 TabularX 能力</span><span>05 效果示例</span></div>
+    </section>
 
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 0: Title -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-title active" data-index="0">
-    <div class="slide-content">
-      <h1>TabularX</h1>
-      <h2 style="font-size:1.2rem; color:#9aa0a6; font-weight:400;">
-        面向可解释性与可复现性的自动化表格建模工具包
-      </h2>
-      <p class="subtitle" style="margin-top:2rem;">选题：题目十</p>
-      <p class="meta" style="margin-top:3rem;">机器学习课程 · 2026 年 9 月</p>
-    </div>
-  </div>
-
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 1: 问题引入——AutoML 的黑箱 -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-section" data-index="1">
-    <div class="slide-content">
-      <span class="tag tag-feat" style="margin-bottom:0.8rem;">问题引入 · 1.5 min</span>
-      <h2>AutoML 已经很成熟了——但仍然是黑箱</h2>
-      <div class="grid-2" style="margin-top:1.2rem;">
-        <div class="card" style="text-align:center;">
-          <h4 style="color:#f48fb1;">传统 AutoML</h4>
-          <p style="font-size:2rem; margin:0.5rem 0;">⬛</p>
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- 1 · 问题引入 -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <section class="slide">
+      <header class="slide-head"><div class="eyebrow">01 · 问题引入</div><h2>AutoML 已经很成熟了——<span class="orange">但仍然是黑箱</span></h2></header>
+      <div class="grid grid-2" style="flex:1;align-content:center">
+        <article class="card">
+          <span class="symbol">01</span>
+          <h3>传统 AutoML</h3>
           <p>数据 → <code>fit()</code> → 模型</p>
-          <ul style="margin-top:0.6rem;">
-            <li>数据怎么处理的？——不知道</li>
-            <li>模型为什么选这个？——不知道</li>
-            <li>对谁有偏见？——不知道</li>
+          <ul>
+            <li>数据怎么处理的？不知道</li>
+            <li>模型为什么选这个？不知道</li>
+            <li>对谁有偏见？不知道</li>
           </ul>
-        </div>
-        <div class="card" style="text-align:center;">
-          <h4 style="color:#4fc3f7;">我们的目标</h4>
-          <p style="font-size:2rem; margin:0.5rem 0;">📂</p>
+        </article>
+        <article class="card">
+          <span class="symbol">02</span>
+          <h3>我们的目标</h3>
           <p>数据 → <code>fit()</code> → 完整报告文件夹</p>
-          <ul style="margin-top:0.6rem;">
+          <ul>
             <li>数据概况 / 划分方案</li>
             <li>预处理流水线 / 模型排名</li>
             <li>SHAP 解释 / 公平性审计</li>
           </ul>
+        </article>
+      </div>
+      <div class="callout"><strong>关键洞察：</strong>传统 AutoML 也会产生大量中间文件（JSON、CSV、图片），但它们零散分布在目录树中，没有整理成一份有逻辑的报告。我们不是从零造物，而是把这些已有产物编排成可读的文档。</div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- 2 · MLJAR 设计哲学 -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <section class="slide">
+      <header class="slide-head"><div class="eyebrow">02 · Baseline</div><h2>MLJAR 的设计哲学</h2><p class="lead">mljar-supervised 是表格 AutoML 最成熟的开源标杆之一，我们在设计 TabularX 时继承并推进了它的三条核心理念。</p></header>
+      <div class="grid grid-3" style="flex:1;align-content:center">
+        <article class="card">
+          <span class="symbol">▤</span>
+          <h3>注册表 + 能力声明</h3>
+          <p>每个模型族注册时声明自己需要哪些预处理。线性模型要标准化，随机森林不要，CatBoost 连编码都不需要——框架自动匹配，不做一刀切。</p>
+        </article>
+        <article class="card">
+          <span class="symbol">↗</span>
+          <h3>Profile 只报事实</h3>
+          <p>数据观测与预处理决策分离。DataInfo 只管「看」数据——列类型、缺失、偏态；PreprocessingTuner 再根据数据事实与模型能力的交集做出决策。</p>
+        </article>
+        <article class="card">
+          <span class="symbol">≡</span>
+          <h3>自动化的实验记录</h3>
+          <p>不靠用户手动整理日志，每次运行自动写入结构化的实验记录：<code>data_info.json</code>、<code>params.json</code>、<code>leaderboard.csv</code>、每个模型的 <code>framework.json</code>。一个目录打开，全都有据可查。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- 3 · 架构：纯函数分层 -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <section class="slide">
+      <header class="slide-head"><div class="eyebrow">03 · TabularX 架构</div><h2>纯函数分层</h2><p class="lead">最核心的架构决策：每个阶段是纯函数，只做计算不做 IO。测试只需要「给输入、断言输出」，不需要 mock 文件系统。</p></header>
+      <div class="layers" style="flex:1;justify-content:center">
+        <div class="layer core"><b>core/ — 纯函数层</b><span>Profile · Split · Preprocess · ModelSearch · SHAP · Fairness<br>只做计算，零 IO，零副作用</span></div>
+        <div class="layer schema"><b>schema/ — 通信协议</b><span>通过 dataclass 契约通信：DataProfile → SplitResult → PreprocessedData</span></div>
+        <div class="layer estimator"><b>estimator.py — 编排 + IO 层</b><span>串接各阶段 + 写 HTML + 存模型 + 保存图片</span></div>
+        <div class="layer reports"><b>reports/ — 报告渲染</b><span>Jinja2 模板，schema 数据 → HTML 字符串，模板与逻辑彻底分离</span></div>
+      </div>
+      <div class="callout" style="margin-top:14px"><strong>分层价值：</strong>函数式核心 + Schema 契约 + 编排封装 + 模板渲染，四层各司其职，互不干扰。</div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- 4 · 架构：通信协议与封装 -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <section class="slide">
+      <header class="slide-head"><div class="eyebrow">03 · TabularX 架构</div><h2>Schema 通信协议与封装设计</h2></header>
+      <div class="layout" style="flex:1">
+        <div class="annotation">
+          <div><b>Dataclass 契约</b><br>每个阶段产出一个 frozen dataclass，作为下一阶段的类型安全输入。MLJAR 把中间数据写 JSON 落盘；TabularX 在内存中做契约通信，最后统一渲染为报告。</div>
+          <div><b>异常管理</b><br>领域异常统一继承 <code>TabularXError</code>，用户可在调用链路上统一 catch。参数越界等底层问题直接用 <code>ValueError</code>，不额外包装。</div>
+          <div><b>封装设计</b><br><code>AutoEstimator</code> 把整条流水线封装为两行代码：<code>ae = AutoEstimator()</code> → <code>ae.fit(X, y)</code>。内部自动完成 profile → split → preprocess → search → explain → fairness 的串接。</div>
+        </div>
+        <div style="display:grid;gap:14px;align-content:center">
+          <div class="card" style="text-align:center">
+            <h3>用户视角</h3>
+            <pre style="background:#f9fbff;border:1px solid var(--line);text-align:left;padding:14px 16px;border-radius:12px;font-size:14px;margin-top:10px;overflow-x:auto"><code>ae = AutoEstimator(
+    task="classification",
+    output_dir="./output"
+)
+ae.fit(X, y, sensitive_features=["gender"])</code></pre>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 2: 核心问题 -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-content-page" data-index="2">
-    <div class="slide-content">
-      <p style="font-size:1.3rem; margin-bottom:1rem;">
-        能不能让 AutoML 的<strong>每一次运行</strong>，
-      </p>
-      <p style="font-size:1.5rem; font-weight:700; color:#fdd835; margin-bottom:1rem;">
-        都强制产出一份完整的、可读的实验记录？
-      </p>
-      <div class="card" style="text-align:left; margin-top:1.5rem;">
-        <p style="font-size:0.9rem;">
-          不是「可选」的导出功能，而是每次 <code>fit()</code> 结束之后，一个完整文件夹自动摆在那里——
-        </p>
-        <ul style="margin-top:0.6rem;">
-          <li>📊 数据概况</li>
-          <li>✂️ 划分方案</li>
-          <li>🔧 预处理流水线</li>
-          <li>🏆 模型排名</li>
-          <li>📈 SHAP 解释图</li>
-          <li>⚖️ 公平性审计报告</li>
-        </ul>
-        <p style="margin-top:0.6rem; font-size:0.9rem;">这就是 <span class="highlight-blue">TabularX</span> 要解决的问题。</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 3: Baseline——MLJAR 设计哲学（总） -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-section" data-index="3">
-    <div class="slide-content">
-      <span class="tag tag-mljar" style="margin-bottom:0.8rem;">Baseline · 3 min</span>
-      <h2>MLJAR 的设计哲学</h2>
-      <p class="subtitle">mljar-supervised——表格 AutoML 的成熟开源标杆</p>
-      <div class="grid-2" style="margin-top:1rem;">
-        <div class="card principle-card">
-          <div class="num">1</div>
-          <h4>注册表 + 能力声明</h4>
-          <p>每个模型声明需要什么预处理，框架自动匹配</p>
-        </div>
-        <div class="card principle-card">
-          <div class="num">2</div>
-          <h4>Profile 只报事实</h4>
-          <p>数据观测与预处理决策分离</p>
-        </div>
-        <div class="card principle-card">
-          <div class="num">3</div>
-          <h4>先划分，再预处理</h4>
-          <p>统计量只从训练集计算，防数据泄露</p>
-        </div>
-        <div class="card principle-card">
-          <div class="num">4</div>
-          <h4>产物自包含</h4>
-          <p>一个目录 = 一次完整实验快照</p>
-        </div>
-      </div>
-      <p class="small" style="margin-top:1rem;">四条原则 → 我们的起点</p>
-    </div>
-  </div>
-
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 4: MLJAR 原则 1——注册表 -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-content-page" data-index="4">
-    <div class="slide-content text-left">
-      <span class="tag tag-mljar">原则 1</span>
-      <h3 style="margin-top:0.5rem;">注册表 + 能力声明</h3>
-      <p>每个模型族在注册时声明自己需要哪些预处理：</p>
-      <table class="comp-table">
-        <thead><tr><th>模型</th><th>需要 Scale</th><th>需要类别编码</th></tr></thead>
-        <tbody>
-          <tr><td>线性模型 / 神经网络</td><td>✅ 是</td><td>✅ 是</td></tr>
-          <tr><td>随机森林 / XGBoost</td><td>❌ 否</td><td>✅ 是</td></tr>
-          <tr><td><strong>CatBoost</strong></td><td>❌ 否</td><td>❌ 否（自带）</td></tr>
-        </tbody>
-      </table>
-      <p style="font-size:0.85rem; margin-top:0.5rem;">→ 框架根据模型能力自动匹配，<strong>不做一刀切</strong></p>
-    </div>
-  </div>
-
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 5: MLJAR 原则 2——Profile -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-content-page" data-index="5">
-    <div class="slide-content text-left">
-      <span class="tag tag-mljar">原则 2</span>
-      <h3 style="margin-top:0.5rem;">Profile 只报事实，不做决策</h3>
-      <div style="display:flex; align-items:center; gap:0.8rem; margin:1rem 0;">
-        <div class="card" style="flex:1;">
-          <h4>第一步：DataInfo</h4>
-          <p class="small">只管「看」数据</p>
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- 5 · 能力：注册表与预处理路由 -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <section class="slide">
+      <header class="slide-head"><div class="eyebrow">04 · TabularX 能力</div><h2>注册表与预处理自动路由</h2></header>
+      <div class="grid grid-2" style="flex:1;align-content:center">
+        <article class="card">
+          <span class="symbol">01</span>
+          <h3>模型能力声明</h3>
+          <p>每个 ModelSpec 声明：</p>
           <ul>
-            <li>哪些列是数值 / 类别 / 文本 / 日期</li>
-            <li>哪些有缺失值</li>
-            <li>哪些偏态严重</li>
-            <li>哪些需要标准化</li>
+            <li>任务类型（回归 / 分类）</li>
+            <li>声明式搜索空间 ParamDef</li>
+            <li>默认参数</li>
+            <li>支持的能力（scale? 编码? feature importance? predict_proba?）</li>
           </ul>
-        </div>
-        <span class="arrow">→</span>
-        <div class="card" style="flex:1;">
-          <h4>第二步：PreprocessingTuner</h4>
-          <p class="small">再做决策</p>
+          <p style="margin-top:8px">注册表按 binary / multiclass / regression 三桶管理。</p>
+        </article>
+        <article class="card">
+          <span class="symbol">02</span>
+          <h3>Profile + 自动路由</h3>
+          <p><strong>第一步：</strong>Profile 只做观测——列类型、缺失、偏态、标准化需求。与模型无关。</p>
+          <p><strong>第二步：</strong>DataInfo ∩ ModelCapability → 预处理决策。</p>
+          <table style="margin-top:10px;font-size:13px">
+            <thead><tr><th>模型</th><th>需要 Scale</th><th>需要编码</th></tr></thead>
+            <tbody>
+              <tr><td>线性 / 神经网络</td><td>是</td><td>是</td></tr>
+              <tr><td>随机森林 / XGBoost</td><td>否</td><td>是</td></tr>
+              <tr><td><strong>CatBoost</strong></td><td>否</td><td>否（自带）</td></tr>
+            </tbody>
+          </table>
+        </article>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- 6 · 能力：调参与全模型报告 -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <section class="slide">
+      <header class="slide-head"><div class="eyebrow">04 · TabularX 能力</div><h2>Optuna 多进程调参与全模型报告</h2></header>
+      <div class="grid grid-2" style="flex:1;align-content:center">
+        <article class="card">
+          <span class="symbol">▤</span>
+          <h3>声明式搜索空间</h3>
+          <p>每个模型的调参空间用 <code>ParamDef</code> 列表声明——参数名、类型、范围、尺度。调参器统一遍历，生成 Optuna suggest 调用。搜索空间定义与调参逻辑彻底解耦。</p>
+        </article>
+        <article class="card">
+          <span class="symbol">≡</span>
+          <h3>每个模型独立报告</h3>
+          <p>与 MLJAR 不同——TabularX 让所有成功跑完的模型都有自己的独立报告：</p>
           <ul>
-            <li>预处理策略 = <strong>数据事实 ∩ 模型能力</strong></li>
-            <li>两部分各自独立</li>
-            <li>Profile 只管描述，不管处理</li>
+            <li>评估指标（分类 / 回归）</li>
+            <li>混淆矩阵（分类任务）</li>
+            <li>ROC 曲线（二分类）</li>
+            <li>调参轨迹图</li>
           </ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- 7 · 能力：SHAP + 公平性 -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <section class="slide">
+      <header class="slide-head"><div class="eyebrow">04 · TabularX 能力</div><h2>SHAP 解释与公平性审计</h2><p class="lead">最优模型确定后，框架自动完成两件事，不需要用户额外调用。</p></header>
+      <div class="layout" style="flex:1">
+        <div class="annotation">
+          <div><b>SHAP 可解释性</b><br>特征重要性排序（平均 |SHAP|）、SHAP summary 图（特征贡献方向分布）、Waterfall 图（单样本分解）。Top-K 特征累计解释力占比一目了然。</div>
+          <div><b>公平性审计</b><br>用户只需传入 <code>sensitive_features</code>。框架自动按敏感特征分组，计算 Demographic Parity 和 Equalized Odds 差异，超阈值标红告警。</div>
+          <div><b>一行代码</b><br><code>ae.fit(X, y, sensitive_features=["gender"])</code>——公平性审计不再需要手动实现。</div>
+        </div>
+        <div class="card" style="text-align:center">
+          <h3>公平性指标</h3>
+          <table style="margin-top:10px">
+            <thead><tr><th>指标</th><th>含义</th><th>阈值</th></tr></thead>
+            <tbody>
+              <tr><td>Demographic Parity</td><td>各组正类率差异</td><td>≤ 0.1</td></tr>
+              <tr><td>Equalized Odds TPR</td><td>各组真正率差异</td><td>≤ 0.1</td></tr>
+              <tr><td>Equalized Odds FPR</td><td>各组假正率差异</td><td>≤ 0.1</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 6: MLJAR 原则 3 & 4 -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-content-page" data-index="6">
-    <div class="slide-content text-left">
-      <div style="display:flex; gap:1rem; margin-bottom:1rem;">
-        <div class="card" style="flex:1;">
-          <span class="tag tag-mljar">原则 3</span>
-          <h4 style="margin-top:0.5rem;">先划分，再预处理</h4>
-          <ul style="margin-top:0.5rem;">
-            <li>划分是<strong>实验设计</strong></li>
-            <li>预处理是<strong>数据变换</strong></li>
-            <li>统计量只能从训练集计算</li>
-            <li>否则造成<strong>数据泄露</strong></li>
-          </ul>
-        </div>
-        <div class="card" style="flex:1;">
-          <span class="tag tag-mljar">原则 4</span>
-          <h4 style="margin-top:0.5rem;">产物自包含</h4>
-          <ul style="margin-top:0.5rem;">
-            <li><code>data_info.json</code> — 列信息</li>
-            <li><code>params.json</code> — 运行参数</li>
-            <li><code>leaderboard.csv</code> — 模型对比</li>
-            <li>每个模型目录含 <code>framework.json</code></li>
-          </ul>
-          <p class="small" style="margin-top:0.4rem;">一个目录 = 一次完整实验快照</p>
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- 8 · 能力：报告生成 -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <section class="slide">
+      <header class="slide-head"><div class="eyebrow">04 · TabularX 能力</div><h2>报告生成——协议数据到最终产出</h2><p class="lead">所有阶段的数据通过 Jinja2 模板渲染为一系列 HTML 文件。每个 HTML 直接用浏览器打开就能看。</p></header>
+      <div class="layout" style="flex:1">
+        <div class="dir-tree">intro1-output/
+├── best_model.joblib
+├── report.html                    # 完整合并报告
+└── reports/
+    ├── profile.html               # 数据概况
+    ├── split.html                 # 划分方案
+    ├── preprocess.html            # 预处理流水线
+    ├── model_search.html          # 模型搜索排名
+    ├── explanation.html           # SHAP + 公平性
+    ├── assets/                    # 图片
+    └── models/                    # 每个模型的独立报告
+        ├── xgboost.html
+        ├── random_forest.html
+        └── ...</div>
+        <div class="annotation">
+          <div><b>Jinja2 模板渲染</b><br>模板与逻辑彻底分离。不满足默认风格可以只改模板，不碰 Python 代码。</div>
+          <div><b>强制默认产出</b><br>每次 <code>fit()</code> 结束，报告自动生成。不是「可选」导出功能，而是框架的默认行为。</div>
+          <div><b>零额外工具</b><br>所有 HTML 直接用浏览器打开即可查看，不需要搭建服务或安装任何工具。</div>
         </div>
       </div>
-      <div class="card" style="text-align:center; background:#2d323b;">
-        <p style="font-size:0.9rem;">这四条原则 → <span class="highlight-blue">TabularX 继承并推进</span></p>
-      </div>
-    </div>
-  </div>
+    </section>
 
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 7: TabularX 架构——纯函数分层 -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-section" data-index="7">
-    <div class="slide-content">
-      <span class="tag tag-tbx" style="margin-bottom:0.8rem;">TabularX 架构 · 2 min</span>
-      <h2>纯函数分层</h2>
-      <p class="subtitle">最核心的架构决策</p>
-      <div style="display:flex; flex-direction:column; gap:0.4rem; margin:1rem auto; max-width:700px;">
-        <div class="card" style="background:#1b3b1b; border-color:#2e7d32;">
-          <span class="tag tag-feat">纯函数层 core/</span>
-          <p style="margin-top:0.3rem;">Profile · Split · Preprocess · ModelSearch · SHAP · Fairness</p>
-          <p class="small">只做计算，零 IO，零副作用</p>
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- 9 · 效果示例 -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <section class="slide">
+      <header class="slide-head"><div class="eyebrow">05 · 效果示例</div><h2>Breast Cancer 数据集一次运行的输出</h2><p class="lead">二分类 · 569 样本 · 30 特征 · 四个模型 + Voting 组合</p></header>
+      <div class="demo-grid" style="flex:1;align-content:center">
+        <div class="demo-card">
+          <h3>模型排名</h3>
+          <div class="val">XGBoost 第一</div>
+          <div class="num">验证 AUC 0.9934 · 测试 0.9911</div>
+          <p>四个模型都成功跑完。LightGBM 验证集最高但测试集略低，存在泛化差距。</p>
         </div>
-        <span style="color:#5f6368;">▲ 通过 Schema dataclass 通信</span>
-        <div class="card" style="background:#0d3b4e; border-color:#0277bd;">
-          <span class="tag tag-tbx">编排+IO 层 estimator.py</span>
-          <p style="margin-top:0.3rem;">串接各阶段 + 写 HTML + 存模型 + 保存图片</p>
+        <div class="demo-card">
+          <h3>SHAP 解释</h3>
+          <div class="val">特征 1: worst concave points</div>
+          <div class="num">平均 |SHAP| = 0.90，远高于其他特征</div>
+          <p>Summary 图展示贡献方向；Waterfall 图展示单样本分解。</p>
         </div>
-      </div>
-      <p class="small">每个阶段测试只需「给输入、断言输出」，不用 mock 文件系统</p>
-    </div>
-  </div>
-
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 8: TabularX 架构——Schema + 继承 -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-content-page" data-index="8">
-    <div class="slide-content text-left">
-      <div style="display:flex; gap:1rem;">
-        <div class="card" style="flex:1;">
-          <span class="tag tag-tbx">Schema 契约</span>
-          <h4 style="margin-top:0.5rem;">阶段间只通过 dataclass 通信</h4>
-          <ul style="margin-top:0.5rem;">
-            <li>Profile → <code>DataProfile</code></li>
-            <li>Split → <code>SplitResult</code></li>
-            <li>Preprocess → <code>PreprocessedData</code></li>
-          </ul>
-          <p class="small" style="margin-top:0.4rem;">契约不变，实现随便换</p>
+        <div class="demo-card">
+          <h3>公平性审计</h3>
+          <div class="val">DP diff = 0.94 · EO TPR diff = 1.0</div>
+          <div class="num" style="color:var(--red)">超阈值自动告警</div>
+          <p>框架自动按敏感特征分组计算，无需手动实现指标。</p>
         </div>
-        <div class="card" style="flex:1;">
-          <span class="tag tag-mljar">继承 MLJAR</span>
-          <h4 style="margin-top:0.5rem;">注册表 + 能力声明</h4>
-          <ul style="margin-top:0.5rem;">
-            <li>按 binary / multiclass / regression 分桶</li>
-            <li>Profile 只做观测、不做决策</li>
-            <li>参数集中管理 <code>TabularXParams</code></li>
-          </ul>
+        <div class="demo-card">
+          <h3>报告目录</h3>
+          <div class="val">13 个 HTML 文件</div>
+          <div class="num">6 份子报告 + 6 模型报告 + 1 完整合并报告</div>
+          <p>一次 <code>fit()</code>，完整实验目录自动成型。</p>
         </div>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 9: TabularX 功能——强制报告 -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-content-page" data-index="9">
-    <div class="slide-content">
-      <span class="tag tag-tbx" style="margin-bottom:0.3rem;">功能 1</span>
-      <h3>强制报告生成</h3>
-      <p class="small">不是可选导出，是每次 <code>fit()</code> 的默认产出</p>
-      <div class="grid-3" style="margin-top:0.8rem;">
-        <div class="card"><h4>📊 数据概况</h4><p class="small">profile.html</p></div>
-        <div class="card"><h4>✂️ 划分方案</h4><p class="small">split.html</p></div>
-        <div class="card"><h4>🔧 预处理</h4><p class="small">preprocess.html</p></div>
-        <div class="card"><h4>🏆 模型排名</h4><p class="small">model_search.html</p></div>
-        <div class="card"><h4>📈 SHAP 解释</h4><p class="small">explanation.html</p></div>
-        <div class="card"><h4>⚖️ 公平性</h4><p class="small">同 explanation.html</p></div>
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- 10-14 · 实际报告嵌入（保留原内容） -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <section class="slide slide-iframe">
+      <div class="iframe-wrapper">
+        <div class="report-label">TabularX 数据概况报告 · profile.html</div>
+        <iframe src="../introduction/intro1-output/reports/profile.html"></iframe>
       </div>
-      <div class="grid-2" style="margin-top:0.5rem;">
-        <div class="card"><h4>🤖 各模型独立报告</h4><p class="small">含评估指标、混淆矩阵、ROC、调参轨迹</p></div>
-        <div class="card"><h4>📁 完整报告</h4><p class="small">report.html + 可选 PDF</p></div>
+    </section>
+
+    <section class="slide slide-iframe">
+      <div class="iframe-wrapper">
+        <div class="report-label">TabularX 数据划分报告 · split.html</div>
+        <iframe src="../introduction/intro1-output/reports/split.html"></iframe>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 10: TabularX 功能——公平性 -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-content-page" data-index="10">
-    <div class="slide-content text-left">
-      <span class="tag tag-tbx" style="margin-bottom:0.3rem;">功能 2</span>
-      <h3>原生公平性审计</h3>
-      <div class="card" style="margin:0.8rem 0;">
-        <p><code>ae.fit(X, y, <span class="highlight">sensitive_features=["gender"]</span>)</code></p>
-        <p class="small" style="margin-top:0.4rem;">一行代码，审计自动化</p>
+    <section class="slide slide-iframe">
+      <div class="iframe-wrapper">
+        <div class="report-label">TabularX 数据预处理报告 · preprocess.html</div>
+        <iframe src="../introduction/intro1-output/reports/preprocess.html"></iframe>
       </div>
-      <table class="comp-table">
-        <thead><tr><th>指标</th><th>含义</th><th>阈值</th></tr></thead>
-        <tbody>
-          <tr><td>Demographic Parity</td><td>各组正类率差异</td><td>≤ 0.1</td></tr>
-          <tr><td>Equalized Odds TPR</td><td>各组真正率差异</td><td>≤ 0.1</td></tr>
-          <tr><td>Equalized Odds FPR</td><td>各组假正率差异</td><td>≤ 0.1</td></tr>
-        </tbody>
-      </table>
-      <p class="small" style="margin-top:0.4rem;">超阈值自动告警，零额外代码</p>
-    </div>
-  </div>
+    </section>
 
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 11: TabularX 功能——全模型报告 -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-content-page" data-index="11">
-    <div class="slide-content">
-      <span class="tag tag-tbx" style="margin-bottom:0.3rem;">功能 3</span>
-      <h3>每个模型都有独立报告</h3>
-      <div class="card" style="margin:1rem auto; max-width:600px;">
-        <p style="font-size:0.85rem;">
-          MLJAR 主要对最优模型做详细解释。<br>
-          TabularX 的做法：<strong>所有成功跑完的模型</strong>，都有自己的独立报告
-        </p>
-        <ul style="margin-top:0.5rem; text-align:left;">
-          <li>📋 评估指标（分类/回归）</li>
-          <li>📊 混淆矩阵（分类任务）</li>
-          <li>📈 ROC 曲线（二分类）</li>
-          <li>📉 调参轨迹图</li>
-          <li>🔄 对比优势一目了然</li>
-        </ul>
+    <section class="slide slide-iframe">
+      <div class="iframe-wrapper">
+        <div class="report-label">TabularX 模型搜索报告 · model_search.html</div>
+        <iframe src="../introduction/intro1-output/reports/model_search.html"></iframe>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 12: 效果示例——标题 -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-section" data-index="12">
-    <div class="slide-content">
-      <span class="tag tag-feat" style="margin-bottom:0.8rem;">效果示例 · 2 min</span>
-      <h2>实际运行产出的报告</h2>
-      <p class="subtitle">Breast Cancer 数据集 · 二分类 · 569 样本 · 30 特征</p>
-      <div class="grid-3" style="margin-top:1rem;">
-        <div class="card"><h4>📊 数据概况</h4><p class="small">profile.html</p></div>
-        <div class="card"><h4>✂️ 划分方案</h4><p class="small">split.html</p></div>
-        <div class="card"><h4>🔧 预处理</h4><p class="small">preprocess.html</p></div>
-        <div class="card"><h4>🏆 模型搜索</h4><p class="small">model_search.html</p></div>
-        <div class="card"><h4>📈 SHAP + 公平性</h4><p class="small">explanation.html</p></div>
+    <section class="slide slide-iframe">
+      <div class="iframe-wrapper">
+        <div class="report-label">TabularX 可解释性与公平性报告 · explanation.html</div>
+        <iframe src="../introduction/intro1-output/reports/explanation.html"></iframe>
       </div>
-      <p class="small" style="margin-top:1rem;">以下为一次 <code>fit()</code> 运行后自动生成的 HTML 报告</p>
-    </div>
-  </div>
+    </section>
 
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 13: 实际报告 - profile.html -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-iframe" data-index="13">
-    <div class="iframe-wrapper">
-      <div class="report-label">📊 TabularX 数据概况报告 · profile.html</div>
-      <iframe src="../introduction/intro1-output/reports/profile.html"></iframe>
-    </div>
-  </div>
-
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 14: 实际报告 - split.html -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-iframe" data-index="14">
-    <div class="iframe-wrapper">
-      <div class="report-label">✂️ TabularX 数据划分报告 · split.html</div>
-      <iframe src="../introduction/intro1-output/reports/split.html"></iframe>
-    </div>
-  </div>
-
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 15: 实际报告 - preprocess.html -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-iframe" data-index="15">
-    <div class="iframe-wrapper">
-      <div class="report-label">🔧 TabularX 数据预处理报告 · preprocess.html</div>
-      <iframe src="../introduction/intro1-output/reports/preprocess.html"></iframe>
-    </div>
-  </div>
-
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 16: 实际报告 - model_search.html -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-iframe" data-index="16">
-    <div class="iframe-wrapper">
-      <div class="report-label">🏆 TabularX 模型搜索报告 · model_search.html</div>
-      <iframe src="../introduction/intro1-output/reports/model_search.html"></iframe>
-    </div>
-  </div>
-
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 17: 实际报告 - explanation.html（SHAP + 公平性） -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-iframe" data-index="17">
-    <div class="iframe-wrapper">
-      <div class="report-label">📈⚖️ TabularX 可解释性与公平性报告 · explanation.html</div>
-      <iframe src="../introduction/intro1-output/reports/explanation.html"></iframe>
-    </div>
-  </div>
-
-  <!-- ════════════════════════════════════════════════════════ -->
-  <!-- Slide 18: 总结 -->
-  <!-- ════════════════════════════════════════════════════════ -->
-  <div class="slide slide-end" data-index="18">
-    <div class="slide-content">
-      <h2 style="font-size:1.4rem; color:#e8eaed; font-weight:400; margin-bottom:1.5rem;">
-        TabularX 不是要做一个「精度更高」的 AutoML
-      </h2>
-      <p style="font-size:1.1rem; margin-bottom:0.8rem;">AutoML 在精度上已经很成熟了。</p>
-      <p style="font-size:1.1rem; margin-bottom:2rem;">TabularX 要做的是——</p>
-      <div class="card" style="background:#1b3b1b; border-color:#2e7d32; max-width:700px; margin:0 auto;">
-        <p style="font-size:1.2rem; font-weight:600; color:#fdd835;">
-          让 AutoML 的每一次运行
-        </p>
-        <p style="font-size:1.2rem; font-weight:600; color:#fdd835;">
-          都留下完整的、可追溯的、包含公平性审计的实验记录
-        </p>
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- 15 · 总结 -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <section class="slide">
+      <header class="slide-head"><div class="eyebrow">总结</div><h2>TabularX 把 AutoML 变成一个可追溯的过程</h2></header>
+      <div class="summary" style="flex:1">
+        <div class="takeaways">
+          <div class="takeaway"><i>1</i><p>传统 AutoML 产出零散的中间文件，TabularX 把它们编排为完整的、可读的实验报告。</p></div>
+          <div class="takeaway"><i>2</i><p>继承 MLJAR 的注册表 + 能力声明 + Profile 只报事实的核心理念。</p></div>
+          <div class="takeaway"><i>3</i><p>纯函数分层 + Schema 契约使核心逻辑与 IO 解耦，各阶段独立可测。</p></div>
+          <div class="takeaway"><i>4</i><p>SHAP 解释与公平性审计成为每次运行的默认产物，不是可选的附加功能。</p></div>
+        </div>
+        <aside class="end-card">
+          <h2>Q &amp; A</h2>
+          <p>数据怎么处理的？模型为什么选这个？对哪些群体可能有偏见？<br><strong>——打开报告文件夹，就有答案。</strong></p>
+        </aside>
       </div>
-      <p class="subtitle" style="margin-top:1.5rem;">
-        数据怎么处理的？模型为什么选这个？对哪些群体可能有偏见？
-      </p>
-      <p style="font-size:1.1rem; font-weight:600; margin-top:0.5rem;">——打开报告文件夹，就有答案。</p>
-      <p class="meta" style="margin-top:2rem;">谢谢大家 🙏</p>
-    </div>
-  </div>
+    </section>
 
-</div><!-- /slides -->
+  </main>
 
-<!-- ════════════════════════════════════════════════════════ -->
-<!-- Navigation Bar -->
-<!-- ════════════════════════════════════════════════════════ -->
-<div class="nav-bar">
-  <button id="prevBtn" title="上一页 (←)">◀</button>
-  <span class="page-num" id="pageNum">1 / 19</span>
-  <div class="progress-dots" id="progressDots"></div>
-  <button id="nextBtn" title="下一页 (→)">▶</button>
-</div>
+  <div class="progress" id="progress"></div>
+  <nav class="nav" aria-label="演示导航">
+    <button id="prev" aria-label="上一页">‹</button>
+    <span id="counter"></span>
+    <button id="next" aria-label="下一页">›</button>
+  </nav>
+  <div class="hint">← → 翻页  ·  F 全屏</div>
 
-<script>
-(function() {
-  const slides = document.querySelectorAll('.slide');
-  const total = slides.length;
-  let current = 0;
-
-  const pageNum = document.getElementById('pageNum');
-  const dotsContainer = document.getElementById('progressDots');
-
-  for (let i = 0; i < total; i++) {
-    const dot = document.createElement('span');
-    dot.className = 'dot';
-    dot.dataset.index = i;
-    dot.addEventListener('click', () => goTo(i));
-    dotsContainer.appendChild(dot);
-  }
-
-  function goTo(index) {
-    if (index < 0) index = 0;
-    if (index >= total) index = total - 1;
-    slides.forEach((s, i) => {
-      s.classList.toggle('active', i === index);
-    });
-    current = index;
-    pageNum.textContent = `${current + 1} / ${total}`;
-    document.querySelectorAll('.dot').forEach((d, i) => {
-      d.classList.toggle('active', i === index);
-    });
-  }
-
-  function next() { goTo(current + 1); }
-  function prev() { goTo(current - 1); }
-
-  document.getElementById('nextBtn').addEventListener('click', next);
-  document.getElementById('prevBtn').addEventListener('click', prev);
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
-      e.preventDefault(); next();
-    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-      e.preventDefault(); prev();
-    } else if (e.key === 'Home') {
-      e.preventDefault(); goTo(0);
-    } else if (e.key === 'End') {
-      e.preventDefault(); goTo(total - 1);
-    }
-  });
-
-  let touchStartX = 0;
-  document.addEventListener('touchstart', (e) => {
-    touchStartX = e.changedTouches[0].screenX;
-  });
-  document.addEventListener('touchend', (e) => {
-    const diff = e.changedTouches[0].screenX - touchStartX;
-    if (Math.abs(diff) > 60) {
-      diff > 0 ? prev() : next();
-    }
-  });
-
-  goTo(0);
-})();
-</script>
-
+  <script>
+    const slides=[...document.querySelectorAll('.slide')];const counter=document.querySelector('#counter');const progress=document.querySelector('#progress');let current=0;
+    const render=index=>{current=Math.max(0,Math.min(index,slides.length-1));slides.forEach((slide,i)=>slide.classList.toggle('active',i===current));counter.textContent=`${current+1} / ${slides.length}`;progress.style.width=`${((current+1)/slides.length)*100}%`};
+    document.querySelector('#prev').addEventListener('click',()=>render(current-1));document.querySelector('#next').addEventListener('click',()=>render(current+1));document.addEventListener('keydown',event=>{if(['ArrowRight','PageDown',' '].includes(event.key)){event.preventDefault();render(current+1)}if(['ArrowLeft','PageUp'].includes(event.key)){event.preventDefault();render(current-1)}if(event.key.toLowerCase()==='f')document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();if(event.key==='Home')render(0);if(event.key==='End')render(slides.length-1)});render(0);
+  </script>
 </body>
 </html>
