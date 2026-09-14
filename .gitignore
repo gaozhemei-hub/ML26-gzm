@@ -12,3 +12,4 @@ __pycache__/
 
 # 部署
 tabularx.egg-info
+dist/

@@ -5,6 +5,16 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tabularx"
 version = "0.1.0"
+authors = [
+    {name = "TabularX contributors"},
+]
+readme = "README.md"
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 description = "面向可解释性与可复现性的自动化表格建模工具包"
 requires-python = ">=3.10"
 dependencies = [
