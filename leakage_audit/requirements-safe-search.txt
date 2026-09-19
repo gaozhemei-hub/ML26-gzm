@@ -1,0 +1,2 @@
+# Minimum extra dependency for the independent safe model selector.
+optuna>=3.0
