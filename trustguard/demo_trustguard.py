@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 from sklearn.datasets import load_breast_cancer, load_diabetes, load_iris
 
-from leakage_audit import LeakageAuditConfig, LeakageAuditor, write_audit_artifacts
+from trustguard.leakage import LeakageAuditConfig, LeakageAuditor, write_audit_artifacts
 from tabularx import build_profile, split_data
 from trustguard.distribution import audit_distribution, write_distribution_artifacts
 from trustguard.ledger import ReproducibilityLedger

@@ -12,10 +12,11 @@ TrustGuard 的任务是回答报告中原本没有被强制回答的问题：
 
 > 这次模型分数是否建立在正确的数据、正确的划分和正确的评估协议上？
 
-本目录与同级 `leakage_audit/` 共同构成一个独立扩展；二者都**不修改**队友的
-`src/tabularx/`、模型注册表或原始训练逻辑。因此可以独立审阅、复制进新分支和合并。
+本目录是一个完整的独立扩展，不修改队友的 `src/tabularx/`、模型注册表或原始训练逻辑。
+泄露审计实现位于 `trustguard/leakage/`，其余可信性模块位于 `trustguard/` 根目录，便于
+独立审阅、复制进新分支和合并。
 
-## 2. 与课程题目要求的关系
+## 2. 目标与功能实现
 
 | 课程题目中的目标 | 原有 TabularX 的基础 | TrustGuard 的补强 |
 |---|---|---|
@@ -27,7 +28,7 @@ TrustGuard 的任务是回答报告中原本没有被强制回答的问题：
 
 ## 3. 四个模块
 
-### 1. LeakageAuditor：数据泄露审计（同级 `leakage_audit/`）
+### 1. LeakageAuditor：数据泄露审计（`trustguard/leakage/`）
 
 - 检查目标复制、疑似目标代理、高唯一性 ID；
 - 检查跨 train/validation/test 的重复记录；
@@ -43,7 +44,7 @@ TrustGuard 的任务是回答报告中原本没有被强制回答的问题：
 
 输出：`evaluation_protocol/test_access_log.json`。
 
-同级 `leakage_audit/safe_model_search.py` 是该原则的可运行实现：它复用 TabularX 的
+`trustguard/leakage/safe_model_search.py` 是该原则的可运行实现：它复用 TabularX 的
 预处理和模型注册表，但只在最终锁定模型后访问测试集。
 
 ### 3. ReproducibilityLedger：可复现实验证据包
@@ -76,7 +77,7 @@ TrustGuard 的任务是回答报告中原本没有被强制回答的问题：
 
 ```powershell
 python -m pip install -e .
-python -m pip install -r leakage_audit/requirements-safe-search.txt
+python -m pip install -r trustguard/leakage/requirements-safe-search.txt
 $env:PYTHONPATH = "$PWD;$PWD/src"
 
 python trustguard/demo_trustguard.py `
@@ -181,7 +182,7 @@ TrustGuard 将数据、评估和报告的可信性要求落实为本地可检查
 
 ```text
 run-output/
-├── leakage_audit/                 # 模块 1：泄露发现与处理建议
+├── leakage_audit/                 # 模块 1 的运行产物：泄露发现与处理建议
 ├── evaluation_protocol/           # 模块 2：测试集访问记录
 ├── reproducibility_ledger/        # 模块 3：数据、划分、环境和配置证据
 ├── distribution_audit/            # 模块 4：特征漂移与群体覆盖

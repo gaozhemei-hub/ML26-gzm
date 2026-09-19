@@ -1,8 +1,8 @@
 """TrustGuard: independent trustworthiness extensions for TabularX.
 
-This package is intentionally separate from ``src/tabularx``.  The companion
-``leakage_audit`` directory supplies leakage checks and safe model selection;
-TrustGuard adds an explicit test-access guard, reproducibility evidence and
+This package is intentionally separate from ``src/tabularx``.  Its ``leakage``
+subpackage supplies leakage checks and safe model selection; the package root
+adds an explicit test-access guard, reproducibility evidence and
 distribution/coverage auditing.
 """
 
