@@ -16,6 +16,10 @@ TrustGuard 的任务是回答报告中原本没有被强制回答的问题：
 泄露审计实现位于 `trustguard/leakage/`，其余可信性模块位于 `trustguard/` 根目录，便于
 独立审阅、复制进新分支和合并。
 
+实现遵循 TabularX 的设计约定：审计计算与文件写入分离，结构化结果先产生、报告随后
+渲染；`pipeline.py` 只负责编排，`reporting.py` 只把结果渲染为 HTML 字符串，模板位于
+`templates/`，所有 TrustGuard 产物写入自己的子目录，不覆盖队友的模型和主报告。
+
 ## 2. 目标与功能实现
 
 | 课程题目中的目标 | 原有 TabularX 的基础 | TrustGuard 的补强 |
@@ -73,22 +77,31 @@ TrustGuard 的任务是回答报告中原本没有被强制回答的问题：
 
 ## 4. 快速运行：四个模块
 
-在项目根目录运行。先安装 TabularX 及安全搜索的必要依赖：
+在仓库根目录运行。TabularX 的 `pyproject.toml` 位于 `TabularX-project/`，因此必须明确
+安装这个子目录，而不是在仓库根目录执行 `pip install -e .`。
 
 ```powershell
-python -m pip install -e .
+python -m pip install -e .\TabularX-project
 python -m pip install -r trustguard/leakage/requirements-safe-search.txt
-$env:PYTHONPATH = "$PWD;$PWD/src"
+$env:PYTHONPATH = "$PWD;$PWD\TabularX-project\src"
 
-python trustguard/demo_trustguard.py `
+python -m trustguard.demo_trustguard `
   --dataset breast_cancer `
+  --pdf-report `
   --output-dir .\outputs\trustguard-smoke
+```
+
+HTML 报告无需额外参数，默认写入 `reports/trustguard.html`。PDF 使用与 TabularX 主报告
+相同的 WeasyPrint 依赖；Windows + Conda 推荐安装方式如下，可同时补齐 GTK/Pango 原生库：
+
+```powershell
+conda install -n tabularx --override-channels -c conda-forge weasyprint -y
 ```
 
 任意 CSV 的最小命令如下；将 `label` 改为真实目标列名：
 
 ```powershell
-python trustguard/demo_trustguard.py `
+python -m trustguard.demo_trustguard `
   --csv "D:\data\my_table.csv" `
   --target label `
   --group-column patient_id `
@@ -150,17 +163,41 @@ CC-18 是 OpenML 的 72 个分类任务基准套件。OpenML 的 task 同时包�
 python -c "from trustguard import create_cc18_manifest; print(create_cc18_manifest('outputs/cc18_manifest.json', limit=5))"
 ```
 
-再顺序运行 MLJAR（每个数据集 120 秒；OpenI 上可提高到 300 秒）：
+然后运行完整对比套件，而不是只运行 MLJAR。对每个数据集，程序会依次生成：
+
+1. MLJAR Explain 基线及其工件清单；
+2. 正常数据上的 TrustGuard 四模块工件；
+3. 注入目标复制和唯一 ID 后的 TrustGuard 工件；
+4. `benchmark_summary.json` 以及包含真实对比结果的 HTML/PDF 综合报告。
 
 ```bash
-python trustguard/run_cc18_mljar.py \
+python -m trustguard.run_benchmark_suite \
   --manifest outputs/cc18_manifest.json \
   --total-time-limit 120 \
-  --output-dir outputs/cc18-mljar
+  --pdf-report \
+  --output-dir outputs/trustguard-benchmark
 ```
 
-批量脚本会把某个数据集下载/训练失败写入 JSON，但不会中断其他数据集。更多背景、
-对照表、实验矩阵和结果表格模板见 `BACKGROUND_AND_BENCHMARK_PLAN.md`。
+批量脚本会把单个数据集的下载或训练失败写入汇总，而不会中断其余数据集。最终报告第
+5 节会明确列出：MLJAR 解释工件覆盖、MLJAR 可信性工件覆盖、TrustGuard 四类工件覆盖，
+以及泄露注入是否被实际检测。更多实验边界见 `BACKGROUND_AND_BENCHMARK_PLAN.md`。
+
+只需要单独验证 MLJAR 能否启动时，仍可运行：
+
+```bash
+python -m trustguard.run_mljar_baseline --dataset breast_cancer --total-time-limit 120 --output-dir outputs/mljar-smoke
+```
+
+### 5.2 综合报告如何阅读
+
+`reports/trustguard.html` 和 `reports/trustguard.pdf` 不只是列出数值，而是对五部分采用统一
+结构：**做了什么 → 得到什么结果 → 如何解读 → 下一步做什么**。
+
+- 泄露审计展示每条发现的证据与处理建议；
+- 评估协议区分“尚未训练”“验证中”“已锁定”“最终评估完成”，不会伪造测试访问；
+- 复现证据展示数据和划分哈希、命令、环境与工件完整性含义；
+- 漂移报告正文优先展示最高风险记录，完整明细保留在 CSV，避免 PDF 被长表淹没；
+- MLJAR 对比只有在真实基准完成后才给出结论；普通冒烟报告会明确标注“尚未执行”。
 
 ## 6. 对整体项目和课程题目要求的贡献
 
@@ -188,8 +225,49 @@ run-output/
 ├── distribution_audit/            # 模块 4：特征漂移与群体覆盖
 ├── artifact_manifest.json         # 全部输出文件校验和
 ├── trustguard_run_summary.json    # 四模块入口索引
-└── reports/                       # 原 TabularX 的模型和解释报告（接入后）
+└── reports/                       # 与 TabularX 现有报告目录保持一致
+    ├── trustguard.html            # 默认生成的可信建模综合报告
+    └── trustguard.pdf             # 使用 --pdf-report 时生成
 ```
 
 这种结构正好体现“模型报告”和“可信性报告”并列：前者解释模型，后者解释为什么应当
 相信模型的评估结论。
+
+报告实现遵循 TabularX 现有的“纯渲染 + 上层写文件”约定：
+`render_trustguard_report()` 只接收结构化结果并返回 HTML 字符串，
+`write_trustguard_report()` 才负责创建文件。这样既能独立运行，也便于后续由主流程统一调用，
+且不会覆盖根目录的 `report.html` 或 `report.pdf`。
+
+## 8. OpenI 运行流程
+
+在 OpenI 调试环境的项目根目录依次执行：
+
+```bash
+python -m pip install -e ./TabularX-project
+python -m pip install -r trustguard/requirements-benchmark.txt
+export PYTHONPATH="$PWD:$PWD/TabularX-project/src"
+
+# 先验证独立模块；全部通过后再消耗时间运行 MLJAR。
+python -m unittest discover -s trustguard/tests -v
+python -m trustguard.demo_trustguard \
+  --dataset breast_cancer \
+  --pdf-report \
+  --output-dir outputs/trustguard-smoke
+
+# 固化 5 个 CC-18 任务并运行正式对比。
+python -c "from trustguard import create_cc18_manifest; print(create_cc18_manifest('outputs/cc18_manifest.json', limit=5))"
+python -m trustguard.run_benchmark_suite \
+  --manifest outputs/cc18_manifest.json \
+  --total-time-limit 120 \
+  --pdf-report \
+  --output-dir outputs/trustguard-benchmark
+```
+
+正式实验完成后应保存以下三个入口文件：
+
+- `outputs/trustguard-benchmark/benchmark_summary.json`：逐数据集机器可读结果；
+- `outputs/trustguard-benchmark/reports/trustguard.html`：完整网页报告；
+- `outputs/trustguard-benchmark/reports/trustguard.pdf`：用于提交和归档的综合报告。
+
+如果 5 个数据集的 120 秒预算运行稳定，可将清单提高到 10 个任务，或把单数据集预算提高
+到 300 秒。实验报告必须保留失败数据集及错误原因，不能只展示成功样本。

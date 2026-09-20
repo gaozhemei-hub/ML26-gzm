@@ -64,13 +64,24 @@ class EvaluationProtocolGuard:
     def compliant(self) -> bool:
         return self.selected_model is not None and len(self.test_accesses) == 1
 
+    @property
+    def status(self) -> str:
+        if self.compliant:
+            return "complete"
+        if self.selected_model is not None:
+            return "selection_locked"
+        if self.validation_candidates:
+            return "validation_in_progress"
+        return "not_started"
+
     def to_dict(self) -> dict:
         return {
-            "policy": "Candidates are selected only by validation; test is accessible once by the locked model.",
+            "policy": "候选模型只根据验证集选择；测试集仅允许被最终锁定的模型访问一次。",
             "validation_candidates": self.validation_candidates,
             "selected_model": self.selected_model,
             "test_access_count": len(self.test_accesses),
             "compliant": self.compliant,
+            "status": self.status,
             "events": [asdict(e) for e in self.events],
         }
 

@@ -124,7 +124,10 @@ class LeakageAuditor:
         ranges = [(time.iloc[idx].min(), time.iloc[idx].max()) for idx in indices]
         if any(pd.isna(lo) or pd.isna(hi) for lo, hi in ranges):
             result.findings.append(AuditFinding("invalid_time_values", "medium", "时间列不可解析", f"{col!r} 有空值或不可解析时间。", "清洗时间后再进行 temporal 切分。", [col])); return
-        if not (ranges[0][1] <= ranges[1][0] <= ranges[2][0]):
+        # Every earlier split must finish before the next split starts.
+        # Comparing valid_min with test_min is insufficient because the
+        # validation range itself may extend into the test period.
+        if not (ranges[0][1] <= ranges[1][0] and ranges[1][1] <= ranges[2][0]):
             result.findings.append(AuditFinding("temporal_overlap", "critical", "时间顺序泄露", f"train/valid/test 范围为 {ranges}。", "确保训练数据严格早于验证和测试数据。", [col]))
 
     @staticmethod

@@ -7,6 +7,8 @@ import pandas as pd
 from trustguard.distribution import audit_distribution
 from trustguard.ledger import ReproducibilityLedger, verify_artifact_manifest
 from trustguard.protocol import EvaluationProtocolError, EvaluationProtocolGuard
+from trustguard.reporting import render_trustguard_report
+from trustguard.pipeline import TrustGuardConfig, run_trustguard
 
 
 class ProtocolTests(unittest.TestCase):
@@ -30,11 +32,113 @@ class LedgerAndDriftTests(unittest.TestCase):
             ReproducibilityLedger().capture(temp, X, y, config={"seed": 42})
             self.assertTrue(verify_artifact_manifest(temp)["valid"])
 
+    def test_manifest_detects_unexpected_artifact(self):
+        X = pd.DataFrame({"a": [1, 2, 3]})
+        y = pd.Series([0, 1, 0], name="target")
+        with tempfile.TemporaryDirectory() as temp:
+            ReproducibilityLedger().capture(temp, X, y)
+            Path(temp, "added_after_manifest.txt").write_text("changed", encoding="utf-8")
+            verification = verify_artifact_manifest(temp)
+            self.assertFalse(verification["valid"])
+            self.assertIn("added_after_manifest.txt", verification["unexpected"])
+
     def test_distribution_detects_categorical_shift_and_group_coverage(self):
         X = pd.DataFrame({"value": [0.0, 0.1, 0.2, 0.3, 10.0, 11.0], "group": ["a", "a", "a", "a", "b", "b"]})
         result = audit_distribution(X, [0, 1, 2, 3], [4], [5], sensitive_features=["group"])
         self.assertTrue(any(record.severity in {"medium", "high"} for record in result.records))
         self.assertTrue(any(record.severity == "high" for record in result.group_coverage))
+
+    def test_group_absent_from_test_is_recorded_with_zero_count(self):
+        X = pd.DataFrame({"group": ["a", "b", "a", "b", "a"]})
+        result = audit_distribution(
+            X,
+            [0, 1],
+            [2, 3],
+            [4],
+            sensitive_features=["group"],
+        )
+        missing = [
+            row for row in result.group_coverage
+            if row.group == "b" and row.split == "test"
+        ]
+        self.assertEqual(len(missing), 1)
+        self.assertEqual(missing[0].count, 0)
+        self.assertEqual(missing[0].severity, "high")
+
+
+class ReportTests(unittest.TestCase):
+    def test_report_renderer_is_pure_and_contains_all_sections(self):
+        report = render_trustguard_report({
+            "leakage": {"risk_level": "low", "findings": []},
+            "distribution": {
+                "risk_level": "medium",
+                "feature_records": [],
+                "group_coverage": [{
+                    "sensitive_feature": "group",
+                    "group": "group-a",
+                    "split": "test",
+                    "count": 12,
+                    "proportion": 0.4,
+                    "severity": "high",
+                }],
+            },
+            "protocol": {"compliant": True, "test_access_count": 1},
+            "ledger": {"data": {"fingerprint_sha256": "abc123"}},
+        })
+        self.assertIn("TabularX TrustGuard", report)
+        self.assertIn("数据泄露审计", report)
+        self.assertIn("评估协议", report)
+        self.assertIn("可复现实验证据", report)
+        self.assertIn("特征漂移与群体覆盖", report)
+        self.assertIn("敏感群体覆盖", report)
+        self.assertIn("group-a", report)
+        self.assertIn("abc123", report)
+        self.assertIn("MLJAR 可解释性工件对比实验", report)
+        self.assertIn("尚未执行 MLJAR/CC-18", report)
+
+    def test_report_renders_real_benchmark_summary_shape(self):
+        report = render_trustguard_report({
+            "leakage": {"risk_level": "info", "findings": []},
+            "distribution": {"risk_level": "info", "feature_records": [], "group_coverage": []},
+            "protocol": {"status": "not_started", "test_access_count": 0},
+            "ledger": {"data": {}, "split": {}, "environment": {}},
+            "benchmark": {
+                "dataset_count": 5,
+                "success_count": 5,
+                "failure_count": 0,
+                "rows": [{
+                    "dataset": "openml_task_3",
+                    "mljar_explanation": "5/6",
+                    "mljar_trust_artifacts": "0/4",
+                    "trustguard_artifacts": "4/4",
+                    "injected_leakage_detected": True,
+                    "interpretation": "注入风险被识别。",
+                }],
+                "interpretation": "基于实际运行工件汇总。",
+            },
+        })
+        self.assertIn("openml_task_3", report)
+        self.assertIn("注入风险被识别", report)
+        self.assertNotIn("尚未执行 MLJAR/CC-18", report)
+
+
+class PipelineTests(unittest.TestCase):
+    def test_pipeline_writes_independent_report_tree(self):
+        X = pd.DataFrame({"a": range(60), "group": ["x", "y"] * 30})
+        y = pd.Series([0, 1] * 30, name="target")
+        with tempfile.TemporaryDirectory() as temp:
+            result = run_trustguard(
+                X,
+                y,
+                temp,
+                config=TrustGuardConfig(
+                    task_type="classification",
+                    sensitive_features=("group",),
+                ),
+            )
+            self.assertTrue(Path(result["report_html"]).is_file())
+            self.assertTrue(Path(temp, "reports", "trustguard.html").is_file())
+            self.assertTrue(verify_artifact_manifest(temp)["valid"])
 
 
 if __name__ == "__main__":

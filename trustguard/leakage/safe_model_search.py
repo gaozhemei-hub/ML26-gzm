@@ -14,6 +14,7 @@ import pandas as pd
 from tabularx.core.learning.metrics import compute_all_metrics, resolve_primary_metric
 from tabularx.core.learning.model_registry import ModelRegistry, get_default_registry
 from tabularx.core.learning.optuna_tuner import tune_model
+from trustguard.protocol import EvaluationProtocolGuard
 
 
 @dataclass
@@ -37,6 +38,7 @@ class SafeSearchResult:
     selected_params: dict[str, Any] = field(default_factory=dict)
     final_test_metrics: dict[str, float] | None = None
     final_model: Any | None = None
+    protocol: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -45,6 +47,7 @@ class SafeSearchResult:
             "selected_model_name": self.selected_model_name,
             "selected_params": self.selected_params,
             "final_test_metrics": self.final_test_metrics,
+            "protocol": self.protocol,
             "candidates": [asdict(c) for c in self.candidates],
             "test_access_policy": "Only the validation-selected candidate is evaluated on test.",
         }
@@ -69,6 +72,7 @@ def safe_search_models(
     n_trials: int = 10,
     random_state: int = 42,
     registry: ModelRegistry | None = None,
+    protocol_guard: EvaluationProtocolGuard | None = None,
 ) -> SafeSearchResult:
     """Tune candidates on train/valid, select on valid, evaluate one final model.
 
@@ -83,6 +87,7 @@ def safe_search_models(
     # become recorded candidate failures rather than aborting the experiment.
     names = model_names or ["random_forest", "xgboost", "lightgbm", "catboost"]
     result = SafeSearchResult(primary_metric=metric, direction=direction)
+    guard = protocol_guard or EvaluationProtocolGuard()
     specs: dict[str, Any] = {}
 
     for name in names:
@@ -103,6 +108,7 @@ def safe_search_models(
                 _metrics(model, preprocessed_data.X_valid, preprocessed_data.y_valid, task_type, spec.supports_predict_proba),
                 tuned.n_trials,
             ))
+            guard.record_validation(name, f"validation metric: {metric}")
             specs[name] = spec
         except Exception as exc:  # Candidates fail independently, as in AutoML.
             result.candidates.append(SafeModelRun(name, {}, {}, {}, n_trials, error=str(exc)))
@@ -113,6 +119,7 @@ def safe_search_models(
     reverse = direction == "maximize"
     selected = sorted(succeeded, key=lambda c: c.validation_metrics[metric], reverse=reverse)[0]
     result.selected_model_name, result.selected_params = selected.model_name, selected.best_params
+    guard.lock_validation_choice(selected.model_name, f"best validation {metric}")
 
     # This is the sole test-set access in the module.
     spec = specs[selected.model_name]
@@ -121,7 +128,11 @@ def safe_search_models(
     y_full = pd.concat([preprocessed_data.y_train, preprocessed_data.y_valid])
     final_model.fit(X_full, y_full)
     result.final_model = final_model
+    # Authorization is recorded immediately before the only operation that
+    # reads held-out test features and labels.
+    guard.authorize_final_test(selected.model_name, "single final held-out evaluation")
     result.final_test_metrics = _metrics(final_model, preprocessed_data.X_test, preprocessed_data.y_test, task_type, spec.supports_predict_proba)
+    result.protocol = guard.to_dict()
     return result
 
 

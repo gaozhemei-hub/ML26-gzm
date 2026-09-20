@@ -132,12 +132,20 @@ def audit_distribution(
     for feature in sensitive_features:
         if feature not in X.columns:
             continue
+        # Use the union of groups from the complete input so that a group that
+        # is entirely absent from validation/test is recorded with count=0.
+        # Iterating only over value_counts() would silently hide the most
+        # serious coverage failure.
+        all_groups = sorted(
+            X[feature].astype("string").fillna("<NA>").unique().tolist()
+        )
         for split_name, frame in (("train", train), ("validation", valid), ("test", test)):
             counts = frame[feature].astype("string").fillna("<NA>").value_counts(dropna=False)
             total = max(len(frame), 1)
-            for group, count in counts.items():
+            for group in all_groups:
+                count = int(counts.get(group, 0))
                 severity = "high" if count < cfg.min_group_size else "info"
-                result.group_coverage.append(GroupCoverageRecord(feature, str(group), split_name, int(count), round(int(count) / total, 6), severity))
+                result.group_coverage.append(GroupCoverageRecord(feature, str(group), split_name, count, round(count / total, 6), severity))
     return result
 
 

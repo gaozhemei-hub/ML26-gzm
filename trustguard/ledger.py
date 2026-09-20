@@ -129,8 +129,23 @@ def verify_artifact_manifest(output_dir: str | Path) -> dict[str, Any]:
     manifest_path = root / "artifact_manifest.json"
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     mismatches = []
+    listed = set()
     for entry in payload["files"]:
+        listed.add(entry["path"])
         path = root / entry["path"]
         if not path.is_file() or _sha256(path) != entry["sha256"]:
             mismatches.append(entry["path"])
-    return {"valid": not mismatches, "checked_files": len(payload["files"]), "mismatches": mismatches}
+    current = {
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*")
+        if path.is_file() and path != manifest_path
+    }
+    unexpected = sorted(current - listed)
+    missing = sorted(listed - current)
+    return {
+        "valid": not mismatches and not unexpected,
+        "checked_files": len(payload["files"]),
+        "mismatches": sorted(set(mismatches)),
+        "missing": missing,
+        "unexpected": unexpected,
+    }
