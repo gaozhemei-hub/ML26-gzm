@@ -14,6 +14,22 @@ class LeakageAuditTests(unittest.TestCase):
         self.assertIn("target_copy", codes)
         self.assertIn("copied_target", result.excluded_columns)
         self.assertEqual(result.risk_level, "critical")
+        checks = {item.code: item for item in result.check_results}
+        self.assertEqual(checks["target_copy"].status, "发现风险")
+        self.assertEqual(checks["cross_split_groups"].status, "未执行")
+        self.assertIn("group_column", checks["cross_split_groups"].result)
+
+    def test_clean_split_records_passed_and_not_applicable_checks(self):
+        X = pd.DataFrame({"feature": [0, 1, 2, 3, 4, 5]})
+        y = pd.Series([0, 1, 0, 1, 0, 1], name="target")
+        auditor = LeakageAuditor()
+        result = auditor.preflight(X, y, "binary")
+        result = auditor.check_split(X, [0, 1], [2, 3], [4, 5], result)
+        checks = {item.code: item for item in result.check_results}
+        self.assertEqual(len(checks), 6)
+        self.assertEqual(checks["cross_split_duplicates"].status, "通过")
+        self.assertEqual(checks["cross_split_duplicates"].result, "重复数为 0。")
+        self.assertEqual(checks["temporal_overlap"].status, "未执行")
 
     def test_validation_range_overlapping_test_is_detected(self):
         X = pd.DataFrame({
@@ -26,6 +42,8 @@ class LeakageAuditTests(unittest.TestCase):
         auditor = LeakageAuditor(LeakageAuditConfig(time_column="event_time"))
         result = auditor.check_split(X, [0, 1], [2, 3], [4, 5], AuditResult())
         self.assertIn("temporal_overlap", {item.code for item in result.findings})
+        checks = {item.code: item for item in result.check_results}
+        self.assertEqual(checks["temporal_overlap"].status, "发现风险")
 
 
 if __name__ == "__main__":

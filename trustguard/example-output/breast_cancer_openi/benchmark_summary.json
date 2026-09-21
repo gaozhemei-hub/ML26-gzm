@@ -1,0 +1,117 @@
+{
+  "suite": "OpenML-CC18 selected: five successful datasets plus one retained network-failure record",
+  "dataset_count": 6,
+  "success_count": 5,
+  "failure_count": 1,
+  "total_time_limit_seconds_per_dataset": 60,
+  "comparison_scope": "Artifact completeness under the same per-dataset MLJAR time budget; not a predictive-performance ranking.",
+  "rows": [
+    {
+      "dataset": "diabetes",
+      "task_id": 37,
+      "status": "success",
+      "source": {
+        "source": "OpenML",
+        "task_id": 37,
+        "target": "class"
+      },
+      "mljar_explanation": "4/6：report、feature_importance、confusion_matrix、learning_curve",
+      "mljar_trust_artifacts": "0/4：无",
+      "trustguard_artifacts": "4/4: leakage_audit, test_access_log, reproducibility_ledger, distribution_audit",
+      "injected_leakage_detected": true,
+      "injected_finding_codes": [
+        "identifier_like_column",
+        "target_copy"
+      ],
+      "interpretation": "MLJAR 解释工件与 TrustGuard 可信性工件互补；注入的目标复制和 ID 风险均被识别。"
+    },
+    {
+      "dataset": "spambase",
+      "task_id": 43,
+      "status": "success",
+      "source": {
+        "source": "OpenML",
+        "task_id": 43,
+        "target": "class"
+      },
+      "mljar_explanation": "4/6：report、feature_importance、confusion_matrix、learning_curve",
+      "mljar_trust_artifacts": "0/4：无",
+      "trustguard_artifacts": "4/4: leakage_audit, test_access_log, reproducibility_ledger, distribution_audit",
+      "injected_leakage_detected": true,
+      "injected_finding_codes": [
+        "identifier_like_column",
+        "possible_target_proxy",
+        "target_copy"
+      ],
+      "interpretation": "MLJAR 解释工件与 TrustGuard 可信性工件互补；注入的目标复制和 ID 风险均被识别。"
+    },
+    {
+      "dataset": "adult",
+      "task_id": 7592,
+      "status": "success",
+      "source": {
+        "source": "OpenML",
+        "task_id": 7592,
+        "target": "class"
+      },
+      "mljar_explanation": "4/6：report、feature_importance、confusion_matrix、learning_curve",
+      "mljar_trust_artifacts": "0/4：无",
+      "trustguard_artifacts": "4/4: leakage_audit, test_access_log, reproducibility_ledger, distribution_audit",
+      "injected_leakage_detected": true,
+      "injected_finding_codes": [
+        "identifier_like_column",
+        "target_copy"
+      ],
+      "interpretation": "MLJAR produced 4/6 explanation artifacts; TrustGuard produced all four trust artifacts and detected both injected risks. Adult includes race and sex; the separate coverage audit generated 21 subgroup records with overall info risk."
+    },
+    {
+      "dataset": "car",
+      "task_id": 146821,
+      "status": "success",
+      "source": {
+        "source": "OpenML",
+        "task_id": 146821,
+        "target": "class"
+      },
+      "mljar_explanation": "4/6：report、feature_importance、confusion_matrix、learning_curve",
+      "mljar_trust_artifacts": "0/4：无",
+      "trustguard_artifacts": "4/4: leakage_audit, test_access_log, reproducibility_ledger, distribution_audit",
+      "injected_leakage_detected": true,
+      "injected_finding_codes": [
+        "identifier_like_column",
+        "target_copy"
+      ],
+      "interpretation": "MLJAR 解释工件与 TrustGuard 可信性工件互补；注入的目标复制和 ID 风险均被识别。"
+    },
+    {
+      "dataset": "kr-vs-kp",
+      "task_id": 3,
+      "status": "success",
+      "source": {
+        "source": "OpenML",
+        "task_id": 3,
+        "target": "class"
+      },
+      "mljar_explanation": "4/6：report、feature_importance、confusion_matrix、learning_curve",
+      "mljar_trust_artifacts": "0/4：无",
+      "trustguard_artifacts": "4/4: leakage_audit, test_access_log, reproducibility_ledger, distribution_audit",
+      "injected_leakage_detected": true,
+      "injected_finding_codes": [
+        "identifier_like_column",
+        "target_copy"
+      ],
+      "interpretation": "MLJAR 解释工件与 TrustGuard 可信性工件互补；注入的目标复制和 ID 风险均被识别。"
+    },
+    {
+      "dataset": "credit-g",
+      "task_id": 31,
+      "status": "error",
+      "mljar_explanation": "运行失败",
+      "mljar_trust_artifacts": "运行失败",
+      "trustguard_artifacts": "运行失败",
+      "injected_leakage_detected": false,
+      "interpretation": "OpenML data endpoint timed out before training; retained as a reproducibility failure record and excluded from the five successful-dataset conclusion."
+    }
+  ],
+  "interpretation": "Across five successful public datasets, MLJAR Explain consistently produced 4/6 inventoried explanation artifacts (report, feature importance, confusion matrix, learning curve) and 0/4 TrustGuard-style trust artifacts. TrustGuard produced all four trust artifact families and detected injected target-copy and identifier risks on every successful dataset. The credit-g timeout is reported rather than omitted."
+}

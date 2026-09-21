@@ -20,6 +20,12 @@ _TRUST_KEYS = (
     "leakage_audit", "test_access_log", "reproducibility_ledger",
     "distribution_audit",
 )
+_ARTIFACT_LABELS = {
+    "report": "报告", "feature_importance": "特征重要性", "shap": "SHAP",
+    "confusion_matrix": "混淆矩阵", "learning_curve": "学习曲线", "fairness": "公平性",
+    "leakage_audit": "泄露审计", "test_access_log": "测试访问日志",
+    "reproducibility_ledger": "复现证据", "distribution_audit": "分布审计",
+}
 
 
 def _read_json(path: str | Path) -> dict[str, Any]:
@@ -28,15 +34,24 @@ def _read_json(path: str | Path) -> dict[str, Any]:
 
 def _present(inventory: dict[str, bool], keys: tuple[str, ...]) -> str:
     found = [key for key in keys if inventory.get(key)]
-    return f"{len(found)}/{len(keys)}：" + ("、".join(found) if found else "无")
+    return f"{len(found)}/{len(keys)}：" + ("、".join(_ARTIFACT_LABELS[key] for key in found) if found else "无")
 
 
 def _load_trustguard_report_data(run_dir: Path) -> dict[str, Any]:
+    ledger = _read_json(run_dir / "reproducibility_ledger" / "reproducibility_ledger.json")
+    config = ledger.get("config", {})
     return {
         "leakage": _read_json(run_dir / "leakage_audit" / "summary.json"),
         "distribution": _read_json(run_dir / "distribution_audit" / "summary.json"),
         "protocol": _read_json(run_dir / "evaluation_protocol" / "test_access_log.json"),
-        "ledger": _read_json(run_dir / "reproducibility_ledger" / "reproducibility_ledger.json"),
+        "ledger": ledger,
+        "dataset": {
+            "name": config.get("dataset_name", run_dir.parent.name),
+            "source": config.get("dataset_source", "OpenML"),
+            "rows": ledger.get("data", {}).get("rows"),
+            "features": ledger.get("data", {}).get("columns"),
+            "task_type": config.get("task_type", "auto"),
+        },
     }
 
 
@@ -60,6 +75,10 @@ def run(
         dataset_root = root / name
         try:
             X, y, source = load_data("breast_cancer", None, None, task_id)
+            lower_columns = {str(column).lower(): str(column) for column in X.columns}
+            sensitive_features = tuple(
+                lower_columns[name] for name in ("race", "sex") if name in lower_columns
+            )
 
             mljar_root = dataset_root / "mljar"
             mljar_results = run_mljar(X, y, mljar_root, total_time_limit)
@@ -73,7 +92,10 @@ def run(
                 clean_root,
                 config=TrustGuardConfig(
                     task_type="auto",
+                    sensitive_features=sensitive_features,
                     command=f"OpenML task {task_id}: TrustGuard clean audit",
+                    dataset_name=name,
+                    dataset_source=f"OpenML task {task_id}",
                 ),
             )
             trust_inventory_path = inspect_artifacts(
@@ -91,12 +113,17 @@ def run(
                 injected_root,
                 config=TrustGuardConfig(
                     task_type="auto",
+                    sensitive_features=sensitive_features,
                     command=f"OpenML task {task_id}: TrustGuard injected-leakage audit",
+                    dataset_name=f"{name}（泄露注入）",
+                    dataset_source=f"OpenML task {task_id}",
                 ),
             )
             injected = _read_json(injected_root / "leakage_audit" / "summary.json")
             codes = {item["code"] for item in injected.get("findings", [])}
             detected = {"target_copy", "identifier_like_column"}.issubset(codes)
+            clean_distribution = _read_json(clean_root / "distribution_audit" / "summary.json")
+            coverage_count = len(clean_distribution.get("group_coverage", []))
 
             rows.append({
                 "dataset": name,
@@ -108,8 +135,9 @@ def run(
                 "trustguard_artifacts": _present(trust_inventory, _TRUST_KEYS),
                 "injected_leakage_detected": detected,
                 "injected_finding_codes": sorted(codes),
+                "group_coverage_count": coverage_count,
                 "interpretation": (
-                    "MLJAR 解释工件与 TrustGuard 可信性工件互补；注入的目标复制和 ID 风险均被识别。"
+                    "MLJAR 解释工件与 TrustGuard 可信性工件互补；注入的目标复制和高唯一性 ID 风险均被识别。"
                     if detected else "注入风险未全部命中，需要检查数据类型或审计规则。"
                 ),
             })
@@ -123,6 +151,7 @@ def run(
                 "mljar_trust_artifacts": "运行失败",
                 "trustguard_artifacts": "运行失败",
                 "injected_leakage_detected": False,
+                "error_message": f"{type(exc).__name__}: {exc}",
                 "interpretation": f"{type(exc).__name__}: {exc}",
             })
 

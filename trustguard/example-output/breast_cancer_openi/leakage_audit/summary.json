@@ -1,0 +1,53 @@
+{
+  "risk_level": "info",
+  "high_risk_count": 0,
+  "excluded_columns": [],
+  "checked_stages": [
+    "raw_data",
+    "split_integrity"
+  ],
+  "findings": [],
+  "check_results": [
+    {
+      "code": "target_copy",
+      "check": "目标复制",
+      "status": "通过",
+      "result": "未发现特征与目标逐行相同。"
+    },
+    {
+      "code": "possible_target_proxy",
+      "check": "目标代理",
+      "status": "通过",
+      "result": "未发现超过阈值的疑似目标代理特征。"
+    },
+    {
+      "code": "identifier_like_column",
+      "check": "ID/高唯一性字段",
+      "status": "通过",
+      "result": "未发现疑似 ID 或高唯一性字段。"
+    },
+    {
+      "code": "cross_split_duplicates",
+      "check": "跨集合重复",
+      "status": "通过",
+      "result": "重复数为 0。"
+    },
+    {
+      "code": "cross_split_groups",
+      "check": "实体分组泄露",
+      "status": "未执行",
+      "result": "未指定 group_column，无法判断同一实体是否跨集合出现。"
+    },
+    {
+      "code": "temporal_overlap",
+      "check": "时间穿越",
+      "status": "未执行",
+      "result": "未指定 time_column，无法检查训练、验证与测试数据的时间顺序。"
+    }
+  ],
+  "model_info_questions": [
+    "每个保留特征是否在真实预测时已经可获得，而不是结果发生后才产生？",
+    "测试集是否代表要泛化到的人群、地点与时间段？",
+    "是否存在实体、时间、空间或层级依赖，需要相应的分组切分？"
+  ]
+}

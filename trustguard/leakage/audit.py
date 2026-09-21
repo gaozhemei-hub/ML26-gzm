@@ -27,11 +27,22 @@ class AuditFinding:
 
 
 @dataclass
+class AuditCheckResult:
+    """One fixed audit check, including successful and skipped checks."""
+
+    code: str
+    check: str
+    status: Literal["通过", "发现风险", "未执行"]
+    result: str
+
+
+@dataclass
 class AuditResult:
     findings: list[AuditFinding] = field(default_factory=list)
     excluded_columns: list[str] = field(default_factory=list)
     checked_stages: list[str] = field(default_factory=list)
     model_info_questions: list[str] = field(default_factory=list)
+    check_results: list[AuditCheckResult] = field(default_factory=list)
 
     @property
     def risk_level(self) -> Severity:
@@ -45,6 +56,7 @@ class AuditResult:
         return {"risk_level": self.risk_level, "high_risk_count": self.high_risk_count,
                 "excluded_columns": self.excluded_columns, "checked_stages": self.checked_stages,
                 "findings": [asdict(f) for f in self.findings],
+                "check_results": [asdict(item) for item in self.check_results],
                 "model_info_questions": self.model_info_questions}
 
 
@@ -87,6 +99,20 @@ class LeakageAuditor:
             "测试集是否代表要泛化到的人群、地点与时间段？",
             "是否存在实体、时间、空间或层级依赖，需要相应的分组切分？",
         ]
+        self._set_check_from_findings(result, "target_copy", "目标复制", "未发现特征与目标逐行相同。")
+        self._set_check_from_findings(result, "possible_target_proxy", "目标代理", "未发现超过阈值的疑似目标代理特征。")
+        self._set_check_from_findings(result, "identifier_like_column", "ID/高唯一性字段", "未发现疑似 ID 或高唯一性字段。")
+        self._set_check(result, "cross_split_duplicates", "跨集合重复", "未执行", "尚未执行数据划分完整性检查。")
+        self._set_check(
+            result, "cross_split_groups", "实体分组泄露", "未执行",
+            "未指定 group_column，无法判断同一实体是否跨集合出现。" if not self.config.group_column
+            else "尚未执行数据划分完整性检查。",
+        )
+        self._set_check(
+            result, "temporal_overlap", "时间穿越", "未执行",
+            "未指定 time_column，无法检查训练、验证与测试数据的时间顺序。" if not self.config.time_column
+            else "尚未执行数据划分完整性检查。",
+        )
         self._raise_if_strict(result)
         return result
 
@@ -98,6 +124,9 @@ class LeakageAuditor:
         duplicate_count = sum(len(hashes[i] & hashes[j]) for i in range(3) for j in range(i + 1, 3))
         if duplicate_count:
             result.findings.append(AuditFinding("cross_split_duplicates", "critical", "跨集合重复样本", f"发现 {duplicate_count} 个原始特征行跨 train/valid/test 重复。", "在切分前去重，或让重复实体只进入一个集合。", details={"count": duplicate_count}))
+            self._set_check(result, "cross_split_duplicates", "跨集合重复", "发现风险", f"发现 {duplicate_count} 个原始特征行跨训练集、验证集或测试集重复。")
+        else:
+            self._set_check(result, "cross_split_duplicates", "跨集合重复", "通过", "重复数为 0。")
         self._check_group(X, (train_idx, valid_idx, test_idx), result)
         self._check_time(X, (train_idx, valid_idx, test_idx), result)
         self._raise_if_strict(result)
@@ -106,29 +135,61 @@ class LeakageAuditor:
     def _check_group(self, X, indices, result):
         col = self.config.group_column
         if not col:
+            self._set_check(result, "cross_split_groups", "实体分组泄露", "未执行", "未指定 group_column，无法判断同一实体是否跨集合出现。")
             return
         if col not in X:
-            result.findings.append(AuditFinding("missing_group_column", "high", "分组列不存在", f"{col!r} 不在数据中。", "检查 group_column 配置。", [col])); return
+            result.findings.append(AuditFinding("missing_group_column", "high", "分组列不存在", f"{col!r} 不在数据中。", "检查 group_column 配置。", [col]))
+            self._set_check(result, "cross_split_groups", "实体分组泄露", "发现风险", f"配置的 group_column={col!r} 不在数据中。")
+            return
         groups = [set(X.iloc[idx][col].dropna().astype("string")) for idx in indices]
         overlap = sum(len(groups[i] & groups[j]) for i in range(3) for j in range(i + 1, 3))
         if overlap:
             result.findings.append(AuditFinding("cross_split_groups", "critical", "同一实体跨集合出现", f"{col!r} 有 {overlap} 个实体跨集合。", "使用 GroupShuffleSplit/GroupKFold，并从模型输入排除该列。", [col], {"count": overlap}))
+            self._set_check(result, "cross_split_groups", "实体分组泄露", "发现风险", f"字段 {col!r} 有 {overlap} 个实体跨集合出现。")
+        else:
+            self._set_check(result, "cross_split_groups", "实体分组泄露", "通过", f"字段 {col!r} 未发现实体跨集合重叠。")
 
     def _check_time(self, X, indices, result):
         col = self.config.time_column
         if not col:
+            self._set_check(result, "temporal_overlap", "时间穿越", "未执行", "未指定 time_column，无法检查训练、验证与测试数据的时间顺序。")
             return
         if col not in X:
-            result.findings.append(AuditFinding("missing_time_column", "high", "时间列不存在", f"{col!r} 不在数据中。", "检查 time_column 配置。", [col])); return
+            result.findings.append(AuditFinding("missing_time_column", "high", "时间列不存在", f"{col!r} 不在数据中。", "检查 time_column 配置。", [col]))
+            self._set_check(result, "temporal_overlap", "时间穿越", "发现风险", f"配置的 time_column={col!r} 不在数据中。")
+            return
         time = pd.to_datetime(X[col], errors="coerce")
         ranges = [(time.iloc[idx].min(), time.iloc[idx].max()) for idx in indices]
         if any(pd.isna(lo) or pd.isna(hi) for lo, hi in ranges):
-            result.findings.append(AuditFinding("invalid_time_values", "medium", "时间列不可解析", f"{col!r} 有空值或不可解析时间。", "清洗时间后再进行 temporal 切分。", [col])); return
+            result.findings.append(AuditFinding("invalid_time_values", "medium", "时间列不可解析", f"{col!r} 有空值或不可解析时间。", "清洗时间后再进行 temporal 切分。", [col]))
+            self._set_check(result, "temporal_overlap", "时间穿越", "发现风险", f"字段 {col!r} 存在空值或不可解析时间。")
+            return
         # Every earlier split must finish before the next split starts.
         # Comparing valid_min with test_min is insufficient because the
         # validation range itself may extend into the test period.
         if not (ranges[0][1] <= ranges[1][0] and ranges[1][1] <= ranges[2][0]):
             result.findings.append(AuditFinding("temporal_overlap", "critical", "时间顺序泄露", f"train/valid/test 范围为 {ranges}。", "确保训练数据严格早于验证和测试数据。", [col]))
+            self._set_check(result, "temporal_overlap", "时间穿越", "发现风险", f"字段 {col!r} 的训练、验证和测试时间范围发生重叠。")
+        else:
+            self._set_check(result, "temporal_overlap", "时间穿越", "通过", f"字段 {col!r} 的时间顺序符合训练集 → 验证集 → 测试集。")
+
+    @staticmethod
+    def _set_check(result: AuditResult, code: str, check: str, status: str, message: str) -> None:
+        item = AuditCheckResult(code=code, check=check, status=status, result=message)
+        for index, existing in enumerate(result.check_results):
+            if existing.code == code:
+                result.check_results[index] = item
+                return
+        result.check_results.append(item)
+
+    def _set_check_from_findings(self, result: AuditResult, code: str, check: str, pass_message: str) -> None:
+        matched = [item for item in result.findings if item.code == code]
+        if matched:
+            columns = list(dict.fromkeys(col for item in matched for col in item.columns))
+            detail = "、".join(map(str, columns)) if columns else f"{len(matched)} 项"
+            self._set_check(result, code, check, "发现风险", f"发现 {len(matched)} 项：{detail}。")
+        else:
+            self._set_check(result, code, check, "通过", pass_message)
 
     @staticmethod
     def _univariate_score(series, y, task_type):

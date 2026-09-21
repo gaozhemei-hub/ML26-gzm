@@ -1,28 +1,40 @@
 # TabularX TrustGuard：可信建模保障层
 
-## 1. 设计背景
+## 1. 研究动机与设计依据
 
-TabularX 的课程目标不只是把表格模型训练得准确，还强调**可解释性、可复现性、
-公平性感知评估，以及本地可读的实验报告**。原有 TabularX 已能训练模型、生成报告、
-生成 SHAP/特征重要性图并计算公平性指标；但“报告很完整”并不等于“实验结果可信”。
+表格模型取得较高分数，并不自动意味着评估结论可信。若一个特征在预测时尚不可获得，
+同一患者同时出现在训练集和测试集，预处理过程提前使用了测试集信息，或测试集被反复用于
+模型选择，评估分数就可能被系统性高估。此时即使 SHAP、特征重要性、混淆矩阵和学习曲线
+都已生成，模型解释仍然建立在不可靠的实验基础上。
 
-例如，若一个特征是结果发生后才产生的字段，或同一病人同时在训练集和测试集出现，
-模型可能获得异常高分。此时即使 SHAP 图、混淆矩阵、学习曲线都齐全，结论仍然不可靠。
-TrustGuard 的任务是回答报告中原本没有被强制回答的问题：
+Kapoor 与 Narayanan 的论文 *Leakage and the Reproducibility Crisis in
+Machine-learning-based Science* 系统研究了机器学习中的数据泄露与复现问题。作者汇总的既有
+审查覆盖 17 个研究领域、至少 294 篇受到泄露影响的论文，并将泄露划分为八种类型；论文还
+提出 Model Info Sheets，要求研究者围绕数据构造、特征可用时间、样本依赖关系和评估过程
+提供可核查的说明。[1]
+
+TrustGuard 参考上述思想，但不声称仅凭自动规则就能覆盖论文中的所有泄露类型。它把其中
+可程序化检查的风险转化为运行前和划分后的审计，把不能可靠自动判断的业务语义转化为
+Model Info Sheet 问题，并进一步记录测试集访问、数据划分、运行环境与输出工件。其核心
+问题是：
 
 > 这次模型分数是否建立在正确的数据、正确的划分和正确的评估协议上？
 
-本目录是一个完整的独立扩展，不修改队友的 `src/tabularx/`、模型注册表或原始训练逻辑。
+本目录是一个可独立运行的扩展，不修改 `src/tabularx/`、模型注册表或既有训练逻辑。
 泄露审计实现位于 `trustguard/leakage/`，其余可信性模块位于 `trustguard/` 根目录，便于
-独立审阅、复制进新分支和合并。
+独立测试、复用和集成。
 
 实现遵循 TabularX 的设计约定：审计计算与文件写入分离，结构化结果先产生、报告随后
 渲染；`pipeline.py` 只负责编排，`reporting.py` 只把结果渲染为 HTML 字符串，模板位于
-`templates/`，所有 TrustGuard 产物写入自己的子目录，不覆盖队友的模型和主报告。
+`templates/`，所有 TrustGuard 产物写入独立子目录，不覆盖已有模型和主报告。
+
+> [1] Kapoor, S., & Narayanan, A. (2023). Leakage and the reproducibility crisis in
+> machine-learning-based science. *Patterns, 4*(9), 100804.
+> https://doi.org/10.1016/j.patter.2023.100804
 
 ## 2. 目标与功能实现
 
-| 课程题目中的目标 | 原有 TabularX 的基础 | TrustGuard 的补强 |
+| 可信建模目标 | 基础建模流水线的常见输出 | TrustGuard 的补强 |
 |---|---|---|
 | 自动化预处理与模型选择 | 已有模型搜索、Optuna、预处理 | 强制验证集选择，避免按测试集分数选模型 |
 | 强制可读实验报告 | 已有 HTML/PDF、模型报告、图表 | 新增泄露、测试访问、数据漂移、复现证据等风险工件 |
@@ -39,6 +51,11 @@ TrustGuard 的任务是回答报告中原本没有被强制回答的问题：
 - 支持用户声明患者/用户等 `group_column`，发现同一实体跨集合；
 - 支持用户声明 `time_column`，发现未来时间进入训练的时间穿越；
 - 输出 `leakage_audit/summary.json`、`findings.csv` 与说明文件。
+
+综合报告不会只展示异常列表，而会固定列出六项检查的执行状态：目标复制、目标代理、
+ID/高唯一性字段、跨集合重复、实体分组泄露和时间穿越。状态分为“通过”“发现风险”与
+“未执行”；缺少 `group_column` 或 `time_column` 时会明确说明原因，不会把“不适用”误写成
+“通过”。
 
 ### 2. EvaluationProtocolGuard：评估协议守卫
 
@@ -90,6 +107,21 @@ python -m trustguard.demo_trustguard `
   --pdf-report `
   --output-dir .\outputs\trustguard-smoke
 ```
+
+若需要一次完成随机森林、XGBoost、LightGBM、CatBoost 安全搜索以及四类可信性审计，使用
+完整实验入口：
+
+```powershell
+python -m trustguard.run_full_experiment `
+  --dataset breast_cancer `
+  --n-trials 5 `
+  --benchmark-summary .\outputs\trustguard-benchmark\benchmark_summary.json `
+  --pdf-report `
+  --output-dir .\outputs\trustguard-full-experiment
+```
+
+该命令会将四模型验证结果、最终测试指标、主实验数据集说明和 MLJAR 对比结论直接写入
+`reports/trustguard.html` 与 `reports/trustguard.pdf`，无需运行后手工改写报告。
 
 HTML 报告无需额外参数，默认写入 `reports/trustguard.html`。PDF 使用与 TabularX 主报告
 相同的 WeasyPrint 依赖；Windows + Conda 推荐安装方式如下，可同时补齐 GTK/Pango 原生库：
@@ -191,7 +223,7 @@ python -m trustguard.run_mljar_baseline --dataset breast_cancer --total-time-lim
 ### 5.2 综合报告如何阅读
 
 `reports/trustguard.html` 和 `reports/trustguard.pdf` 不只是列出数值，而是对五部分采用统一
-结构：**做了什么 → 得到什么结果 → 如何解读 → 下一步做什么**。
+结构：**内容 → 结果 → 解读 → 建议**。
 
 - 泄露审计展示每条发现的证据与处理建议；
 - 评估协议区分“尚未训练”“验证中”“已锁定”“最终评估完成”，不会伪造测试访问；
@@ -199,7 +231,7 @@ python -m trustguard.run_mljar_baseline --dataset breast_cancer --total-time-lim
 - 漂移报告正文优先展示最高风险记录，完整明细保留在 CSV，避免 PDF 被长表淹没；
 - MLJAR 对比只有在真实基准完成后才给出结论；普通冒烟报告会明确标注“尚未执行”。
 
-## 6. 对整体项目和课程题目要求的贡献
+## 6. 对自动化表格建模流程的贡献
 
 TrustGuard 将数据、评估和报告的可信性要求落实为本地可检查的工件，与 TabularX 的模型
 训练、解释和公平性模块形成互补。
@@ -212,8 +244,8 @@ TrustGuard 将数据、评估和报告的可信性要求落实为本地可检查
    JSON、CSV、NPZ 等本地可读文件，支持版本控制、复跑和完整性校验。
 4. **增强公平性结论的解释边界。** 原有公平性模块衡量群体间性能与公平性指标；TrustGuard
    额外报告敏感群体在不同划分中的样本覆盖，避免在极小群体上过度解读公平性结果。
-5. **支持竞品研究和公开数据集验证。** MLJAR 基线脚本、CC-18 清单生成器和工件盘点器
-   将课程要求中的竞品研究与 5–10 个公开表格数据集实验转化为可重复执行的代码流程。
+5. **支持基线研究和公开数据集验证。** MLJAR 基线脚本、CC-18 清单生成器和工件盘点器
+   将竞品研究与 5–10 个公开表格数据集实验转化为可重复执行的代码流程。
 
 ## 7. 实验报告目录结构
 
@@ -237,6 +269,11 @@ run-output/
 `render_trustguard_report()` 只接收结构化结果并返回 HTML 字符串，
 `write_trustguard_report()` 才负责创建文件。这样既能独立运行，也便于后续由主流程统一调用，
 且不会覆盖根目录的 `report.html` 或 `report.pdf`。
+
+仓库中的 `trustguard/example-output/breast_cancer_openi/` 保存了一份体积受控的正式运行
+示例，包括四模型结果、四类可信性工件、MLJAR 对比汇总以及 HTML/PDF 报告。该目录不含
+模型缓存和原始数据，适合随源码一同进行版本控制。示例的实验参数和阅读顺序见该目录的
+`README.md`。
 
 ## 8. OpenI 运行流程
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import re
 import sys
 from typing import Any
 
@@ -11,6 +12,42 @@ from jinja2 import Environment, FileSystemLoader
 
 
 _SEVERITY_ORDER = {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
+_SEVERITY_LABELS = {"info": "提示", "low": "低", "medium": "中等", "high": "高", "critical": "严重"}
+_MODEL_LABELS = {
+    "random_forest": "随机森林",
+    "xgboost": "XGBoost",
+    "lightgbm": "LightGBM",
+    "catboost": "CatBoost",
+}
+_SPLIT_LABELS = {
+    "train_indices": "训练集",
+    "valid_indices": "验证集",
+    "test_indices": "测试集",
+    "train": "训练集",
+    "validation": "验证集",
+    "valid": "验证集",
+    "test": "测试集",
+    "train_vs_validation": "训练集 vs 验证集",
+    "train_vs_test": "训练集 vs 测试集",
+}
+_ARTIFACT_LABELS = {
+    "report": "报告",
+    "feature_importance": "特征重要性",
+    "shap": "SHAP",
+    "confusion_matrix": "混淆矩阵",
+    "learning_curve": "学习曲线",
+    "fairness": "公平性",
+    "leakage_audit": "泄露审计",
+    "test_access_log": "测试访问日志",
+    "reproducibility_ledger": "复现证据",
+    "distribution_audit": "分布审计",
+}
+_METRIC_LABELS = {
+    "accuracy": "准确率", "balanced_accuracy": "平衡准确率", "f1": "F1",
+    "f1_macro": "宏平均 F1", "roc_auc": "ROC-AUC", "precision": "精确率",
+    "recall": "召回率", "rmse": "RMSE", "mae": "MAE", "r2": "R²",
+}
+_TASK_LABELS = {"binary": "二分类", "multiclass": "多分类", "regression": "回归", "auto": "自动识别"}
 
 
 def _display(value: Any) -> str:
@@ -19,6 +56,137 @@ def _display(value: Any) -> str:
     if isinstance(value, (dict, list)):
         return json.dumps(value, ensure_ascii=False)
     return str(value)
+
+
+def _number(value: Any) -> str:
+    """Compact, stable number formatting for HTML and PDF tables."""
+    if value is None:
+        return "—"
+    if isinstance(value, float):
+        return f"{value:.6f}"
+    return str(value)
+
+
+def _translated_summary(value: Any) -> str:
+    text = str(value or "—")
+    for source, target in _ARTIFACT_LABELS.items():
+        text = text.replace(source, target)
+    return text.replace(":", "：").replace(", ", "、")
+
+
+def _leakage_checks(leakage: dict[str, Any], ledger: dict[str, Any]) -> list[dict[str, str]]:
+    if leakage.get("check_results"):
+        return leakage["check_results"]
+    findings = leakage.get("findings", [])
+    codes = {item.get("code") for item in findings}
+    checked = set(leakage.get("checked_stages", []))
+    config = ledger.get("config", {})
+
+    def row(code: str, name: str, passed: str) -> dict[str, str]:
+        count = sum(item.get("code") == code for item in findings)
+        return {"code": code, "check": name, "status": "发现风险" if count else "通过", "result": f"发现 {count} 项风险。" if count else passed}
+
+    rows = [
+        row("target_copy", "目标复制", "未发现特征与目标逐行相同。"),
+        row("possible_target_proxy", "目标代理", "未发现超过阈值的疑似目标代理特征。"),
+        row("identifier_like_column", "ID/高唯一性字段", "未发现疑似 ID 或高唯一性字段。"),
+    ]
+    rows.append(
+        row("cross_split_duplicates", "跨集合重复", "重复数为 0。")
+        if "split_integrity" in checked
+        else {"code": "cross_split_duplicates", "check": "跨集合重复", "status": "未执行", "result": "尚未执行数据划分完整性检查。"}
+    )
+    for code, name, key in (("cross_split_groups", "实体分组泄露", "group_column"), ("temporal_overlap", "时间穿越", "time_column")):
+        if not config.get(key):
+            rows.append({"code": code, "check": name, "status": "未执行", "result": f"未指定 {key}，无法执行该检查。"})
+        else:
+            rows.append(row(code, name, f"字段 {config[key]!r} 未发现异常。"))
+    return rows
+
+
+def _model_view(model_result: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not model_result:
+        return None
+    metric_key = model_result.get("primary_metric", "主要指标")
+    metric = _METRIC_LABELS.get(metric_key, metric_key)
+    candidates = []
+    for item in model_result.get("candidates", []):
+        validation = item.get("validation_metrics", {})
+        candidates.append({
+            "model": _MODEL_LABELS.get(item.get("model_name"), item.get("model_name", "—")),
+            "status": "失败" if item.get("error") else "成功",
+            "primary_value": validation.get(metric_key),
+            "accuracy": validation.get("accuracy"),
+            "f1": validation.get("f1"),
+            "roc_auc": validation.get("roc_auc"),
+            "error": item.get("error"),
+        })
+    selected_key = model_result.get("selected_model_name")
+    selected = _MODEL_LABELS.get(selected_key, selected_key or "—")
+    metrics = model_result.get("final_test_metrics") or {}
+    successful = [row for row in candidates if row["status"] == "成功"]
+    interpretation = "模型搜索尚未产生可解释的成功候选结果。"
+    if successful:
+        primary_value = next((row["primary_value"] for row in successful if row["model"] == selected), None)
+        metric_text = f"，验证集 {metric}={_number(primary_value)}" if primary_value is not None else ""
+        test_text = "、".join(f"{_METRIC_LABELS.get(name, name)}={_number(value)}" for name, value in metrics.items()) or "未记录"
+        interpretation = (
+            f"{selected} 根据验证集 {metric} 被选为最终模型{metric_text}。"
+            f"模型锁定后才访问一次测试集，最终测试指标为：{test_text}。"
+            "测试结果没有参与候选模型排名。"
+        )
+    return {
+        "primary_metric": metric,
+        "direction": "越大越好" if model_result.get("direction") == "maximize" else "越小越好",
+        "selected_model": selected,
+        "candidates": candidates,
+        "final_test_metrics": metrics,
+        "interpretation": interpretation,
+    }
+
+
+def _benchmark_view(benchmark: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not benchmark:
+        return None
+    rows = []
+    for source in benchmark.get("rows", []):
+        row = dict(source)
+        # Older benchmark summaries did not persist ``status`` on successful rows.
+        success = source.get("status", "success") == "success"
+        row["status_label"] = "成功" if success else "失败"
+        row["mljar_explanation"] = _translated_summary(source.get("mljar_explanation"))
+        row["mljar_trust_artifacts"] = _translated_summary(source.get("mljar_trust_artifacts"))
+        row["trustguard_artifacts"] = _translated_summary(source.get("trustguard_artifacts"))
+        row["detection_label"] = "成功" if source.get("injected_leakage_detected") else ("未检测" if success else "未执行")
+        coverage_count = source.get("group_coverage_count")
+        raw_interpretation = str(source.get("interpretation", ""))
+        if coverage_count is None and source.get("dataset") == "adult":
+            match = re.search(r"(\d+)\s+subgroup records", raw_interpretation)
+            coverage_count = int(match.group(1)) if match else None
+        if success and source.get("injected_leakage_detected"):
+            interpretation = "目标复制和高唯一性 ID 风险均被识别。"
+            if coverage_count:
+                interpretation += f"同时生成 {coverage_count} 条敏感群体覆盖记录。"
+        elif success:
+            interpretation = "注入风险未全部命中，需要检查数据类型和审计规则。"
+        else:
+            error = source.get("error_message") or raw_interpretation
+            interpretation = "运行失败，错误记录已保留。"
+            if "timed out" in error.lower() or "timeout" in error.lower() or "超时" in error:
+                interpretation = "OpenML 数据接口在训练前读取超时；该记录被保留，未计入成功数据集结论。"
+        row["interpretation_cn"] = interpretation
+        rows.append(row)
+    successful = [row for row in rows if row["status_label"] == "成功"]
+    detected_count = sum(row["detection_label"] == "成功" for row in successful)
+    return {
+        **benchmark,
+        "rows": rows,
+        "interpretation_cn": (
+            f"共成功完成 {len(successful)} 个公开数据集。MLJAR Explain 的工件盘点结果与 TrustGuard 的可信性工件互补；"
+            f"TrustGuard 在 {len(successful)} 个成功数据集上均生成四类可信性工件，并在 {detected_count} 个数据集上识别全部注入风险。"
+            "失败数据集及其原因被如实保留，没有从汇总中删除。"
+        ),
+    }
 
 
 def _report_view(data: dict[str, Any], max_feature_rows: int) -> dict[str, Any]:
@@ -30,6 +198,7 @@ def _report_view(data: dict[str, Any], max_feature_rows: int) -> dict[str, Any]:
     ledger_view.setdefault("data", {})
     ledger_view.setdefault("split", {})
     ledger_view.setdefault("environment", {})
+    ledger_view.setdefault("config", {})
     feature_rows = list(distribution.get("feature_records", []))
     feature_rows.sort(
         key=lambda row: (
@@ -74,6 +243,18 @@ def _report_view(data: dict[str, Any], max_feature_rows: int) -> dict[str, Any]:
         if distribution.get("risk_level") in {"high", "critical"}
         else "未发现高风险分布差异。中等风险指标仍应结合样本量和业务变化解释，不能只凭阈值判断模型可部署。"
     )
+    model = _model_view(data.get("model_result"))
+    benchmark = _benchmark_view(data.get("benchmark"))
+    key_conclusions = []
+    if model and model["candidates"]:
+        succeeded = [row for row in model["candidates"] if row["status"] == "成功"]
+        key_conclusions.append(f"共完成 {len(succeeded)} 个候选模型的验证集评估，最终选择 {model['selected_model']}。")
+    if protocol_status == "complete":
+        key_conclusions.append(f"最终测试集访问 {protocol.get('test_access_count', 0)} 次，评估协议合规。")
+    if benchmark:
+        key_conclusions.append(f"MLJAR 对比实验成功完成 {benchmark.get('success_count', 0)} 个公开数据集，失败 {benchmark.get('failure_count', 0)} 个。")
+        detected = sum(row.get("detection_label") == "成功" for row in benchmark.get("rows", []))
+        key_conclusions.append(f"{detected} 个成功数据集均识别出目标复制和高唯一性 ID 注入风险，具体证据见第 5 部分。")
     return {
         "risk": risk,
         "leakage": leakage,
@@ -81,6 +262,7 @@ def _report_view(data: dict[str, Any], max_feature_rows: int) -> dict[str, Any]:
         "protocol": protocol,
         "ledger": ledger_view,
         "findings": leakage.get("findings", []),
+        "leakage_checks": _leakage_checks(leakage, ledger_view),
         "feature_rows": feature_rows[:max_feature_rows],
         "feature_total": len(feature_rows),
         "feature_truncated": len(feature_rows) > max_feature_rows,
@@ -90,7 +272,17 @@ def _report_view(data: dict[str, Any], max_feature_rows: int) -> dict[str, Any]:
         "leakage_interpretation": leakage_interpretation,
         "protocol_interpretation": protocol_interpretations.get(protocol_status, "请检查评估协议日志。"),
         "distribution_interpretation": distribution_interpretation,
-        "benchmark": data.get("benchmark"),
+        "dataset": data.get("dataset") or {},
+        "model": model,
+        "benchmark": benchmark,
+        "key_conclusions": key_conclusions,
+        "risk_label": _SEVERITY_LABELS.get(risk, risk),
+        "task_label": _TASK_LABELS.get((data.get("dataset") or {}).get("task_type"), (data.get("dataset") or {}).get("task_type", "—")),
+        "coverage_message": (
+            "本次数据集未指定敏感特征，因此群体覆盖审计不适用。"
+            if not ledger_view.get("config", {}).get("sensitive_features")
+            else "已指定敏感特征，但没有生成群体覆盖记录，请检查字段配置。"
+        ),
     }
 
 
@@ -104,6 +296,9 @@ def render_trustguard_report(data: dict[str, Any], *, max_feature_rows: int = 15
         autoescape=True,
     )
     environment.filters["display"] = _display
+    environment.filters["number"] = _number
+    environment.filters["severity"] = lambda value: _SEVERITY_LABELS.get(value, value)
+    environment.filters["split_name"] = lambda value: _SPLIT_LABELS.get(value, value)
     template = environment.get_template("trustguard_report.html.jinja2")
     return template.render(data=_report_view(data, max_feature_rows))
 
@@ -157,7 +352,11 @@ def write_trustguard_report(data: dict[str, Any], output_dir: str | Path, *, pdf
     reports_dir = Path(output_dir) / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
     html_path = reports_dir / "trustguard.html"
-    html_path.write_text(render_trustguard_report(data), encoding="utf-8")
+    # Jinja control-flow indentation can leave spaces on otherwise blank lines.
+    # Strip line endings so ``git diff --check`` stays clean on every platform.
+    rendered = render_trustguard_report(data)
+    rendered = "\n".join(line.rstrip() for line in rendered.splitlines()) + "\n"
+    html_path.write_text(rendered, encoding="utf-8")
     paths = {"html": str(html_path)}
     if pdf_report:
         try:

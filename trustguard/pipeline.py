@@ -32,6 +32,9 @@ class TrustGuardConfig:
     sensitive_features: tuple[str, ...] = field(default_factory=tuple)
     pdf_report: bool = False
     command: str | None = None
+    dataset_name: str | None = None
+    dataset_source: str | None = None
+    model_result_path: str | None = None
     benchmark_summary_path: str | None = None
 
 
@@ -95,12 +98,24 @@ def run_trustguard(
     )
     ledger_data = json.loads(ledger_paths["ledger"].read_text(encoding="utf-8"))
     report_data = {
+        "dataset": {
+            "name": cfg.dataset_name or "未命名数据集",
+            "source": cfg.dataset_source or "用户提供",
+            "rows": int(len(X)),
+            "features": int(X.shape[1]),
+            "task_type": profile.target.task_type,
+            "target": str(y.name or "target"),
+        },
         "leakage": audit.to_dict(),
         "distribution": distribution.to_dict(),
         "protocol": guard.to_dict(),
         "ledger": ledger_data,
         "benchmark": None,
+        "model_result": None,
     }
+    if cfg.model_result_path:
+        model_path = Path(cfg.model_result_path)
+        report_data["model_result"] = json.loads(model_path.read_text(encoding="utf-8"))
     if cfg.benchmark_summary_path:
         benchmark_path = Path(cfg.benchmark_summary_path)
         report_data["benchmark"] = json.loads(benchmark_path.read_text(encoding="utf-8"))

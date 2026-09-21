@@ -1,0 +1,61 @@
+﻿feature,feature_type,comparison,psi,ks_statistic,total_variation,unseen_rate,severity,recommendation
+mean radius,numeric,train_vs_validation,0.232363,0.072516,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean radius,numeric,train_vs_test,0.085814,0.077661,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean texture,numeric,train_vs_validation,0.057837,0.077867,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean texture,numeric,train_vs_test,0.093034,0.091424,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean perimeter,numeric,train_vs_validation,0.175831,0.072465,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean perimeter,numeric,train_vs_test,0.040275,0.086099,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean area,numeric,train_vs_validation,0.23111,0.07833,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean area,numeric,train_vs_test,0.071584,0.07177,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean smoothness,numeric,train_vs_validation,0.067704,0.156377,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean smoothness,numeric,train_vs_test,0.082016,0.078587,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean compactness,numeric,train_vs_validation,0.093593,0.130035,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean compactness,numeric,train_vs_test,0.043683,0.053789,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean concavity,numeric,train_vs_validation,0.083603,0.114833,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean concavity,numeric,train_vs_test,0.112179,0.115116,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean concave points,numeric,train_vs_validation,0.092963,0.094279,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean concave points,numeric,train_vs_test,0.058785,0.106884,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean symmetry,numeric,train_vs_validation,0.143392,0.089803,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean symmetry,numeric,train_vs_test,0.108601,0.104286,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean fractal dimension,numeric,train_vs_validation,0.108697,0.122087,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+mean fractal dimension,numeric,train_vs_test,0.134512,0.079539,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+radius error,numeric,train_vs_validation,0.116722,0.075089,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+radius error,numeric,train_vs_test,0.113394,0.10107,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+texture error,numeric,train_vs_validation,0.062767,0.082883,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+texture error,numeric,train_vs_test,0.218315,0.109533,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+perimeter error,numeric,train_vs_validation,0.182148,0.0897,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+perimeter error,numeric,train_vs_test,0.054344,0.103694,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+area error,numeric,train_vs_validation,0.112503,0.091912,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+area error,numeric,train_vs_test,0.055211,0.088697,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+smoothness error,numeric,train_vs_validation,0.099876,0.057571,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+smoothness error,numeric,train_vs_test,0.097564,0.052091,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+compactness error,numeric,train_vs_validation,0.108918,0.124196,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+compactness error,numeric,train_vs_test,0.077359,0.068298,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+concavity error,numeric,train_vs_validation,0.12401,0.126923,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+concavity error,numeric,train_vs_test,0.118313,0.088851,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+concave points error,numeric,train_vs_validation,0.044222,0.080182,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+concave points error,numeric,train_vs_test,0.047467,0.115604,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+symmetry error,numeric,train_vs_validation,0.052976,0.10017,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+symmetry error,numeric,train_vs_test,0.133861,0.091141,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+fractal dimension error,numeric,train_vs_validation,0.166242,0.125251,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+fractal dimension error,numeric,train_vs_test,0.17288,0.097597,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst radius,numeric,train_vs_validation,0.106238,0.081211,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst radius,numeric,train_vs_test,0.105489,0.08314,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst texture,numeric,train_vs_validation,0.077733,0.115398,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst texture,numeric,train_vs_test,0.123929,0.080079,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst perimeter,numeric,train_vs_validation,0.083533,0.081237,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst perimeter,numeric,train_vs_test,0.056979,0.080234,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst area,numeric,train_vs_validation,0.069738,0.084118,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst area,numeric,train_vs_test,0.095444,0.089006,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst smoothness,numeric,train_vs_validation,0.094573,0.061043,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst smoothness,numeric,train_vs_test,0.148543,0.062252,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst compactness,numeric,train_vs_validation,0.091524,0.094742,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst compactness,numeric,train_vs_test,0.037304,0.047281,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst concavity,numeric,train_vs_validation,0.0653,0.083115,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst concavity,numeric,train_vs_test,0.178711,0.114601,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst concave points,numeric,train_vs_validation,0.087897,0.085919,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst concave points,numeric,train_vs_test,0.158979,0.112646,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst symmetry,numeric,train_vs_validation,0.072356,0.089932,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst symmetry,numeric,train_vs_test,0.079769,0.091526,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst fractal dimension,numeric,train_vs_validation,0.094016,0.127643,,,medium,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。
+worst fractal dimension,numeric,train_vs_test,0.064674,0.057854,,,info,若风险为中/高，检查切分策略、时间漂移或训练数据覆盖。

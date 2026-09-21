@@ -84,6 +84,7 @@ class ReportTests(unittest.TestCase):
             },
             "protocol": {"compliant": True, "test_access_count": 1},
             "ledger": {"data": {"fingerprint_sha256": "abc123"}},
+            "dataset": {"name": "测试数据集", "source": "单元测试", "rows": 30, "features": 2, "task_type": "binary"},
         })
         self.assertIn("TabularX TrustGuard", report)
         self.assertIn("数据泄露审计", report)
@@ -95,6 +96,12 @@ class ReportTests(unittest.TestCase):
         self.assertIn("abc123", report)
         self.assertIn("MLJAR 可解释性工件对比实验", report)
         self.assertIn("尚未执行 MLJAR/CC-18", report)
+        self.assertIn("检查项结果", report)
+        self.assertIn("未指定 group_column", report)
+        self.assertIn("主实验数据集", report)
+        self.assertIn("测试数据集", report)
+        self.assertNotIn("做了什么", report)
+        self.assertNotIn("如何解读", report)
 
     def test_report_renders_real_benchmark_summary_shape(self):
         report = render_trustguard_report({
@@ -102,6 +109,13 @@ class ReportTests(unittest.TestCase):
             "distribution": {"risk_level": "info", "feature_records": [], "group_coverage": []},
             "protocol": {"status": "not_started", "test_access_count": 0},
             "ledger": {"data": {}, "split": {}, "environment": {}},
+            "model_result": {
+                "primary_metric": "roc_auc",
+                "direction": "maximize",
+                "selected_model_name": "lightgbm",
+                "final_test_metrics": {"accuracy": 0.95, "roc_auc": 0.98},
+                "candidates": [{"model_name": "lightgbm", "validation_metrics": {"roc_auc": 0.99}, "error": None}],
+            },
             "benchmark": {
                 "dataset_count": 5,
                 "success_count": 5,
@@ -118,8 +132,10 @@ class ReportTests(unittest.TestCase):
             },
         })
         self.assertIn("openml_task_3", report)
-        self.assertIn("注入风险被识别", report)
+        self.assertIn("目标复制和高唯一性 ID 风险均被识别", report)
         self.assertNotIn("尚未执行 MLJAR/CC-18", report)
+        self.assertIn("LightGBM 根据验证集", report)
+        self.assertNotIn("Result and interpretation", report)
 
 
 class PipelineTests(unittest.TestCase):
@@ -134,10 +150,15 @@ class PipelineTests(unittest.TestCase):
                 config=TrustGuardConfig(
                     task_type="classification",
                     sensitive_features=("group",),
+                    dataset_name="流水线测试数据",
+                    dataset_source="单元测试",
                 ),
             )
             self.assertTrue(Path(result["report_html"]).is_file())
             self.assertTrue(Path(temp, "reports", "trustguard.html").is_file())
+            html = Path(temp, "reports", "trustguard.html").read_text(encoding="utf-8")
+            self.assertIn("流水线测试数据", html)
+            self.assertIn("重复数为 0", html)
             self.assertTrue(verify_artifact_manifest(temp)["valid"])
 
 

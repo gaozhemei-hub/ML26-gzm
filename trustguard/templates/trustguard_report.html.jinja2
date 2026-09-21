@@ -32,22 +32,39 @@
 <body>
   <h1>TabularX TrustGuard 可信建模报告</h1>
   <p class="subtitle">从“模型能解释”进一步回答“实验结论是否值得相信”。</p>
+  {% if data.dataset %}
+  <div class="method"><strong>主实验数据集：</strong>{{ data.dataset.name|display }}（来源：{{ data.dataset.source|display }}；{{ data.dataset.rows|display }} 行、{{ data.dataset.features|display }} 个特征；任务类型：{{ data.task_label }}）。第 1—4 部分均基于该数据集；第 5 部分使用独立的公开数据集进行 MLJAR 对比实验。</div>
+  {% endif %}
 
   <h2>执行摘要</h2>
   <div class="cards">
-    <div class="card"><div>总体风险</div><div class="value">{{ data.risk|display }}</div></div>
+    <div class="card"><div>总体风险</div><div class="value">{{ data.risk_label }}</div></div>
     <div class="card"><div>高/严重泄露发现</div><div class="value">{{ data.leakage.high_risk_count|default(0)|display }}</div></div>
     <div class="card"><div>测试集访问次数</div><div class="value">{{ data.protocol.test_access_count|default(0)|display }}</div></div>
     <div class="card"><div>评估协议状态</div><div class="value">{{ data.protocol_status_label }}</div></div>
   </div>
   <div class="interpretation{% if data.risk in ['high', 'critical'] %} warning{% endif %}">
-    <strong>总体解读：</strong>{{ data.overall_interpretation }}
+    <strong>总体结论：</strong>{{ data.overall_interpretation }}
   </div>
+  {% if data.key_conclusions %}
+  <h3>关键实验结论</h3>
+  <ul>{% for item in data.key_conclusions %}<li>{{ item }}</li>{% endfor %}</ul>
+  {% endif %}
 
   <h2>1. 数据泄露审计 LeakageAuditor</h2>
-  <div class="method"><strong>做了什么：</strong>检查目标复制、目标代理、高唯一性或 ID 字段、跨划分重复样本；在提供业务字段时，还检查实体分组泄露和时间穿越。审计只给出证据和建议，不静默修改原始数据。</div>
+  <div class="method"><strong>内容：</strong>检查目标复制、目标代理、高唯一性或 ID 字段、跨划分重复样本；在提供业务字段时，还检查实体分组泄露和时间穿越。审计只给出证据和建议，不静默修改原始数据。</div>
   <h3>结果</h3>
-  <p>风险等级：<strong>{{ data.leakage.risk_level|default('info')|display }}</strong>；高/严重风险 {{ data.leakage.high_risk_count|default(0)|display }} 项；建议排除字段：{{ data.leakage.excluded_columns|default([])|display }}。</p>
+  <p>风险等级：<strong>{{ data.leakage.risk_level|default('info')|severity }}</strong>；高/严重风险 {{ data.leakage.high_risk_count|default(0)|display }} 项；建议排除字段：{% if data.leakage.excluded_columns %}{{ data.leakage.excluded_columns|display }}{% else %}无{% endif %}。</p>
+  <h3>1.1 检查项结果</h3>
+  <table>
+    <thead><tr><th>检查项</th><th>状态</th><th>结果</th></tr></thead>
+    <tbody>
+    {% for row in data.leakage_checks %}
+      <tr><td>{{ row.check }}</td><td class="{% if row.status == '通过' %}check{% elif row.status == '未执行' %}missing{% endif %}">{{ row.status }}</td><td>{{ row.result }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <h3>1.2 风险发现明细</h3>
   <table>
     <thead><tr><th>等级</th><th>发现</th><th>证据</th><th>建议</th></tr></thead>
     <tbody>
@@ -58,10 +75,10 @@
     {% endfor %}
     </tbody>
   </table>
-  <div class="interpretation{% if data.leakage.risk_level in ['high', 'critical'] %} warning{% endif %}"><strong>如何解读：</strong>{{ data.leakage_interpretation }}</div>
+  <div class="interpretation{% if data.leakage.risk_level in ['high', 'critical'] %} warning{% endif %}"><strong>解读：</strong>{{ data.leakage_interpretation }}</div>
 
   <h2>2. 评估协议守卫 EvaluationProtocolGuard</h2>
-  <div class="method"><strong>做了什么：</strong>用状态机约束“验证集选择候选模型 → 锁定唯一模型 → 测试集仅评估一次”。任何提前访问、换模型或二次访问都会抛出异常并留下日志。</div>
+  <div class="method"><strong>内容：</strong>用状态机约束“验证集选择候选模型 → 锁定唯一模型 → 测试集仅评估一次”。任何提前访问、换模型或二次访问都会抛出异常并留下日志。</div>
   <h3>结果</h3>
   <table><tbody>
     <tr><th>协议规则</th><td>{{ data.protocol.policy|display }}</td></tr>
@@ -70,10 +87,18 @@
     <tr><th>锁定模型</th><td>{{ data.protocol.selected_model|display }}</td></tr>
     <tr><th>测试集访问</th><td>{{ data.protocol.test_access_count|default(0)|display }}</td></tr>
   </tbody></table>
-  <div class="interpretation{% if not data.protocol.compliant %} warning{% endif %}"><strong>如何解读：</strong>{{ data.protocol_interpretation }}</div>
+  <div class="interpretation{% if not data.protocol.compliant %} warning{% endif %}"><strong>解读：</strong>{{ data.protocol_interpretation }}</div>
+  {% if data.model %}
+  <h3>2.1 候选模型验证结果</h3>
+  <p>主要选择指标：<code>{{ data.model.primary_metric }}</code>（{{ data.model.direction }}）。</p>
+  <table><thead><tr><th>模型</th><th>运行状态</th><th>主要验证指标</th><th>准确率</th><th>F1</th><th>ROC-AUC</th><th>失败原因</th></tr></thead><tbody>
+    {% for row in data.model.candidates %}<tr><td>{{ row.model }}</td><td>{{ row.status }}</td><td>{{ row.primary_value|number }}</td><td>{{ row.accuracy|number }}</td><td>{{ row.f1|number }}</td><td>{{ row.roc_auc|number }}</td><td>{{ row.error|default('—', true)|display }}</td></tr>{% else %}<tr><td colspan="7">没有候选模型记录。</td></tr>{% endfor %}
+  </tbody></table>
+  <div class="interpretation"><strong>解读：</strong>{{ data.model.interpretation }}</div>
+  {% endif %}
 
   <h2>3. 可复现实验证据 ReproducibilityLedger</h2>
-  <div class="method"><strong>做了什么：</strong>记录数据指纹、划分索引及哈希、运行参数、命令、Python/操作系统和关键依赖版本，并对最终工件生成 SHA-256 清单；原始特征值和目标值不会复制进报告目录。</div>
+  <div class="method"><strong>内容：</strong>记录数据指纹、划分索引及哈希、运行参数、命令、Python/操作系统和关键依赖版本，并对最终工件生成 SHA-256 清单；原始特征值和目标值不会复制进报告目录。</div>
   <h3>结果</h3>
   <table><tbody>
     <tr><th>数据规模</th><td>{{ data.ledger.data.rows|display }} 行 × {{ data.ledger.data.columns|display }} 列</td></tr>
@@ -85,31 +110,31 @@
   </tbody></table>
   <h3>划分证据</h3>
   <table><thead><tr><th>划分</th><th>样本数</th><th>索引 SHA-256</th></tr></thead><tbody>
-    {% for name, item in data.ledger.split.items() %}<tr><td>{{ name }}</td><td>{{ item.count }}</td><td><code>{{ item.sha256 }}</code></td></tr>{% else %}<tr><td colspan="3">未提供划分索引。</td></tr>{% endfor %}
+    {% for name, item in data.ledger.split.items() %}<tr><td>{{ name|split_name }}</td><td>{{ item.count }}</td><td><code>{{ item.sha256 }}</code></td></tr>{% else %}<tr><td colspan="3">未提供划分索引。</td></tr>{% endfor %}
   </tbody></table>
-  <div class="interpretation"><strong>如何解读：</strong>相同输入、索引、配置和依赖应得到可复核的实验；清单校验失败意味着工件在生成后被修改、删除或新增，需要重新核验。</div>
+  <div class="interpretation"><strong>解读：</strong>相同输入、索引、配置和依赖应得到可复核的实验；清单校验失败意味着工件在生成后被修改、删除或新增，需要重新核验。</div>
 
   <h2>4. 特征漂移与群体覆盖 DistributionAudit</h2>
-  <div class="method"><strong>做了什么：</strong>以训练集为基准，数值特征计算 PSI 与经验 KS，类别特征计算总变差距离（TVD）及未见类别比例；对敏感属性统计每个群体在 train/validation/test 中的样本量，包括完全缺失（0 条）的群体。</div>
+  <div class="method"><strong>内容：</strong>以训练集为基准，数值特征计算 PSI 与经验 KS，类别特征计算总变差距离（TVD）及未见类别比例；对敏感属性统计每个群体在训练集、验证集和测试集中的样本量，包括完全缺失（0 条）的群体。</div>
   <h3>4.1 高风险优先的漂移结果</h3>
   <p>共生成 {{ data.feature_total }} 条比较记录。{% if data.feature_truncated %}正文仅展示风险最高的 {{ data.feature_rows|length }} 条，完整明细保存在 <code>distribution_audit/feature_drift.csv</code>。{% endif %}</p>
   <table><thead><tr><th>特征</th><th>比较</th><th>PSI</th><th>KS</th><th>TVD</th><th>未见类别率</th><th>等级</th></tr></thead><tbody>
-    {% for row in data.feature_rows %}<tr><td>{{ row.feature|display }}</td><td>{{ row.comparison|display }}</td><td>{{ row.psi|display }}</td><td>{{ row.ks_statistic|display }}</td><td>{{ row.total_variation|display }}</td><td>{{ row.unseen_rate|display }}</td><td>{{ row.severity|display }}</td></tr>{% else %}<tr><td colspan="7">无特征漂移记录。</td></tr>{% endfor %}
+    {% for row in data.feature_rows %}<tr><td>{{ row.feature|display }}</td><td>{{ row.comparison|split_name }}</td><td>{{ row.psi|number }}</td><td>{{ row.ks_statistic|number }}</td><td>{{ row.total_variation|number }}</td><td>{{ row.unseen_rate|number }}</td><td>{{ row.severity|severity }}</td></tr>{% else %}<tr><td colspan="7">无特征漂移记录。</td></tr>{% endfor %}
   </tbody></table>
   <h3>4.2 敏感群体覆盖</h3>
   <table><thead><tr><th>敏感特征</th><th>群体</th><th>划分</th><th>样本量</th><th>占比</th><th>等级</th></tr></thead><tbody>
-    {% for row in data.coverage_rows %}<tr><td>{{ row.sensitive_feature|display }}</td><td>{{ row.group|display }}</td><td>{{ row.split|display }}</td><td>{{ row.count|display }}</td><td>{{ row.proportion|display }}</td><td>{{ row.severity|display }}</td></tr>{% else %}<tr><td colspan="6">本次运行未指定敏感特征，因此未执行群体覆盖审计。</td></tr>{% endfor %}
+    {% for row in data.coverage_rows %}<tr><td>{{ row.sensitive_feature|display }}</td><td>{{ row.group|display }}</td><td>{{ row.split|split_name }}</td><td>{{ row.count|display }}</td><td>{{ row.proportion|number }}</td><td>{{ row.severity|severity }}</td></tr>{% else %}<tr><td colspan="6">{{ data.coverage_message }}</td></tr>{% endfor %}
   </tbody></table>
-  <div class="interpretation{% if data.distribution.risk_level in ['high', 'critical'] %} warning{% endif %}"><strong>如何解读：</strong>{{ data.distribution_interpretation }}</div>
+  <div class="interpretation{% if data.distribution.risk_level in ['high', 'critical'] %} warning{% endif %}"><strong>解读：</strong>{{ data.distribution_interpretation }}</div>
 
   <h2 class="page-break">5. MLJAR 可解释性工件对比实验</h2>
   <div class="method"><strong>实验目的：</strong>在相同公开数据集上盘点 MLJAR Explain 与 TrustGuard 默认生成的工件，并通过注入目标复制、ID、跨划分重复或未来信号验证风险审计能否报警。该实验比较“报告和审计工件完整性”，不把不同搜索策略下的模型分数当作严格算法排名。</div>
   {% if data.benchmark %}
-    <p>数据集：{{ data.benchmark.dataset_count|display }} 个；成功：{{ data.benchmark.success_count|display }} 个；失败：{{ data.benchmark.failure_count|display }} 个。</p>
-    <table><thead><tr><th>数据集</th><th>MLJAR 解释工件</th><th>MLJAR 可信性工件</th><th>TrustGuard 四类工件</th><th>泄露注入检测</th><th>结论</th></tr></thead><tbody>
-      {% for row in data.benchmark.rows %}<tr><td>{{ row.dataset|display }}</td><td>{{ row.mljar_explanation|display }}</td><td>{{ row.mljar_trust_artifacts|display }}</td><td>{{ row.trustguard_artifacts|display }}</td><td>{{ row.injected_leakage_detected|display }}</td><td>{{ row.interpretation|display }}</td></tr>{% else %}<tr><td colspan="6">基准汇总中没有可展示的数据集。</td></tr>{% endfor %}
+    <p>数据集：{{ data.benchmark.dataset_count|display }} 个；成功：{{ data.benchmark.success_count|display }} 个；失败：{{ data.benchmark.failure_count|display }} 个。失败记录会保留在表中，不从结论中隐藏。</p>
+    <table><thead><tr><th>数据集</th><th>状态</th><th>MLJAR 解释工件</th><th>MLJAR 可信性工件</th><th>TrustGuard 四类工件</th><th>泄露注入检测</th><th>结论</th></tr></thead><tbody>
+      {% for row in data.benchmark.rows %}<tr><td>{{ row.dataset|display }}</td><td>{{ row.status_label }}</td><td>{{ row.mljar_explanation }}</td><td>{{ row.mljar_trust_artifacts }}</td><td>{{ row.trustguard_artifacts }}</td><td>{{ row.detection_label }}</td><td>{{ row.interpretation_cn }}</td></tr>{% else %}<tr><td colspan="7">基准汇总中没有可展示的数据集。</td></tr>{% endfor %}
     </tbody></table>
-    <div class="interpretation"><strong>如何解读：</strong>{{ data.benchmark.interpretation|display }}</div>
+    <div class="interpretation"><strong>解读：</strong>{{ data.benchmark.interpretation_cn }}</div>
   {% else %}
     <div class="interpretation warning"><strong>当前结果：</strong>本次仅完成单数据集 TrustGuard 冒烟运行，尚未执行 MLJAR/CC-18 批量基准，因此不能据此下竞品结论。运行 <code>python -m trustguard.run_benchmark_suite</code> 后，最终研究报告会用真实实验结果替换本段。</div>
   {% endif %}

@@ -1,0 +1,45 @@
+{
+  "policy": "候选模型只根据验证集选择；测试集仅允许被最终锁定的模型访问一次。",
+  "validation_candidates": [
+    "random_forest",
+    "xgboost",
+    "lightgbm",
+    "catboost"
+  ],
+  "selected_model": "lightgbm",
+  "test_access_count": 1,
+  "compliant": true,
+  "status": "complete",
+  "events": [
+    {
+      "stage": "validation",
+      "model_name": "random_forest",
+      "purpose": "validation metric: roc_auc"
+    },
+    {
+      "stage": "validation",
+      "model_name": "xgboost",
+      "purpose": "validation metric: roc_auc"
+    },
+    {
+      "stage": "validation",
+      "model_name": "lightgbm",
+      "purpose": "validation metric: roc_auc"
+    },
+    {
+      "stage": "validation",
+      "model_name": "catboost",
+      "purpose": "validation metric: roc_auc"
+    },
+    {
+      "stage": "selection",
+      "model_name": "lightgbm",
+      "purpose": "best validation roc_auc"
+    },
+    {
+      "stage": "test",
+      "model_name": "lightgbm",
+      "purpose": "single final held-out evaluation"
+    }
+  ]
+}
