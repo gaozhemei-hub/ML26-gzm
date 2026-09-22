@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 import pandas as pd
+from typing import Any
 
 
 @dataclass
@@ -53,7 +54,7 @@ class PreprocessedData:
     """预处理后的完整数据集。
 
     包含变换后的各子集以及每列的变换记录，
-    不持有任何 sklearn transformer 对象，确保可序列化。
+    同时保留训练集拟合后的预处理器；通过 joblib 保存供原始表格推断。
     """
 
     # ── 变换后的数据 ────────────────────────────────────────
@@ -77,6 +78,7 @@ class PreprocessedData:
     """每列的变换记录"""
     column_mappings: list[ColumnMapping] = field(default_factory=list)
     """原始列到输出列的映射（用于追踪敏感特征等）"""
+    fitted_preprocessor: Any | None = field(default=None, repr=False)
 
 
 __all__ = [

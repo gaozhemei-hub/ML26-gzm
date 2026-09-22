@@ -75,7 +75,10 @@ def _resolve_sensitive_column(
     # OneHot 展开：把多列还原为原始类别标签
     if all(c in X_test.columns for c in mapping.output_names):
         # 每行取值为 1 的列名作为类别标签
-        group_labels = X_test[mapping.output_names].idxmax(axis=1)
+        encoded = X_test[mapping.output_names]
+        if not (encoded.isin([0, 1]).all(axis=1) & encoded.sum(axis=1).eq(1)).all():
+            return None, True, "独热编码存在未知或不明确的类别，无法可靠还原敏感分组"
+        group_labels = encoded.idxmax(axis=1)
         return group_labels, False, None
 
     return None, True, f"OneHot 展开列 {mapping.output_names} 在测试集中不完整"
@@ -99,46 +102,22 @@ def _compute_group_metrics(
         group_name: 子组名称。
         y_true: 真实标签。
         y_pred: 预测标签。
-        y_prob: 预测概率（用于计算 positive_rate）。
+        y_prob: 预测概率（保留兼容参数；正类预测率使用离散预测标签）。
         task_type: 任务类型。
 
     Returns:
         FairnessGroupResult 对象。
     """
+    if task_type != "binary":
+        raise ValueError("DP/EO currently requires a binary task with 0/1 labels")
     n = len(y_true)
     support = n
-
-    # 正类预测率
-    if task_type != "regression" and y_prob is not None:
-        # 二分类：取正类（索引 1）的概率均值
-        if y_prob.ndim == 2 and y_prob.shape[1] >= 2:
-            positive_rate = float(np.mean(y_prob[:, 1]))
-        else:
-            positive_rate = float(np.mean(y_pred))
-    else:
-        positive_rate = float(np.mean(y_pred))
-
-    # 准确率（仅分类任务有效）
-    acc = 0.0
-    if task_type != "regression":
-        try:
-            acc = float(accuracy_score(y_true, y_pred))
-        except Exception:
-            acc = 0.0
-
-    # TPR / FPR（仅分类任务有意义）
-    tpr = 0.0
-    fpr = 0.0
-    if task_type != "regression":
-        # 将 y_true 和 y_pred 视为二值
-        yt = np.asarray(y_true)
-        yp = np.asarray(y_pred)
-        tp = np.sum((yt == 1) & (yp == 1))
-        fn = np.sum((yt == 1) & (yp == 0))
-        fp = np.sum((yt == 0) & (yp == 1))
-        tn = np.sum((yt == 0) & (yp == 0))
-        tpr = float(tp / (tp + fn)) if (tp + fn) > 0 else 0.0
-        fpr = float(fp / (fp + tn)) if (fp + tn) > 0 else 0.0
+    yt, yp = np.asarray(y_true), np.asarray(y_pred)
+    positive_rate = float(np.mean(yp == 1))
+    acc = float(accuracy_score(yt, yp))
+    positives, negatives = np.sum(yt == 1), np.sum(yt == 0)
+    tpr = float(np.sum((yt == 1) & (yp == 1)) / positives) if positives else None
+    fpr = float(np.sum((yt == 0) & (yp == 1)) / negatives) if negatives else None
 
     return FairnessGroupResult(
         group_name=str(group_name),
@@ -179,7 +158,7 @@ def evaluate_fairness(
         X_test: 预处理后的测试集特征。
         y_test: 测试集真实标签。
         y_pred: 模型预测标签。
-        y_prob: 模型预测概率（可选，用于更精确的 positive_rate）。
+        y_prob: 模型预测概率（保留兼容参数；不用于正类预测率）。
         column_mappings: 列映射列表（来自 PreprocessedData）。
         sensitive_features: 用户指定的敏感特征原始列名列表。
         task_type: 任务类型。
@@ -194,6 +173,14 @@ def evaluate_fairness(
             sensitive_features=[],
         )
 
+    if task_type != "binary" or not set(np.asarray(y_test)) <= {0, 1} or not set(np.asarray(y_pred)) <= {0, 1}:
+        return FairnessResult(enabled=True, sensitive_features=sensitive_features,
+            error="DP/EO 仅适用于当前实现支持的 0/1 二分类任务，正类为 1；本次不适用。")
+    if len(X_test) != len(y_test) or len(y_test) != len(y_pred):
+        raise ValueError("Fairness inputs must have equal row counts")
+    if isinstance(y_test, pd.Series) and not X_test.index.equals(y_test.index):
+        raise ValueError("Fairness features and labels must have aligned indices")
+    y_test, y_pred = np.asarray(y_test), np.asarray(y_pred)
     _cfg = config or FairnessConfig()
 
     feature_results: list[FairnessFeatureResult] = []
@@ -219,7 +206,7 @@ def evaluate_fairness(
         group_results: list[FairnessGroupResult] = []
 
         for g in unique_groups:
-            mask = group_series == g
+            mask = (group_series.isna() if pd.isna(g) else group_series == g).to_numpy()
             grp = _compute_group_metrics(
                 group_name=str(g),
                 y_true=y_test[mask],
@@ -229,23 +216,13 @@ def evaluate_fairness(
             )
             group_results.append(grp)
 
-        # 计算公平性差异
-        if len(group_results) >= 2:
-            pos_rates = [g.positive_rate for g in group_results]
-            tprs = [g.tpr for g in group_results]
-            fprs = [g.fpr for g in group_results]
-            dp_diff = max(pos_rates) - min(pos_rates)
-            eo_tpr_diff = max(tprs) - min(tprs)
-            eo_fpr_diff = max(fprs) - min(fprs)
-        else:
-            dp_diff = 0.0
-            eo_tpr_diff = 0.0
-            eo_fpr_diff = 0.0
-
-        # 根据配置的阈值判断是否违反公平性标准
-        dp_violation = dp_diff > _cfg.dp_threshold
-        eo_tpr_violation = eo_tpr_diff > _cfg.eo_tpr_threshold
-        eo_fpr_violation = eo_fpr_diff > _cfg.eo_fpr_threshold
+        def gap(attribute):
+            rates = [getattr(g, attribute) for g in group_results]
+            return max(rates) - min(rates) if len(rates) >= 2 and all(v is not None for v in rates) else None
+        dp_diff, eo_tpr_diff, eo_fpr_diff = gap("positive_rate"), gap("tpr"), gap("fpr")
+        dp_violation = dp_diff > _cfg.dp_threshold if dp_diff is not None else None
+        eo_tpr_violation = eo_tpr_diff > _cfg.eo_tpr_threshold if eo_tpr_diff is not None else None
+        eo_fpr_violation = eo_fpr_diff > _cfg.eo_fpr_threshold if eo_fpr_diff is not None else None
 
         feature_results.append(
             FairnessFeatureResult(

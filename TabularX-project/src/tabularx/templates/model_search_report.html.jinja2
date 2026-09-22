@@ -52,6 +52,7 @@
   </script>
 </head>
 <body>
+<p>选模依据为验证集指标。仅锁定的单模型提供最终测试分数；其余候选及 Voting 未进行测试评估，缺省值不代表零分。</p>
   <h1>TabularX 模型搜索报告</h1>
 
   <!-- ══════════════════════════════════════════════════════════
@@ -108,13 +109,15 @@ flowchart TB
 
   Parse --> Tuning
 
-  M1 & M2 & M3 --> Retrain["最佳参数重训<br/>(train+valid → test 评估)"]
-  Retrain --> Rank[按 test 主指标排序]
+  M1 & M2 & M3 --> Retrain["训练集拟合<br/>验证集评估"]
+  Retrain --> Rank[按验证集主指标排序]
 
   Rank --> Best[最优单模型]
   Rank --> Vote["构建 Voting 组合<br/>(Top-K)"]
-  Vote --> VoteEval[评估 Voting<br/>valid + test]
-  Best --> Output[输出 ModelSearchResult]
+  Vote --> VoteEval[评估 Voting<br/>仅验证集]
+  Best --> Lock[锁定单模型及参数]
+  Lock --> Final[训练与验证集合并拟合<br/>仅锁定模型执行最终测试]
+  Final --> Output[输出 ModelSearchResult]
   VoteEval --> Output
   Output --> Report[生成 HTML 报告]
 </div>

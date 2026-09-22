@@ -104,9 +104,10 @@ flowchart TB
   Dropped -->|否| Split[按子组拆分测试集]
   Split --> GroupMetrics[计算各子组指标<br/>正类预测率 / 准确率 / TPR / FPR]
   GroupMetrics --> Diff[计算公平性差异<br/>Demographic Parity<br/>Equalized Odds TPR/FPR]
-  Diff --> Threshold{超出阈值 0.1？}
+  Diff --> Threshold{超出配置阈值？}
   Threshold -->|是| Warn[标记潜在偏见]
-  Threshold -->|否| Pass[公平性通过]
+  Threshold -->|否| Pass[已计算指标未超阈值]
+  Diff -->|指标未定义| Unknown[无法判断并说明原因]
 
   SHAPBlock & FairnessBlock --> Report[生成可解释性与公平性报告]
 </div>
@@ -305,14 +306,14 @@ flowchart TB
           <td>{{ g.n_samples }}</td>
           <td>{{ "%.2f"|format(g.positive_rate * 100) }}%</td>
           <td>{{ "%.2f"|format(g.accuracy * 100) }}%</td>
-          <td>{{ "%.2f"|format(g.tpr * 100) }}%</td>
-          <td>{{ "%.2f"|format(g.fpr * 100) }}%</td>
+          <td>{% if g.tpr is not none %}{{ "%.2f"|format(g.tpr * 100) }}%{% else %}无法计算（该组无对应真实类别）{% endif %}</td>
+          <td>{% if g.fpr is not none %}{{ "%.2f"|format(g.fpr * 100) }}%{% else %}无法计算（该组无对应真实类别）{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
 
-    <h4>公平性差异</h4>
+    <h4>公平性差异</h4><p class="hint">少于两个分组，或任一分组缺少对应真实类别时，相关差异无法计算；不以零代替。</p>
     <table>
       <thead>
         <tr>
@@ -323,28 +324,28 @@ flowchart TB
         </tr>
       </thead>
       <tbody>
-        {% set _dp = feat_result.demographic_parity_diff or 0 %}
+        {% set _dp = feat_result.demographic_parity_diff %}
         {% set _dp_flag = "badge-warn" if feat_result.dp_violation else "badge-ok" %}
         <tr>
           <td><b>Demographic Parity</b></td>
-          <td>{{ "%.4f"|format(_dp) }}</td>
-          <td><span class="badge {{ _dp_flag }}">{{ "是" if feat_result.dp_violation else "否" }}</span></td>
+          <td>{{ "%.4f"|format(_dp) if _dp is not none else "无法计算" }}</td>
+          <td><span class="badge {{ _dp_flag }}">{{ "无法判断" if feat_result.dp_violation is none else ("是" if feat_result.dp_violation else "否") }}</span></td>
           <td class="hint">各子组正类预测率的最大差异</td>
         </tr>
-        {% set _tpr = feat_result.equalized_odds_tpr_diff or 0 %}
+        {% set _tpr = feat_result.equalized_odds_tpr_diff %}
         {% set _tpr_flag = "badge-warn" if feat_result.eo_tpr_violation else "badge-ok" %}
         <tr>
           <td><b>Equalized Odds (TPR)</b></td>
-          <td>{{ "%.4f"|format(_tpr) }}</td>
-          <td><span class="badge {{ _tpr_flag }}">{{ "是" if feat_result.eo_tpr_violation else "否" }}</span></td>
+          <td>{{ "%.4f"|format(_tpr) if _tpr is not none else "无法计算" }}</td>
+          <td><span class="badge {{ _tpr_flag }}">{{ "无法判断" if feat_result.eo_tpr_violation is none else ("是" if feat_result.eo_tpr_violation else "否") }}</span></td>
           <td class="hint">各子组真正率的最大差异</td>
         </tr>
-        {% set _fpr = feat_result.equalized_odds_fpr_diff or 0 %}
+        {% set _fpr = feat_result.equalized_odds_fpr_diff %}
         {% set _fpr_flag = "badge-warn" if feat_result.eo_fpr_violation else "badge-ok" %}
         <tr>
           <td><b>Equalized Odds (FPR)</b></td>
-          <td>{{ "%.4f"|format(_fpr) }}</td>
-          <td><span class="badge {{ _fpr_flag }}">{{ "是" if feat_result.eo_fpr_violation else "否" }}</span></td>
+          <td>{{ "%.4f"|format(_fpr) if _fpr is not none else "无法计算" }}</td>
+          <td><span class="badge {{ _fpr_flag }}">{{ "无法判断" if feat_result.eo_fpr_violation is none else ("是" if feat_result.eo_fpr_violation else "否") }}</span></td>
           <td class="hint">各子组假正率的最大差异</td>
         </tr>
       </tbody>
@@ -359,9 +360,9 @@ flowchart TB
     </div>
     {% else %}
     <div class="conclusion" style="background: #d4edda; border-left-color: #28a745;">
-      <b>公平性通过</b>
+      <b>指标范围说明</b>
       <br>
-      模型在特征 <b>{{ feat_result.feature_name }}</b> 上的公平性差异在可接受范围内。
+      模型在特征 <b>{{ feat_result.feature_name }}</b> 上已计算的指标未超过配置阈值；无法计算的指标不参与判断，不能据此认定模型总体公平。
     </div>
     {% endif %}
     {% endif %}
