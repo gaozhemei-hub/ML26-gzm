@@ -1,0 +1,28 @@
+[
+  {
+    "dataset": "Iris",
+    "task": "classification",
+    "selected": "random_forest",
+    "tested_models": [
+      "random_forest"
+    ],
+    "voting_test_metrics": null,
+    "passed": true,
+    "selection_lock": "Iris/runs/a9d5b8898cb243ecb183c18a354f3398/evidence/selection_lock.json",
+    "delivery": "Iris/runs/a9d5b8898cb243ecb183c18a354f3398/evidence/delivery.html",
+    "full_report": "Iris/runs/a9d5b8898cb243ecb183c18a354f3398/report.html"
+  },
+  {
+    "dataset": "Diabetes",
+    "task": "regression",
+    "selected": "random_forest",
+    "tested_models": [
+      "random_forest"
+    ],
+    "voting_test_metrics": null,
+    "passed": true,
+    "selection_lock": "Diabetes/runs/de732a4c32fb46bab3aaca6136b140ce/evidence/selection_lock.json",
+    "delivery": "Diabetes/runs/de732a4c32fb46bab3aaca6136b140ce/evidence/delivery.html",
+    "full_report": "Diabetes/runs/de732a4c32fb46bab3aaca6136b140ce/report.html"
+  }
+]

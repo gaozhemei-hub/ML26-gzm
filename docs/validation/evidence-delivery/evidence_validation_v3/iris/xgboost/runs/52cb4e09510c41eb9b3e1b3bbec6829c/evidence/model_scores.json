@@ -1,0 +1,72 @@
+{
+  "selection_metric": "f1_macro",
+  "selected_model": "xgboost",
+  "models": [
+    {
+      "model_name": "xgboost",
+      "task_type": "multiclass",
+      "status": "success",
+      "best_params": {
+        "learning_rate": 0.008468008575248327,
+        "subsample": 0.9753571532049581,
+        "colsample_bytree": 0.8659969709057025,
+        "min_child_weight": 6,
+        "gamma": 0.7800932022121826,
+        "reg_alpha": 2.5348407664333426e-07,
+        "reg_lambda": 3.3323645788192616e-08,
+        "n_estimators": 8,
+        "max_depth": 3
+      },
+      "n_trials": 1,
+      "optuna_duration_seconds": 0.01,
+      "optuna_trials": [
+        {
+          "trial_number": 0,
+          "params": {
+            "learning_rate": 0.008468008575248327,
+            "subsample": 0.9753571532049581,
+            "colsample_bytree": 0.8659969709057025,
+            "min_child_weight": 6,
+            "gamma": 0.7800932022121826,
+            "reg_alpha": 2.5348407664333426e-07,
+            "reg_lambda": 3.3323645788192616e-08
+          },
+          "value": 0.899749373433584,
+          "state": "COMPLETE",
+          "duration_seconds": 0.005513
+        }
+      ],
+      "train_metrics": {
+        "accuracy": 0.9888888888888889,
+        "balanced_accuracy": 0.9888888888888889,
+        "f1": NaN,
+        "f1_macro": 0.9888858016115588,
+        "roc_auc": NaN,
+        "precision": NaN,
+        "recall": NaN
+      },
+      "validation_metrics": {
+        "accuracy": 0.9,
+        "balanced_accuracy": 0.9,
+        "f1": NaN,
+        "f1_macro": 0.899749373433584,
+        "roc_auc": NaN,
+        "precision": NaN,
+        "recall": NaN
+      },
+      "test_metrics": {
+        "accuracy": 0.9666666666666667,
+        "balanced_accuracy": 0.9666666666666667,
+        "f1": NaN,
+        "f1_macro": 0.9665831244778612,
+        "roc_auc": NaN,
+        "precision": NaN,
+        "recall": NaN
+      },
+      "model_path": null,
+      "artifact_paths": {},
+      "error": null,
+      "note": null
+    }
+  ]
+}

@@ -1,5 +1,18 @@
 # ML26-qyr
 
+## 本周增量：证据交付检查与局部补做（feature/gzm）
+
+在现有训练、解释和报告流程上增加独立的交付检查与恢复模块，没有合并 TrustGuard。
+
+- **先看什么改了、怎么用**：[队友同步与使用说明](docs/teammate-sync.md)
+- **看真实实验与工作记录**：[实验索引](docs/validation/evidence-delivery/README.md)
+- **看技术细节与边界**：[证据交付设计](docs/evidence-delivery.md)
+- **看核心代码**：[证据模块](TabularX-project/src/tabularx/core/evidence/) · [接入位置](TabularX-project/src/tabularx/estimator.py)
+- **复跑与核对**：[演示脚本](introduction/) · [新增流程测试](tests/test_selection_protocol.py)
+
+两个工程增量是“知道应该交付什么并检查缺口”和“同会话内只补做失败项”；不是宣称新增了训练、SHAP 或公平性算法。以下原始选题说明是任务目标，不表示全部功能已完成，也不作为学术首创结论。
+
+
 选题：题目10
 
 ## 题目-TabularX：面向可解释性与可复现性的自动化表格建模工具包

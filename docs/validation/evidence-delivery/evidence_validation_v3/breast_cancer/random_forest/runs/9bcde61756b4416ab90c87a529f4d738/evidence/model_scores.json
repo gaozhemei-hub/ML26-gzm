@@ -1,0 +1,66 @@
+{
+  "selection_metric": "roc_auc",
+  "selected_model": "random_forest",
+  "models": [
+    {
+      "model_name": "random_forest",
+      "task_type": "binary",
+      "status": "success",
+      "best_params": {
+        "min_samples_split": 9,
+        "min_samples_leaf": 10,
+        "max_features": "sqrt",
+        "ccp_alpha": 0.007799726016810133,
+        "n_estimators": 8,
+        "max_depth": 3
+      },
+      "n_trials": 1,
+      "optuna_duration_seconds": 0.01,
+      "optuna_trials": [
+        {
+          "trial_number": 0,
+          "params": {
+            "min_samples_split": 9,
+            "min_samples_leaf": 10,
+            "max_features": "sqrt",
+            "ccp_alpha": 0.007799726016810133
+          },
+          "value": 0.980510972813626,
+          "state": "COMPLETE",
+          "duration_seconds": 0.01061
+        }
+      ],
+      "train_metrics": {
+        "accuracy": 0.9530791788856305,
+        "balanced_accuracy": 0.9498123482228273,
+        "f1": 0.9626168224299065,
+        "f1_macro": 0.9498123482228273,
+        "roc_auc": 0.9919788063875193,
+        "precision": 0.9626168224299065,
+        "recall": 0.9626168224299065
+      },
+      "validation_metrics": {
+        "accuracy": 0.9385964912280702,
+        "balanced_accuracy": 0.9277759580740256,
+        "f1": 0.9517241379310345,
+        "f1_macro": 0.933693394266722,
+        "roc_auc": 0.980510972813626,
+        "precision": 0.9324324324324325,
+        "recall": 0.971830985915493
+      },
+      "test_metrics": {
+        "accuracy": 0.9210526315789473,
+        "balanced_accuracy": 0.9226190476190477,
+        "f1": 0.9361702127659575,
+        "f1_macro": 0.9163609684519443,
+        "roc_auc": 0.9890873015873016,
+        "precision": 0.9565217391304348,
+        "recall": 0.9166666666666666
+      },
+      "model_path": null,
+      "artifact_paths": {},
+      "error": null,
+      "note": null
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "enabled": true,
+  "sensitive_features": [
+    "sex"
+  ],
+  "feature_results": [
+    {
+      "feature_name": "sex",
+      "is_dropped": false,
+      "dropped_reason": null,
+      "groups": [
+        {
+          "group_name": "Male",
+          "n_samples": 6510,
+          "positive_rate": 0.0,
+          "accuracy": 0.6963133640552995,
+          "tpr": 0.0,
+          "fpr": 0.0,
+          "support": 6510
+        },
+        {
+          "group_name": "Female",
+          "n_samples": 3259,
+          "positive_rate": 0.0,
+          "accuracy": 0.8892298250997238,
+          "tpr": 0.0,
+          "fpr": 0.0,
+          "support": 3259
+        }
+      ],
+      "demographic_parity_diff": 0.0,
+      "equalized_odds_tpr_diff": 0.0,
+      "equalized_odds_fpr_diff": 0.0,
+      "dp_violation": false,
+      "eo_tpr_violation": false,
+      "eo_fpr_violation": false
+    }
+  ],
+  "error": null
+}

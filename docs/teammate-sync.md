@@ -70,7 +70,7 @@ prediction = pipeline.predict(new_raw_dataframe)
 3. 打开 reload_check.json：原始表格重载预测一致；summary.json 记录补做训练次数为零。
 4. 打开 selection_lock.json：解释模型如何依据验证集确定。
 
-真实运行产物保存在本地 outputs，未将 Adult 数据、模型文件或整包实验结果提交到代码仓库。
+真实运行产物已归档到 [实验索引](validation/evidence-delivery/README.md)，包含报告、图、模型与状态记录；未包含原始 Adult 数据和本地虚拟环境。
 队友可自行复跑：
 
 ```bash

@@ -1,0 +1,8 @@
+<!doctype html><meta charset="utf-8"><title>先选模，再测试｜流程修复验证</title>
+<style>body{font:17px/1.75 system-ui;max-width:1150px;margin:40px auto;color:#183f4a;background:#f5f8fa}h1{font-size:30px}section{background:white;padding:24px;margin:20px 0;border-radius:12px}table{width:100%;border-collapse:collapse}td,th{padding:12px;text-align:left;border-bottom:1px solid #dbe5e9}th{background:#123e49;color:white}a{color:#087f8c}</style>
+<h1>先选模，再测试：测试集使用流程修复</h1><section><b>训练集调参 → 验证集选模 → 保存锁定记录 → 最终拟合 → 锁定模型测试与解释</b>
+<p>候选搜索与 Voting 比较不再接收测试数据。未被选择的模型不生成测试分数或测试诊断图；报告不会将“未测试”填成零。</p></section>
+<section><h2>两组真实实验</h2><p>每组比较随机森林与 XGBoost；各运行一次小规模调参，8 棵树，最大深度 3。这些实验检查流程正确性，不比较工具性能。</p>
+<table><tr><th>数据集</th><th>锁定模型</th><th>获得测试分数的模型数</th><th>Voting</th><th>结果</th><th>真实记录</th></tr><tr><td>Iris</td><td>random_forest</td><td>1</td><td>未测试（仅验证集比较）</td><td>通过</td><td><a href="Iris/runs/a9d5b8898cb243ecb183c18a354f3398/evidence/selection_lock.json">选模记录</a> · <a href="Iris/runs/a9d5b8898cb243ecb183c18a354f3398/evidence/delivery.html">交付检查</a> · <a href="Iris/runs/a9d5b8898cb243ecb183c18a354f3398/report.html">完整报告</a></td></tr><tr><td>Diabetes</td><td>random_forest</td><td>1</td><td>未测试（仅验证集比较）</td><td>通过</td><td><a href="Diabetes/runs/de732a4c32fb46bab3aaca6136b140ce/evidence/selection_lock.json">选模记录</a> · <a href="Diabetes/runs/de732a4c32fb46bab3aaca6136b140ce/evidence/delivery.html">交付检查</a> · <a href="Diabetes/runs/de732a4c32fb46bab3aaca6136b140ce/report.html">完整报告</a></td></tr></table></section>
+<section><h2>与两个创新点的关系</h2><p>选模锁定记录现在进入证据交付清单；报告或解释失败后仍可局部补做，不重新选模或训练。</p>
+<h2>研究边界</h2><p>这是主训练、选模和报告路径的修复，不是完整的数据泄露审计。数据概况与类型识别仍会读取全量输入；解释、诊断和重载核对仍会在锁定之后使用测试输入，不声称物理上只调用一次预测。不合并队友的 TrustGuard，也未推送远程。</p></section>
