@@ -80,15 +80,10 @@ python introduction/adult_evidence_demo.py --data /path/to/adult.arff.gz --outpu
 
 Adult 脚本读取 OpenML 1590 的完整 ARFF gzip 缓存，不会联网下载。综合恢复演示见 introduction/evidence_validation_suite.py。
 
-## 与 TrustGuard 的边界
 
-队友的 TrustGuard 负责可信建模审计；我们负责审计/解释等产物是否按要求交付以及失败后如何补做。修正自己分支中的基础计算和选模问题，不等于实现或合并了 TrustGuard。
 
-这周不做正式汇报稿，也不合并队友报告。后续再商量把 TrustGuard 的输出接成一个独立证据生产者。
+## 需要特别说明的地方
 
-## 不能夸大的地方
-
-- 完整只表示满足当前声明的交付集合，不代表课程全部要求完成；ALE、学习曲线等仍未纳入。
 - 故障为人工注入，不是自然故障率或加速比实验。
 - 同环境预测一致不代表跨环境完全复现；补做不支持程序退出后恢复。
 - 公平指标不代表模型公平，更不代表完成公平性缓解。
