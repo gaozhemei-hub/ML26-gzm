@@ -63,23 +63,6 @@ prediction = pipeline.predict(new_raw_dataframe)
 
 预测重载与证据补做是不同能力：重载可使用保存的流水线；补做目前需要原有 ae 实例仍在当前程序中。
 
-## 最快演示顺序（约两分钟）
-
-1. 打开 Adult 的 before_recovery.json：模型已交付，但 SHAP 失败，所以整体不完整。
-2. 打开同一运行的 evidence/delivery.html：查看 SHAP 先失败后成功的尝试历史。
-3. 打开 reload_check.json：原始表格重载预测一致；summary.json 记录补做训练次数为零。
-4. 打开 selection_lock.json：解释模型如何依据验证集确定。
-
-真实运行产物已归档到 [实验索引](validation/evidence-delivery/README.md)，包含报告、图、模型与状态记录；未包含原始 Adult 数据和本地虚拟环境。
-队友可自行复跑：
-
-```bash
-python introduction/selection_protocol_demo.py --output outputs/protocol-demo
-python introduction/adult_evidence_demo.py --data /path/to/adult.arff.gz --output outputs/adult-demo
-```
-
-Adult 脚本读取 OpenML 1590 的完整 ARFF gzip 缓存，不会联网下载。综合恢复演示见 introduction/evidence_validation_suite.py。
-
 
 
 ## 需要特别说明的地方
