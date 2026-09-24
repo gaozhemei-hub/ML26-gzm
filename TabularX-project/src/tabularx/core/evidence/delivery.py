@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Callable
 from uuid import uuid4
 
+from tabularx.schema.evidence import EvidenceManifest
+
 
 @dataclass
 class EvidenceOutcome:
@@ -93,18 +95,24 @@ class EvidenceDelivery:
                 return False
         return True
 
-    def audit(self):
+    def audit_contract(self) -> EvidenceManifest:
+        """Return the audited state as the TabularX schema contract."""
         for row in self.records.values():
             if row["status"] == "generated" and not self._files_valid(row["paths"]):
                 row.update(status="missing", reason="Declared output deleted, empty, or invalid after generation")
         required = [r for r in self.records.values() if r["required"] and r["applicable"]]
         delivered = sum(r["status"] == "generated" for r in required)
-        return dict(schema_version="1.0", run_id=self.run_id, task=self.task,
-                    complete=bool(required) and all(r["status"] == "generated" for r in required),
-                    required_count=len(required), generated_required_count=delivered,
-                    completeness=delivered / len(required) if required else None,
-                    boundary="Delivery acceptance only; not scientific validity or reproducibility",
-                    records=deepcopy(self.records))
+        payload = dict(schema_version="1.0", run_id=self.run_id, task=self.task,
+                       complete=bool(required) and all(r["status"] == "generated" for r in required),
+                       required_count=len(required), generated_required_count=delivered,
+                       completeness=delivered / len(required) if required else None,
+                       boundary="Delivery acceptance only; not scientific validity or reproducibility",
+                       records=deepcopy(self.records))
+        return EvidenceManifest.from_dict(payload)
+
+    def audit(self) -> dict:
+        """Return the JSON-compatible audit snapshot (legacy core API)."""
+        return self.audit_contract().to_dict()
 
     def retry(self, keys=None):
         self.audit()
@@ -128,7 +136,7 @@ class EvidenceDelivery:
         return self.write()
 
     def write(self):
-        payload = self.audit()
+        payload = self.audit_contract().to_dict()
         folder = self.root / "evidence"
         folder.mkdir(exist_ok=True)
         target = folder / "delivery.json"

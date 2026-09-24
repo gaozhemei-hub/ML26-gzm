@@ -10,6 +10,7 @@ from tabularx.schema.learning import (
     ModelRunResult,
     ModelSearchResult,
 )
+from tabularx.schema.evidence import EvidenceAttempt, EvidenceRecord, EvidenceManifest
 
 __all__ = [
     "DataProfile",
@@ -25,4 +26,7 @@ __all__ = [
     "OptunaResult",
     "ModelRunResult",
     "ModelSearchResult",
+    "EvidenceAttempt",
+    "EvidenceRecord",
+    "EvidenceManifest",
 ]

@@ -9,6 +9,7 @@ from sklearn.datasets import load_breast_cancer, load_diabetes
 
 from tabularx import AutoEstimator
 from tabularx.core.evidence import EvidenceDelivery, EvidenceOutcome
+from tabularx.schema.evidence import EvidenceManifest
 from tabularx.schema.learning import ModelRunResult, ModelSearchResult
 
 
@@ -20,6 +21,25 @@ def writer(delivery, name):
     return produce
 
 
+def test_manifest_json_round_trip_and_version_validation():
+    payload = {
+        "schema_version": "1.0", "run_id": "run-1", "task": "binary",
+        "complete": True, "required_count": 1, "generated_required_count": 1,
+        "completeness": 1.0, "boundary": "delivery only",
+        "records": {"plot": {"required": True, "applicable": True,
+            "condition": "always", "enabled": True, "status": "generated",
+            "reason": "ok", "paths": ["plot.png"], "recoverable": True,
+            "attempts": [{"started_at": "t0", "ended_at": "t1", "status": "generated",
+                          "reason": "ok", "paths": ["plot.png"]}]}},
+    }
+    parsed = EvidenceManifest.from_dict(payload)
+    assert parsed.records["plot"].attempts[0].status == "generated"
+    assert parsed.to_dict() == payload
+    payload["schema_version"] = "99"
+    with pytest.raises(ValueError, match="schema_version"):
+        EvidenceManifest.from_dict(payload)
+
+
 def test_missing_from_start_not_hidden_by_present_files(tmp_path):
     d = EvidenceDelivery(tmp_path, "regression")
     d.register("report", writer(d, "report.html"))
@@ -29,7 +49,10 @@ def test_missing_from_start_not_hidden_by_present_files(tmp_path):
     d.execute("report")
     d.execute("required_explanation")
     audit = d.write()
+    contract = d.audit_contract()
     assert not audit["complete"]
+    assert contract.complete is False
+    assert contract.records["required_explanation"].status == "missing"
     assert audit["completeness"] == .5
     assert audit["records"]["required_explanation"]["status"] == "missing"
     assert audit["records"]["fairness"]["status"] == "not_enabled"
@@ -159,12 +182,14 @@ def test_real_pipeline_failure_retry_never_refits(tmp_path, task, loader):
     with patch.object(ae, "_run_shap", side_effect=RuntimeError("Injected SHAP outage")):
         ae.fit(data.data, data.target)
     assert ae.evidence_.records["shap"]["status"] == "failed"
+    assert ae.result.evidence.records["shap"].status == "failed"
     assert ae.evidence_.records["full_report"]["status"] == "generated"
     assert ae.evidence_.records["model"]["status"] == "generated"
     assert not ae.evidence_.audit()["complete"]
     with patch.object(type(ae._evidence_model), "fit", side_effect=AssertionError("Unexpected model refit")):
         audit = ae.retry_evidence(["shap"])
     assert audit["records"]["shap"]["status"] == "generated", audit["records"]["shap"]
+    assert ae.result.evidence.records["shap"].status == "generated"
     assert audit["complete"], audit
     assert len(audit["records"]["shap"]["attempts"]) == 2
     assert len(audit["records"]["model"]["attempts"]) == 1
