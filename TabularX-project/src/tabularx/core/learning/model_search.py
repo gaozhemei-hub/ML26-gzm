@@ -3,7 +3,7 @@
 职责：
 1. 根据配置和任务类型确定要运行的模型列表
 2. 多进程并行启动各模型的 Optuna 调参
-3. 收集结果，按测试集指标选出最佳模型
+3. 收集结果，按验证集指标选出最佳模型
 4. 选择 Top-K 模型可用于后续 Voting/Stacking
 5. 输出 ModelSearchResult
 """
@@ -49,8 +49,6 @@ def _run_model_tuning(
     y_train: pd.Series,
     X_valid: pd.DataFrame,
     y_valid: pd.Series,
-    X_test: pd.DataFrame,
-    y_test: pd.Series,
     task_type: str,
     metric_name: str,
     direction: str,
@@ -66,7 +64,7 @@ def _run_model_tuning(
     步骤:
       1) Optuna 在 train 上调参，在 valid 上评估
       2) 用最佳参数在 train 上训练，计算 train + valid 指标
-      3) 用最佳参数在 train+valid 上重训，计算 test 指标
+      3) 返回验证指标；不接收或访问测试数据
 
     此函数为模块顶层函数，确保可被 ProcessPoolExecutor pickle。
 
@@ -148,27 +146,8 @@ def _run_model_tuning(
             y_prob=y_valid_prob,
         )
 
-        # ── 阶段 B：在 train+valid 上重训，评估 test ─────────
-        X_full = pd.concat([X_train, X_valid], axis=0)
-        y_full = pd.concat([y_train, y_valid], axis=0)
-        model2 = spec.factory(**params)
-        model2.fit(X_full, y_full)
-
-        y_test_pred = model2.predict(X_test)
-        y_test_prob = None
-        if task_type != "regression" and spec.supports_predict_proba:
-            try:
-                y_test_prob = model2.predict_proba(X_test)
-            except Exception:
-                y_test_prob = None
-        test_metrics = compute_all_metrics(
-            task_type=task_type,
-            y_true=y_test,
-            y_pred=y_test_pred,
-            y_prob=y_test_prob,
-        )
-
-        return spec.name, optuna_result, train_metrics, valid_metrics, test_metrics, None
+        # Final held-out evaluation belongs to the locked selected model only.
+        return spec.name, optuna_result, train_metrics, valid_metrics, None, None
 
     except Exception as e:
         err_msg = str(e)
@@ -260,8 +239,6 @@ def search_models(
                 y_train=preprocessed_data.y_train,
                 X_valid=preprocessed_data.X_valid,
                 y_valid=preprocessed_data.y_valid,
-                X_test=preprocessed_data.X_test,
-                y_test=preprocessed_data.y_test,
                 task_type=task_type,
                 metric_name=primary_metric,
                 direction=direction,
@@ -285,8 +262,6 @@ def search_models(
                     y_train=preprocessed_data.y_train,
                     X_valid=preprocessed_data.X_valid,
                     y_valid=preprocessed_data.y_valid,
-                    X_test=preprocessed_data.X_test,
-                    y_test=preprocessed_data.y_test,
                     task_type=task_type,
                     metric_name=primary_metric,
                     direction=direction,
@@ -335,12 +310,12 @@ def search_models(
                 )
             )
 
-    # ── 5. 按测试集指标排序选出最佳模型 ────────────────────
+    # ── 5. 验证集选模；测试分数不得参与排序 ────────────────
     succeeded = [r for r in model_results if r.status == "success"
-                 and r.test_metrics is not None]
+                 and primary_metric in r.validation_metrics]
     reverse = direction == "maximize"
     succeeded.sort(
-        key=lambda r: r.test_metrics.get(primary_metric, 0.0),
+        key=lambda r: r.validation_metrics[primary_metric],
         reverse=reverse,
     )
 

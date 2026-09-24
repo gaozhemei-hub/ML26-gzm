@@ -46,8 +46,8 @@
   {% set members = run.best_params.get("estimators", []) %}
   {% set member_count = members | length %}
   {% set primary = data.primary_metric %}
-  {% set voting_test = run.test_metrics.get(primary, 0) if run.test_metrics else run.validation_metrics.get(primary, 0) %}
-  {% set best_single_test = data.best_single_test or 0 %}
+  {% set voting_validation = run.validation_metrics.get(primary) %}
+  {% set best_single_validation = data.best_single_validation %}
 
   <!-- ══════════════════════════════════════════════════════════
        第 1 部分：基本信息
@@ -67,27 +67,27 @@
       {% endfor %}
     </p>
 
-    {% if member_count > 0 and voting_test is defined %}
+    {% if member_count > 0 and voting_validation is not none and best_single_validation is not none %}
       {% if data.optimization_direction == "maximize" %}
-        {% set improved = voting_test >= best_single_test %}
+        {% set improved = voting_validation >= best_single_validation %}
       {% else %}
-        {% set improved = voting_test <= best_single_test %}
+        {% set improved = voting_validation <= best_single_validation %}
       {% endif %}
       {% if improved %}
       <div class="conclusion-win">
-        <b>Voting 优于最佳单模型</b>
+        <b>Voting 验证分数不劣于最佳单模型</b>
         <br>
-        Voting {{ primary }} = {{ "%.4f"|format(voting_test) }}
-        vs 最佳单模型 {{ primary }} = {{ "%.4f"|format(best_single_test) }}
-        — 组合有效提升了性能。
+        Voting {{ primary }} = {{ "%.4f"|format(voting_validation) }}
+        vs 最佳单模型 {{ primary }} = {{ "%.4f"|format(best_single_validation) }}
+        — 仅为验证集比较，不代表测试性能提升，也不自动替换已锁定单模型。
       </div>
       {% else %}
       <div class="conclusion-lose">
-        <b>Voting 未超过最佳单模型</b>
+        <b>Voting 验证分数未超过最佳单模型</b>
         <br>
-        Voting {{ primary }} = {{ "%.4f"|format(voting_test) }}
-        vs 最佳单模型 {{ primary }} = {{ "%.4f"|format(best_single_test) }}
-        — 建议仍然保留最佳单模型作为最终选择。
+        Voting {{ primary }} = {{ "%.4f"|format(voting_validation) }}
+        vs 最佳单模型 {{ primary }} = {{ "%.4f"|format(best_single_validation) }}
+        — 仅为验证集比较，未执行集成模型的测试评估。
       </div>
       {% endif %}
     {% endif %}

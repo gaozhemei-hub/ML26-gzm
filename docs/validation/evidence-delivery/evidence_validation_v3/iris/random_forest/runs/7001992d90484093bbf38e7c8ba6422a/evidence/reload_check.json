@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "samples": 30,
+  "prediction_equal": true,
+  "probability_equal": true,
+  "scope": "Same environment; raw held-out table; no refitting; not cross-environment reproducibility"
+}

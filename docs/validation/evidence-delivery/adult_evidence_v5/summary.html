@@ -1,0 +1,4 @@
+<!doctype html><meta charset="utf-8"><title>Adult：本周队友同步</title><style>body{font:18px/1.8 system-ui;max-width:1000px;margin:40px auto;color:#173e48;background:#f5f8fa}section{background:white;padding:24px;margin:20px 0;border-radius:12px}a{color:#087f8c}</style>
+<h1>Adult：证据交付与局部恢复验证</h1><section><b>完整 48,842 行 · 14 个特征 · 随机森林与 XGBoost</b><p>每个模型一次小规模调参，32 棵树、最大深度 5；解释 24 个测试样本。验证工程流程，不用于性能排名。</p></section>
+<section><h2>实际结果</h2><p>解释失败被识别：True；真实补做后交付完整：True；恢复时训练次数：0；原始表格重载预测一致：True。</p><p><a href="runs_adult/runs/8d072ec44cbe40af8b0d9e675af30afa/evidence/delivery.html">打开交付清单与补做历史</a> · <a href="runs_adult/runs/8d072ec44cbe40af8b0d9e675af30afa/report.html">打开完整报告</a> · <a href="summary.json">实验设置和原始结果</a></p></section>
+<section><h2>和之前实验的区别</h2><p>本次为队友仓库上的新实现，性别同时用于分组审计和模型输入；早期 v0.1 实验排除了性别输入。因此不将两次性能或公平性数字直接比较。这里验证交付和恢复，并不证明模型公平。</p><p>故障为主动注入；恢复限于同一程序会话。同环境重载一致不等于跨环境完全复现。</p></section>

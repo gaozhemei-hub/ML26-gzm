@@ -337,8 +337,8 @@ class TestModelSearch:
         assert len(result.best_model_params) > 0
         assert len(result.best_validation_metrics) > 0
         assert "rmse" in result.best_validation_metrics
-        assert result.best_test_metrics is not None
-        assert "rmse" in result.best_test_metrics
+        assert result.best_test_metrics is None
+        assert all(r.test_metrics is None for r in result.model_results)
 
     def test_search_all_models_short(self, preprocessed_and_profile):
         """全部模型各 2 个 trial，验证并行不出错。"""
@@ -378,8 +378,8 @@ class TestModelSearch:
             config=config,
         )
 
-        assert result.best_test_metrics is not None
-        assert "rmse" in result.best_test_metrics
+        assert result.best_test_metrics is None
+        assert all(r.test_metrics is None for r in result.model_results)
 
     def test_search_failed_model(self, preprocessed_and_profile):
         """验证注册表中不存在的模型报错。"""
@@ -544,8 +544,7 @@ class TestEnsembleSearch:
         assert voting_result.status == "success"
         assert voting_result.model_name == "voting"
         assert len(voting_result.validation_metrics) > 0
-        assert voting_result.test_metrics is not None
-        assert "rmse" in voting_result.test_metrics
+        assert voting_result.test_metrics is None
 
     def test_voting_no_models(self):
         """没有模型时，Voting 应该返回 None。"""

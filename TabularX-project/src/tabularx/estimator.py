@@ -8,9 +8,6 @@
 
 from __future__ import annotations
 
-import re
-import warnings
-from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -24,25 +21,14 @@ from tabularx.core.learning import (
     build_voting,
     explain_model,
     evaluate_fairness,
-    save_model_plots,
-    save_voting_plots,
-    save_trial_trajectory_plot,
     get_default_registry,
 )
-from tabularx.core.reports import (
-    render_profile_report,
-    render_split_report,
-    render_preprocess_report,
-    render_model_search_report,
-    render_model_detail_report,
-    render_voting_report,
-    render_explanation_report,
-    render_full_report,
-)
 from tabularx.schema.estimator import AutoResult
+from tabularx.core.evidence import EvidenceDelivery
+from tabularx.core.evidence.estimator import EvidenceEstimatorMixin
 
 
-class AutoEstimator:
+class AutoEstimator(EvidenceEstimatorMixin):
     """一键建模：配置 → 训练 → 解释 → 公平性评估。
 
     Attributes:
@@ -61,6 +47,7 @@ class AutoEstimator:
     ):
         self.task = task
         self.output_dir = Path(output_dir)
+        self._output_base = self.output_dir
         self.pdf_report = pdf_report
         self.param = TabularXParams()
         self.result_: AutoResult | None = None
@@ -73,10 +60,14 @@ class AutoEstimator:
     ) -> AutoEstimator:
         """执行完整流水线：profile → split → preprocess → search → [explain] → [fairness]。
         """
+        self.result_ = None
+        self.evidence_ = None
+        self.__dict__.pop("_evidence_context", None)
         profile = build_profile(X, y, task_type=self.task, config=self.param.profile)
         self.task = profile.target.task_type
 
         split = split_data(X, y, profile=profile, config=self.param.split)
+        self._raw_test = X.iloc[split.test_indices].copy(deep=True)
         preprocessed = preprocess(X, y, profile=profile, split_result=split,
                                   config=self.param.preprocess)
         searched = search_models(preprocessed_data=preprocessed, profile=profile,
@@ -88,17 +79,13 @@ class AutoEstimator:
             if voting is not None:
                 searched.ensemble_result = voting
 
-        shap = None
-        if searched.best_model_name:
-            shap = self._run_shap(searched, preprocessed)
-
-        fairness = None
-        if sensitive_features and searched.best_model_name:
-            fairness = self._run_fairness(searched, preprocessed, sensitive_features)
+        self.evidence_ = EvidenceDelivery(self._output_base, self.task)
+        self.output_dir = self.evidence_.root
+        self._sensitive_features = list(sensitive_features or [])
 
         self.result_ = AutoResult(
             profile=profile, split=split, preprocessed=preprocessed,
-            searched=searched, shap=shap, fairness=fairness,
+            searched=searched, shap=None, fairness=None,
             output_dir=self.output_dir,
         )
         self._save_all()
@@ -126,6 +113,7 @@ class AutoEstimator:
             output_dir=str(assets_dir),
             model_name=searched.best_model_name,
             config=self.param.shap,
+            fitted_model=self._evidence_model,
         )
 
     # ── 内部：运行公平性评估 ───────────────────────────────
@@ -135,19 +123,15 @@ class AutoEstimator:
         registry_task = ("classification" if self.task in ("binary", "multiclass")
                          else "regression")
         best_spec = registry.get(searched.best_model_name, registry_task)
-        model = best_spec.factory(**searched.best_model_params,
-                                  **(best_spec.default_params or {}))
-        X_train_full = pd.concat([preprocessed.X_train, preprocessed.X_valid])
-        y_train_full = pd.concat([preprocessed.y_train, preprocessed.y_valid])
-        model.fit(X_train_full, y_train_full)
+        model = self._evidence_model
         y_pred = model.predict(preprocessed.X_test)
         y_prob = None
         if best_spec.supports_predict_proba and self.task == "binary":
             y_prob = model.predict_proba(preprocessed.X_test)[:, 1]
         return evaluate_fairness(
-            X_test=preprocessed.X_test, y_test=preprocessed.y_test,
+            X_test=self._raw_test, y_test=preprocessed.y_test,
             y_pred=y_pred, y_prob=y_prob,
-            column_mappings=preprocessed.column_mappings,
+            column_mappings=[],
             sensitive_features=sensitive_features,
             task_type=self.task, config=self.param.fairness,
         )
@@ -161,8 +145,7 @@ class AutoEstimator:
         registry_task = ("classification" if self.task in ("binary", "multiclass")
                          else "regression")
         best_spec = registry.get(searched.best_model_name, registry_task)
-        model = best_spec.factory(**searched.best_model_params,
-                                  **(best_spec.default_params or {}))
+        model = best_spec.factory(**{**(best_spec.default_params or {}), **searched.best_model_params})
         X_train_full = pd.concat([preprocessed.X_train, preprocessed.X_valid])
         y_train_full = pd.concat([preprocessed.y_train, preprocessed.y_valid])
         model.fit(X_train_full, y_train_full)
@@ -246,199 +229,8 @@ class AutoEstimator:
     # ── 内部：保存全部输出 ─────────────────────────────────
 
     def _save_all(self) -> None:
-        result = self.result_
-        output_dir = self.output_dir
-        reports_dir = output_dir / "reports"
-        models_dir = reports_dir / "models"
-        assets_dir = reports_dir / "assets"
-        for d in [reports_dir, models_dir, assets_dir]:
-            d.mkdir(parents=True, exist_ok=True)
-
-        target_name = _resolve_target_name(result.preprocessed)
-        is_cls = self.task in ("binary", "multiclass")
-        reg = get_default_registry()
-
-        # ══════════════════════════════════════════════════════
-        # 1) 模型评估图 + 调参轨迹
-        # ══════════════════════════════════════════════════════
-        for run in result.searched.succeeded_results:
-            save_model_plots(run, assets_dir, result.searched,
-                             result.preprocessed, self.task, reg)
-            save_trial_trajectory_plot(run, assets_dir,
-                                       result.searched.primary_metric)
-
-        if result.searched.ensemble_result:
-            save_voting_plots(result.searched.ensemble_result, assets_dir,
-                              result.searched, result.preprocessed, self.task, reg)
-
-        # ══════════════════════════════════════════════════════
-        # 2) 各报告 HTML
-        # ══════════════════════════════════════════════════════
-        search_data = self._build_model_search_data()
-        _write_html(reports_dir / "model_search.html",
-                    render_model_search_report(search_data))
-        _write_html(reports_dir / "profile.html",
-                    render_profile_report(result.profile))
-        _write_html(reports_dir / "split.html",
-                    render_split_report(result.split))
-        _write_html(reports_dir / "preprocess.html",
-                    render_preprocess_report(result.preprocessed))
-
-        for run in result.searched.succeeded_results:
-            safe_name = run.model_name.replace(" ", "_")
-            has_cm = "confusion_matrix" in run.artifact_paths
-            has_roc = "roc_curve" in run.artifact_paths
-            detail_data = {
-                "run": run, "target_name": target_name,
-                "primary_metric": result.searched.primary_metric,
-                "optimization_direction": result.searched.optimization_direction,
-                "is_classification": is_cls,
-                "artifact_dir": "../assets",
-                "has_confusion_matrix": has_cm,
-                "has_roc_curve": has_roc,
-                "has_trial_trajectory": "trial_trajectory" in run.artifact_paths,
-            }
-            _write_html(models_dir / f"{safe_name}.html",
-                        render_model_detail_report(detail_data))
-
-        if result.searched.ensemble_result:
-            er = result.searched.ensemble_result
-            has_cm = "confusion_matrix" in er.artifact_paths
-            has_roc = "roc_curve" in er.artifact_paths
-            best_val = (result.searched.best_test_metrics or {}).get(
-                result.searched.primary_metric, float("nan"))
-            voting_data = {
-                "run": er,
-                "primary_metric": result.searched.primary_metric,
-                "optimization_direction": result.searched.optimization_direction,
-                "best_single_test": best_val,
-                "is_classification": is_cls,
-                "artifact_dir": "../assets",
-                "has_confusion_matrix": has_cm,
-                "has_roc_curve": has_roc,
-                "has_voting_comparison": "voting_comparison" in er.artifact_paths,
-                "succeeded_results": result.searched.succeeded_results,
-            }
-            _write_html(models_dir / "voting.html", render_voting_report(voting_data))
-
-        explanation_data = self._build_explanation_data()
-        _write_html(reports_dir / "explanation.html",
-                    render_explanation_report(explanation_data))
-
-        # ══════════════════════════════════════════════════════
-        # 3) 最优模型文件
-        # ══════════════════════════════════════════════════════
-        if result.searched.best_model_name:
-            model, _ = self._get_best_model(result.searched, result.preprocessed)
-            model_path = output_dir / "best_model.joblib"
-            try:
-                import joblib
-                joblib.dump(model, model_path)
-            except ImportError:
-                import pickle
-                with open(output_dir / "best_model.pkl", "wb") as f:
-                    pickle.dump(model, f)
-
-        # ══════════════════════════════════════════════════════
-        # 4) 完整合并报告
-        # ══════════════════════════════════════════════════════
-        sections = []
-        section_defs = [
-            ("profile", "数据概况", result.profile, render_profile_report),
-            ("split", "数据划分", result.split, render_split_report),
-            ("preprocess", "数据预处理", result.preprocessed, render_preprocess_report),
-            ("model_search", "模型搜索", search_data, render_model_search_report),
-        ]
-
-        for run in result.searched.succeeded_results:
-            safe_name = run.model_name.replace(" ", "_")
-            has_cm = "confusion_matrix" in run.artifact_paths
-            has_roc = "roc_curve" in run.artifact_paths
-            detail_data = {
-                "run": run, "target_name": target_name,
-                "primary_metric": result.searched.primary_metric,
-                "optimization_direction": result.searched.optimization_direction,
-                "is_classification": is_cls,
-                "artifact_dir": "assets",
-                "has_confusion_matrix": has_cm,
-                "has_roc_curve": has_roc,
-                "has_trial_trajectory": "trial_trajectory" in run.artifact_paths,
-            }
-            section_defs.append(
-                ("model_" + safe_name, f"模型：{run.model_name}",
-                 detail_data, render_model_detail_report))
-
-        if result.searched.ensemble_result:
-            er = result.searched.ensemble_result
-            has_cm = "confusion_matrix" in er.artifact_paths
-            has_roc = "roc_curve" in er.artifact_paths
-            best_val = (result.searched.best_test_metrics or {}).get(
-                result.searched.primary_metric, float("nan"))
-            voting_data = {
-                "run": er,
-                "primary_metric": result.searched.primary_metric,
-                "optimization_direction": result.searched.optimization_direction,
-                "best_single_test": best_val,
-                "is_classification": is_cls,
-                "artifact_dir": "assets",
-                "has_confusion_matrix": has_cm,
-                "has_roc_curve": has_roc,
-                "has_voting_comparison": "voting_comparison" in er.artifact_paths,
-                "succeeded_results": result.searched.succeeded_results,
-            }
-            section_defs.append(
-                ("voting", "Voting 组合模型", voting_data, render_voting_report))
-
-        section_defs.append(
-            ("explanation", "解释与公平性", explanation_data, render_explanation_report))
-
-        for sec_id, sec_title, sec_data, sec_renderer in section_defs:
-            body = sec_renderer(sec_data, body_only=True)
-            # report.html 在根目录，图片在 reports/assets/，需修正路径
-            body = body.replace('src="assets/', 'src="reports/assets/')
-            # 翻页模式下链接无效，去掉所有 <a> 标签
-            body = re.sub(r'<a\s+[^>]*>', '', body)
-            body = body.replace('</a>', '')
-            sections.append({"id": sec_id, "title": sec_title, "body": body})
-
-        dataset_info = {}
-        try:
-            dataset_info["n_rows"] = result.profile.n_rows
-            dataset_info["n_cols"] = result.profile.n_cols
-            if result.profile.target.n_classes is not None:
-                dataset_info["n_classes"] = result.profile.target.n_classes
-        except Exception:
-            pass
-
-        full_data = {
-            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "task_type": self.task,
-            "best_model_name": result.searched.best_model_name,
-            "dataset_info": dataset_info,
-            "sections": sections,
-        }
-
-        html_path = output_dir / "report.html"
-        _write_html(html_path, render_full_report(full_data))
-
-        if self.pdf_report:
-            try:
-                import weasyprint
-                weasyprint.HTML(filename=str(html_path)).write_pdf(
-                    output_dir / "report.pdf")
-            except ImportError:
-                warnings.warn(
-                    "weasyprint 未安装，跳过 PDF 生成。"
-                    " 通过 pip install weasyprint 安装。")
-
-        result.report_paths = {
-            "profile": str(reports_dir / "profile.html"),
-            "split": str(reports_dir / "split.html"),
-            "preprocess": str(reports_dir / "preprocess.html"),
-            "model_search": str(reports_dir / "model_search.html"),
-            "explanation": str(reports_dir / "explanation.html"),
-            "full": str(html_path),
-        }
+        """Save through the task-aware evidence delivery adapter."""
+        self._save_evidence()
 
     # ── 属性访问 ───────────────────────────────────────────
 
@@ -465,10 +257,6 @@ def _resolve_target_name(preprocessed) -> str:
     except (AttributeError, IndexError):
         pass
     return "target"
-
-
-def _write_html(path: Path, html: str) -> None:
-    path.write_text(html, encoding="utf-8")
 
 
 __all__ = ["AutoEstimator"]

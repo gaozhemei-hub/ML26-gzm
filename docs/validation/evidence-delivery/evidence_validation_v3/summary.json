@@ -1,0 +1,360 @@
+{
+  "scope": "3 public datasets × 2 models; 1 HPO trial, 8 trees, SHAP 12 samples; injected failures; no speedup claims",
+  "passed_cases": 6,
+  "results": [
+    {
+      "dataset": "breast_cancer",
+      "model": "random_forest",
+      "task": "binary",
+      "samples": 569,
+      "features": 30,
+      "run_dir": "<LOCAL_WORKSPACE>/outputs/evidence_validation_v3/breast_cancer/random_forest/runs/9bcde61756b4416ab90c87a529f4d738",
+      "fit_seconds": 0.3716864170055487,
+      "recovery_checks_seconds": 1.189110500003153,
+      "recovery_fit_calls": 0,
+      "passed": true,
+      "checks": [
+        {
+          "check": "局部失败被识别，模型仍交付",
+          "passed": true,
+          "detail": "首次同时注入解释失败和统一报告渲染失败"
+        },
+        {
+          "check": "原始表格重载预测一致",
+          "passed": true,
+          "detail": "保存预处理器与模型，重载后直接接收原始测试表格；同时核对预测概率（如适用）"
+        },
+        {
+          "check": "持续失败不会误报完整",
+          "passed": true,
+          "detail": "报告恢复成功不覆盖仍存在的解释失败"
+        },
+        {
+          "check": "真实解释及报告恢复",
+          "passed": true,
+          "detail": "不再注入故障，实际执行 SHAP 和报告渲染"
+        },
+        {
+          "check": "解释文件删除后检出并补齐",
+          "passed": true,
+          "detail": "删除本轮真实生成的一张解释图，再局部补做"
+        },
+        {
+          "check": "模型文件可由内存对象重新保存",
+          "passed": true,
+          "detail": "模型没有重新训练；该恢复仍需要存活的 Python 会话"
+        },
+        {
+          "check": "恢复不调用模型训练",
+          "passed": true,
+          "detail": "恢复阶段 fit 调用次数：0"
+        },
+        {
+          "check": "恢复前后预测一致",
+          "passed": true,
+          "detail": "使用同一测试输入比较；不等于跨环境复现"
+        },
+        {
+          "check": "输入变化后拒绝沿用旧运行",
+          "passed": true,
+          "detail": "在执行任何补做之前拒绝变化的上下文"
+        }
+      ]
+    },
+    {
+      "dataset": "breast_cancer",
+      "model": "xgboost",
+      "task": "binary",
+      "samples": 569,
+      "features": 30,
+      "run_dir": "<LOCAL_WORKSPACE>/outputs/evidence_validation_v3/breast_cancer/xgboost/runs/977e7c0b94b34455815484094f96efb9",
+      "fit_seconds": 0.34163574999547563,
+      "recovery_checks_seconds": 0.8583320410034503,
+      "recovery_fit_calls": 0,
+      "passed": true,
+      "checks": [
+        {
+          "check": "局部失败被识别，模型仍交付",
+          "passed": true,
+          "detail": "首次同时注入解释失败和统一报告渲染失败"
+        },
+        {
+          "check": "原始表格重载预测一致",
+          "passed": true,
+          "detail": "保存预处理器与模型，重载后直接接收原始测试表格；同时核对预测概率（如适用）"
+        },
+        {
+          "check": "持续失败不会误报完整",
+          "passed": true,
+          "detail": "报告恢复成功不覆盖仍存在的解释失败"
+        },
+        {
+          "check": "真实解释及报告恢复",
+          "passed": true,
+          "detail": "不再注入故障，实际执行 SHAP 和报告渲染"
+        },
+        {
+          "check": "解释文件删除后检出并补齐",
+          "passed": true,
+          "detail": "删除本轮真实生成的一张解释图，再局部补做"
+        },
+        {
+          "check": "模型文件可由内存对象重新保存",
+          "passed": true,
+          "detail": "模型没有重新训练；该恢复仍需要存活的 Python 会话"
+        },
+        {
+          "check": "恢复不调用模型训练",
+          "passed": true,
+          "detail": "恢复阶段 fit 调用次数：0"
+        },
+        {
+          "check": "恢复前后预测一致",
+          "passed": true,
+          "detail": "使用同一测试输入比较；不等于跨环境复现"
+        },
+        {
+          "check": "输入变化后拒绝沿用旧运行",
+          "passed": true,
+          "detail": "在执行任何补做之前拒绝变化的上下文"
+        }
+      ]
+    },
+    {
+      "dataset": "iris",
+      "model": "random_forest",
+      "task": "multiclass",
+      "samples": 150,
+      "features": 4,
+      "run_dir": "<LOCAL_WORKSPACE>/outputs/evidence_validation_v3/iris/random_forest/runs/7001992d90484093bbf38e7c8ba6422a",
+      "fit_seconds": 0.12755070799903478,
+      "recovery_checks_seconds": 0.4330989999943995,
+      "recovery_fit_calls": 0,
+      "passed": true,
+      "checks": [
+        {
+          "check": "局部失败被识别，模型仍交付",
+          "passed": true,
+          "detail": "首次同时注入解释失败和统一报告渲染失败"
+        },
+        {
+          "check": "原始表格重载预测一致",
+          "passed": true,
+          "detail": "保存预处理器与模型，重载后直接接收原始测试表格；同时核对预测概率（如适用）"
+        },
+        {
+          "check": "持续失败不会误报完整",
+          "passed": true,
+          "detail": "报告恢复成功不覆盖仍存在的解释失败"
+        },
+        {
+          "check": "真实解释及报告恢复",
+          "passed": true,
+          "detail": "不再注入故障，实际执行 SHAP 和报告渲染"
+        },
+        {
+          "check": "解释文件删除后检出并补齐",
+          "passed": true,
+          "detail": "删除本轮真实生成的一张解释图，再局部补做"
+        },
+        {
+          "check": "模型文件可由内存对象重新保存",
+          "passed": true,
+          "detail": "模型没有重新训练；该恢复仍需要存活的 Python 会话"
+        },
+        {
+          "check": "恢复不调用模型训练",
+          "passed": true,
+          "detail": "恢复阶段 fit 调用次数：0"
+        },
+        {
+          "check": "恢复前后预测一致",
+          "passed": true,
+          "detail": "使用同一测试输入比较；不等于跨环境复现"
+        },
+        {
+          "check": "输入变化后拒绝沿用旧运行",
+          "passed": true,
+          "detail": "在执行任何补做之前拒绝变化的上下文"
+        }
+      ]
+    },
+    {
+      "dataset": "iris",
+      "model": "xgboost",
+      "task": "multiclass",
+      "samples": 150,
+      "features": 4,
+      "run_dir": "<LOCAL_WORKSPACE>/outputs/evidence_validation_v3/iris/xgboost/runs/52cb4e09510c41eb9b3e1b3bbec6829c",
+      "fit_seconds": 0.11345791599887889,
+      "recovery_checks_seconds": 0.5109890409949003,
+      "recovery_fit_calls": 0,
+      "passed": true,
+      "checks": [
+        {
+          "check": "局部失败被识别，模型仍交付",
+          "passed": true,
+          "detail": "首次同时注入解释失败和统一报告渲染失败"
+        },
+        {
+          "check": "原始表格重载预测一致",
+          "passed": true,
+          "detail": "保存预处理器与模型，重载后直接接收原始测试表格；同时核对预测概率（如适用）"
+        },
+        {
+          "check": "持续失败不会误报完整",
+          "passed": true,
+          "detail": "报告恢复成功不覆盖仍存在的解释失败"
+        },
+        {
+          "check": "真实解释及报告恢复",
+          "passed": true,
+          "detail": "不再注入故障，实际执行 SHAP 和报告渲染"
+        },
+        {
+          "check": "解释文件删除后检出并补齐",
+          "passed": true,
+          "detail": "删除本轮真实生成的一张解释图，再局部补做"
+        },
+        {
+          "check": "模型文件可由内存对象重新保存",
+          "passed": true,
+          "detail": "模型没有重新训练；该恢复仍需要存活的 Python 会话"
+        },
+        {
+          "check": "恢复不调用模型训练",
+          "passed": true,
+          "detail": "恢复阶段 fit 调用次数：0"
+        },
+        {
+          "check": "恢复前后预测一致",
+          "passed": true,
+          "detail": "使用同一测试输入比较；不等于跨环境复现"
+        },
+        {
+          "check": "输入变化后拒绝沿用旧运行",
+          "passed": true,
+          "detail": "在执行任何补做之前拒绝变化的上下文"
+        }
+      ]
+    },
+    {
+      "dataset": "diabetes",
+      "model": "random_forest",
+      "task": "regression",
+      "samples": 442,
+      "features": 10,
+      "run_dir": "<LOCAL_WORKSPACE>/outputs/evidence_validation_v3/diabetes/random_forest/runs/d3551d9993af4484aace578e5c8d58b4",
+      "fit_seconds": 0.0833204169975943,
+      "recovery_checks_seconds": 0.5461929580051219,
+      "recovery_fit_calls": 0,
+      "passed": true,
+      "checks": [
+        {
+          "check": "局部失败被识别，模型仍交付",
+          "passed": true,
+          "detail": "首次同时注入解释失败和统一报告渲染失败"
+        },
+        {
+          "check": "原始表格重载预测一致",
+          "passed": true,
+          "detail": "保存预处理器与模型，重载后直接接收原始测试表格；同时核对预测概率（如适用）"
+        },
+        {
+          "check": "持续失败不会误报完整",
+          "passed": true,
+          "detail": "报告恢复成功不覆盖仍存在的解释失败"
+        },
+        {
+          "check": "真实解释及报告恢复",
+          "passed": true,
+          "detail": "不再注入故障，实际执行 SHAP 和报告渲染"
+        },
+        {
+          "check": "解释文件删除后检出并补齐",
+          "passed": true,
+          "detail": "删除本轮真实生成的一张解释图，再局部补做"
+        },
+        {
+          "check": "模型文件可由内存对象重新保存",
+          "passed": true,
+          "detail": "模型没有重新训练；该恢复仍需要存活的 Python 会话"
+        },
+        {
+          "check": "恢复不调用模型训练",
+          "passed": true,
+          "detail": "恢复阶段 fit 调用次数：0"
+        },
+        {
+          "check": "恢复前后预测一致",
+          "passed": true,
+          "detail": "使用同一测试输入比较；不等于跨环境复现"
+        },
+        {
+          "check": "输入变化后拒绝沿用旧运行",
+          "passed": true,
+          "detail": "在执行任何补做之前拒绝变化的上下文"
+        }
+      ]
+    },
+    {
+      "dataset": "diabetes",
+      "model": "xgboost",
+      "task": "regression",
+      "samples": 442,
+      "features": 10,
+      "run_dir": "<LOCAL_WORKSPACE>/outputs/evidence_validation_v3/diabetes/xgboost/runs/30eb23e237404a0cbee53e370740333d",
+      "fit_seconds": 0.08548029200028395,
+      "recovery_checks_seconds": 0.5640663339945604,
+      "recovery_fit_calls": 0,
+      "passed": true,
+      "checks": [
+        {
+          "check": "局部失败被识别，模型仍交付",
+          "passed": true,
+          "detail": "首次同时注入解释失败和统一报告渲染失败"
+        },
+        {
+          "check": "原始表格重载预测一致",
+          "passed": true,
+          "detail": "保存预处理器与模型，重载后直接接收原始测试表格；同时核对预测概率（如适用）"
+        },
+        {
+          "check": "持续失败不会误报完整",
+          "passed": true,
+          "detail": "报告恢复成功不覆盖仍存在的解释失败"
+        },
+        {
+          "check": "真实解释及报告恢复",
+          "passed": true,
+          "detail": "不再注入故障，实际执行 SHAP 和报告渲染"
+        },
+        {
+          "check": "解释文件删除后检出并补齐",
+          "passed": true,
+          "detail": "删除本轮真实生成的一张解释图，再局部补做"
+        },
+        {
+          "check": "模型文件可由内存对象重新保存",
+          "passed": true,
+          "detail": "模型没有重新训练；该恢复仍需要存活的 Python 会话"
+        },
+        {
+          "check": "恢复不调用模型训练",
+          "passed": true,
+          "detail": "恢复阶段 fit 调用次数：0"
+        },
+        {
+          "check": "恢复前后预测一致",
+          "passed": true,
+          "detail": "使用同一测试输入比较；不等于跨环境复现"
+        },
+        {
+          "check": "输入变化后拒绝沿用旧运行",
+          "passed": true,
+          "detail": "在执行任何补做之前拒绝变化的上下文"
+        }
+      ]
+    }
+  ]
+}

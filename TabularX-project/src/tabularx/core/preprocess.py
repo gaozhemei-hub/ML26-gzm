@@ -2,8 +2,7 @@
 
 设计哲学：
 - 所有变换**在训练集上拟合**，在训练/验证/测试集上应用，避免数据泄露。
-- 输出不持有任何 sklearn 对象，而是变换后的 DataFrames + 变换记录，
-  确保可序列化。
+- 输出包含变换后的 DataFrames、变换记录及训练集拟合状态，支持原始输入重载推断。
 - 每列的变换动作由 profile.columns[i].tags 驱动。
 """
 
@@ -27,6 +26,7 @@ from sklearn.preprocessing import (
 )
 
 from tabularx.core.params import PreprocessConfig
+from tabularx.core.inference import FittedPreprocessor
 from tabularx.exceptions.preprocess import (
     PreprocessError,
     TextColumnNotSupportedError,
@@ -118,6 +118,7 @@ def _transform_numeric(
     col_name: str,
     profile: DataProfile,
     config: PreprocessConfig,
+    state: dict | None = None,
 ) -> tuple[pd.Series, pd.Series, pd.Series, list[str], str | None]:
     """处理数值列：填补 → （可选）标准化或偏度校正。
 
@@ -138,6 +139,8 @@ def _transform_numeric(
     if n_missing_train > 0:
         imputer = _make_imputer(config.numeric_impute, config.impute_constant_value)
         imputer.fit(col_train.values.reshape(-1, 1))
+        if state is not None:
+            state["steps"].append(("transform", imputer))
         col_train = pd.Series(
             imputer.transform(col_train.values.reshape(-1, 1)).ravel(),
             index=col_train.index,
@@ -164,6 +167,8 @@ def _transform_numeric(
         if config.skew_method == "yeo-johnson":
             pt = PowerTransformer(method="yeo-johnson", standardize=True)
             pt.fit(col_train.values.reshape(-1, 1))
+            if state is not None:
+                state["steps"].append(("transform", pt))
             col_train = pd.Series(
                 pt.transform(col_train.values.reshape(-1, 1)).ravel(),
                 index=col_train.index,
@@ -189,6 +194,8 @@ def _transform_numeric(
                 warnings.simplefilter("ignore")
                 fn = FunctionTransformer(np.log1p, validate=True)
                 fn.fit(col_train.values.reshape(-1, 1))
+                if state is not None:
+                    state["steps"].append(("transform", fn))
                 col_train = pd.Series(
                     fn.transform(col_train.values.reshape(-1, 1)).ravel(),
                     index=col_train.index,
@@ -212,6 +219,8 @@ def _transform_numeric(
     elif is_scale:
         scaler = _make_scaler(config.scale_method)
         scaler.fit(col_train.values.reshape(-1, 1))
+        if state is not None:
+            state["steps"].append(("transform", scaler))
         col_train = pd.Series(
             scaler.transform(col_train.values.reshape(-1, 1)).ravel(),
             index=col_train.index,
@@ -266,6 +275,7 @@ def _transform_categorical(
     col_name: str,
     profile: DataProfile,
     config: PreprocessConfig,
+    state: dict | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[str], list[str], str | None]:
     """处理类别列：填补 → 编码。
 
@@ -286,6 +296,8 @@ def _transform_categorical(
     if n_missing_train > 0:
         imputer = _make_imputer(config.categorical_impute, config.impute_constant_value)
         imputer.fit(col_train.values.reshape(-1, 1))
+        if state is not None:
+            state["steps"].append(("transform", imputer))
         col_train = pd.Series(
             imputer.transform(col_train.values.reshape(-1, 1)).ravel(),
             index=col_train.index,
@@ -314,6 +326,8 @@ def _transform_categorical(
 
             te = TargetEncoder(random_state=42)
             te.fit(col_train.values.reshape(-1, 1), y_train)
+            if state is not None:
+                state["steps"].append(("transform", te))
             col_train_arr = te.transform(col_train.values.reshape(-1, 1))
             col_valid_arr = te.transform(col_valid.values.reshape(-1, 1))
             col_test_arr = te.transform(col_test.values.reshape(-1, 1))
@@ -333,6 +347,8 @@ def _transform_categorical(
 
         else:  # frequency
             freq = col_train.value_counts(normalize=True)
+            if state is not None:
+                state["steps"].append(("frequency", freq))
             col_train = col_train.map(freq)
             col_valid = col_valid.map(freq)
             col_test = col_test.map(freq)
@@ -351,6 +367,8 @@ def _transform_categorical(
         if config.low_cardinality_encoding == "onehot":
             ohe = OneHotEncoder(sparse_output=False, handle_unknown="ignore")
             ohe.fit(col_train.values.reshape(-1, 1))
+            if state is not None:
+                state["steps"].append(("transform", ohe))
             col_train_arr = ohe.transform(col_train.values.reshape(-1, 1))
             col_valid_arr = ohe.transform(col_valid.values.reshape(-1, 1))
             col_test_arr = ohe.transform(col_test.values.reshape(-1, 1))
@@ -372,6 +390,8 @@ def _transform_categorical(
         else:  # label
             oe = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
             oe.fit(col_train.values.reshape(-1, 1))
+            if state is not None:
+                state["steps"].append(("transform", oe))
             col_train_arr = oe.transform(col_train.values.reshape(-1, 1)).ravel()
             col_valid_arr = oe.transform(col_valid.values.reshape(-1, 1)).ravel()
             col_test_arr = oe.transform(col_test.values.reshape(-1, 1)).ravel()
@@ -468,6 +488,7 @@ def preprocess(
     y_test = y.iloc[test_idx].copy()
 
     all_columns = list(X.columns)
+    fitted_states = {name: dict(kind="passthrough", steps=[], outputs=[name]) for name in all_columns}
     n_features_in = len(all_columns)
     transforms: list[TransformRecord] = []
     column_mappings: list[ColumnMapping] = []
@@ -643,7 +664,7 @@ def preprocess(
             col_test_s = X_test[col_name]
 
             out_train, out_valid, out_test, actions, note = _transform_numeric(
-                col_train_s, col_valid_s, col_test_s, col_name, profile, cfg
+                col_train_s, col_valid_s, col_test_s, col_name, profile, cfg, fitted_states[col_name]
             )
 
             X_train[col_name] = out_train
@@ -724,6 +745,7 @@ def preprocess(
                 col_name,
                 profile,
                 cfg,
+                fitted_states[col_name],
             )
 
             # 替换原列（可能多列）
@@ -776,6 +798,22 @@ def preprocess(
             )
         )
 
+    # Match model input order, including columns appended by one-hot/date expansion.
+    feature_names_out = list(X_train.columns)
+    if not X_train.columns.is_unique:
+        raise TransformError("预处理后特征名重复，无法可靠保存推断流水线")
+    for mapping in column_mappings:
+        state = fitted_states[mapping.original_name]
+        state["outputs"] = list(mapping.output_names)
+        col_type = _resolve_col_type(profile, mapping.original_name)
+        if mapping.is_dropped:
+            state["kind"] = "drop"
+        elif col_type == "boolean":
+            state["kind"] = "boolean"
+        elif col_type == "datetime" and cfg.handle_datetime == "extract":
+            state["kind"] = "datetime"
+            state["date_parts"] = ["year", "month", "day"] + (["dayofweek", "quarter"] if cfg.datetime_features == "full" else [])
+    fitted_preprocessor = FittedPreprocessor(fitted_states, feature_names_out)
     n_features_out = len(feature_names_out)
 
     return PreprocessedData(
@@ -791,6 +829,7 @@ def preprocess(
         feature_names_out=feature_names_out,
         transforms=transforms,
         column_mappings=column_mappings,
+        fitted_preprocessor=fitted_preprocessor,
     )
 
 

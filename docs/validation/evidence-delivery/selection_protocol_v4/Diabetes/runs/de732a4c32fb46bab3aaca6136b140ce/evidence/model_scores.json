@@ -1,0 +1,104 @@
+{
+  "selection_metric": "rmse",
+  "selected_model": "random_forest",
+  "models": [
+    {
+      "model_name": "random_forest",
+      "task_type": "regression",
+      "status": "success",
+      "best_params": {
+        "min_samples_split": 9,
+        "min_samples_leaf": 10,
+        "max_features": "sqrt",
+        "ccp_alpha": 0.007799726016810133,
+        "n_estimators": 8,
+        "max_depth": 3
+      },
+      "n_trials": 1,
+      "optuna_duration_seconds": 0.01,
+      "optuna_trials": [
+        {
+          "trial_number": 0,
+          "params": {
+            "min_samples_split": 9,
+            "min_samples_leaf": 10,
+            "max_features": "sqrt",
+            "ccp_alpha": 0.007799726016810133
+          },
+          "value": 55.8671506106094,
+          "state": "COMPLETE",
+          "duration_seconds": 0.004525
+        }
+      ],
+      "train_metrics": {
+        "rmse": 54.11869581059002,
+        "mae": 45.29173901285855,
+        "r2": 0.5288781813158956
+      },
+      "validation_metrics": {
+        "rmse": 55.8671506106094,
+        "mae": 47.675597207200695,
+        "r2": 0.4303265452391899
+      },
+      "test_metrics": {
+        "rmse": 54.686767535545435,
+        "mae": 45.3453692369589,
+        "r2": 0.4355309765666642
+      },
+      "model_path": null,
+      "artifact_paths": {},
+      "error": null,
+      "note": null
+    },
+    {
+      "model_name": "xgboost",
+      "task_type": "regression",
+      "status": "success",
+      "best_params": {
+        "learning_rate": 0.008468008575248327,
+        "subsample": 0.9753571532049581,
+        "colsample_bytree": 0.8659969709057025,
+        "min_child_weight": 6,
+        "gamma": 0.7800932022121826,
+        "reg_alpha": 2.5348407664333426e-07,
+        "reg_lambda": 3.3323645788192616e-08,
+        "n_estimators": 8,
+        "max_depth": 3
+      },
+      "n_trials": 1,
+      "optuna_duration_seconds": 0.0,
+      "optuna_trials": [
+        {
+          "trial_number": 0,
+          "params": {
+            "learning_rate": 0.008468008575248327,
+            "subsample": 0.9753571532049581,
+            "colsample_bytree": 0.8659969709057025,
+            "min_child_weight": 6,
+            "gamma": 0.7800932022121826,
+            "reg_alpha": 2.5348407664333426e-07,
+            "reg_lambda": 3.3323645788192616e-08
+          },
+          "value": 73.32473619492232,
+          "state": "COMPLETE",
+          "duration_seconds": 0.003437
+        }
+      ],
+      "train_metrics": {
+        "rmse": 76.20902960183369,
+        "mae": 64.5313733996767,
+        "r2": 0.06577510337412318
+      },
+      "validation_metrics": {
+        "rmse": 73.32473619492232,
+        "mae": 62.55548970083172,
+        "r2": 0.018672525536049145
+      },
+      "test_metrics": null,
+      "model_path": null,
+      "artifact_paths": {},
+      "error": null,
+      "note": null
+    }
+  ]
+}

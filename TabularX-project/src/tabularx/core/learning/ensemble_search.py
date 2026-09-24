@@ -28,7 +28,7 @@ def build_voting(
     task_type: str,
     registry: ModelRegistry | None = None,
 ) -> ModelRunResult | None:
-    """构建 Voting 组合模型，评估并在结果中记录。
+    """构建 Voting 验证集比较模型，不访问测试集，也不替换已选择的单模型。
 
     Args:
         search_result: 模型搜索结果（含 top_k 模型）。
@@ -86,22 +86,6 @@ def build_voting(
             y_prob=y_prob,
         )
 
-        # 测试集评估
-        y_test_pred = voting.predict(preprocessed_data.X_test)
-        y_test_prob = None
-        if task_type != "regression" and hasattr(voting, "predict_proba"):
-            try:
-                y_test_prob = voting.predict_proba(preprocessed_data.X_test)
-            except Exception:
-                y_test_prob = None
-
-        test_metrics = compute_all_metrics(
-            task_type=task_type,
-            y_true=preprocessed_data.y_test,
-            y_pred=y_test_pred,
-            y_prob=y_test_prob,
-        )
-
         return ModelRunResult(
             model_name="voting",
             task_type=task_type,
@@ -109,7 +93,7 @@ def build_voting(
             best_params={"estimators": [e[0] for e in estimators]},
             n_trials=0,
             validation_metrics=valid_metrics,
-            test_metrics=test_metrics,
+            test_metrics=None,
             note=f"Voting 组合：{', '.join(e[0] for e in estimators)}",
         )
 

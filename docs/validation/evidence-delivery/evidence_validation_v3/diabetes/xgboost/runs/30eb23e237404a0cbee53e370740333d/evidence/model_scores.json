@@ -1,0 +1,60 @@
+{
+  "selection_metric": "rmse",
+  "selected_model": "xgboost",
+  "models": [
+    {
+      "model_name": "xgboost",
+      "task_type": "regression",
+      "status": "success",
+      "best_params": {
+        "learning_rate": 0.008468008575248327,
+        "subsample": 0.9753571532049581,
+        "colsample_bytree": 0.8659969709057025,
+        "min_child_weight": 6,
+        "gamma": 0.7800932022121826,
+        "reg_alpha": 2.5348407664333426e-07,
+        "reg_lambda": 3.3323645788192616e-08,
+        "n_estimators": 8,
+        "max_depth": 3
+      },
+      "n_trials": 1,
+      "optuna_duration_seconds": 0.0,
+      "optuna_trials": [
+        {
+          "trial_number": 0,
+          "params": {
+            "learning_rate": 0.008468008575248327,
+            "subsample": 0.9753571532049581,
+            "colsample_bytree": 0.8659969709057025,
+            "min_child_weight": 6,
+            "gamma": 0.7800932022121826,
+            "reg_alpha": 2.5348407664333426e-07,
+            "reg_lambda": 3.3323645788192616e-08
+          },
+          "value": 73.32473619492232,
+          "state": "COMPLETE",
+          "duration_seconds": 0.003524
+        }
+      ],
+      "train_metrics": {
+        "rmse": 76.20902960183369,
+        "mae": 64.5313733996767,
+        "r2": 0.06577510337412318
+      },
+      "validation_metrics": {
+        "rmse": 73.32473619492232,
+        "mae": 62.55548970083172,
+        "r2": 0.018672525536049145
+      },
+      "test_metrics": {
+        "rmse": 71.23160900883612,
+        "mae": 62.32018528627545,
+        "r2": 0.042318460695595306
+      },
+      "model_path": null,
+      "artifact_paths": {},
+      "error": null,
+      "note": null
+    }
+  ]
+}

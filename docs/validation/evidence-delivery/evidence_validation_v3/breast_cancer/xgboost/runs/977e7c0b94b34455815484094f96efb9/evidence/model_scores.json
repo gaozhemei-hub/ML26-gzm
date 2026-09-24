@@ -1,0 +1,72 @@
+{
+  "selection_metric": "roc_auc",
+  "selected_model": "xgboost",
+  "models": [
+    {
+      "model_name": "xgboost",
+      "task_type": "binary",
+      "status": "success",
+      "best_params": {
+        "learning_rate": 0.008468008575248327,
+        "subsample": 0.9753571532049581,
+        "colsample_bytree": 0.8659969709057025,
+        "min_child_weight": 6,
+        "gamma": 0.7800932022121826,
+        "reg_alpha": 2.5348407664333426e-07,
+        "reg_lambda": 3.3323645788192616e-08,
+        "n_estimators": 8,
+        "max_depth": 3
+      },
+      "n_trials": 1,
+      "optuna_duration_seconds": 0.04,
+      "optuna_trials": [
+        {
+          "trial_number": 0,
+          "params": {
+            "learning_rate": 0.008468008575248327,
+            "subsample": 0.9753571532049581,
+            "colsample_bytree": 0.8659969709057025,
+            "min_child_weight": 6,
+            "gamma": 0.7800932022121826,
+            "reg_alpha": 2.5348407664333426e-07,
+            "reg_lambda": 3.3323645788192616e-08
+          },
+          "value": 0.977890599410416,
+          "state": "COMPLETE",
+          "duration_seconds": 0.041145
+        }
+      ],
+      "train_metrics": {
+        "accuracy": 0.6275659824046921,
+        "balanced_accuracy": 0.5,
+        "f1": 0.7711711711711712,
+        "f1_macro": 0.3855855855855856,
+        "roc_auc": 0.9914268893958349,
+        "precision": 0.6275659824046921,
+        "recall": 1.0
+      },
+      "validation_metrics": {
+        "accuracy": 0.6228070175438597,
+        "balanced_accuracy": 0.5,
+        "f1": 0.7675675675675676,
+        "f1_macro": 0.3837837837837838,
+        "roc_auc": 0.977890599410416,
+        "precision": 0.6228070175438597,
+        "recall": 1.0
+      },
+      "test_metrics": {
+        "accuracy": 0.631578947368421,
+        "balanced_accuracy": 0.5,
+        "f1": 0.7741935483870968,
+        "f1_macro": 0.3870967741935484,
+        "roc_auc": 0.9885912698412699,
+        "precision": 0.631578947368421,
+        "recall": 1.0
+      },
+      "model_path": null,
+      "artifact_paths": {},
+      "error": null,
+      "note": null
+    }
+  ]
+}

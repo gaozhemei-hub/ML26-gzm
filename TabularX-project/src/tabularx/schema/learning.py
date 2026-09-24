@@ -183,13 +183,13 @@ class ModelSearchResult:
 
     @property
     def ranking(self) -> list[ModelRunResult]:
-        """按测试集主指标排序的模型列表（最优在前）。"""
+        """按验证集主指标排序；测试分数不参与候选选择。"""
         if not self.succeeded_results:
             return []
         reverse = self.optimization_direction == "maximize"
         return sorted(
-            self.succeeded_results,
-            key=lambda r: (r.test_metrics or r.validation_metrics).get(self.primary_metric, 0.0),
+            [r for r in self.succeeded_results if self.primary_metric in r.validation_metrics],
+            key=lambda r: r.validation_metrics[self.primary_metric],
             reverse=reverse,
         )
 
@@ -220,9 +220,9 @@ class FairnessGroupResult:
     """正类预测率 P(预测=正类)"""
     accuracy: float
     """准确率"""
-    tpr: float
+    tpr: float | None
     """真正率（召回率）"""
-    fpr: float
+    fpr: float | None
     """假正率"""
     support: int
     """该子组的实际样本数"""
@@ -246,11 +246,11 @@ class FairnessFeatureResult:
     """Equalized Odds TPR 差异：各子组 TPR 的最大差值"""
     equalized_odds_fpr_diff: float | None = None
     """Equalized Odds FPR 差异：各子组 FPR 的最大差值"""
-    dp_violation: bool = False
+    dp_violation: bool | None = None
     """Demographic Parity 是否超过告警阈值"""
-    eo_tpr_violation: bool = False
+    eo_tpr_violation: bool | None = None
     """Equalized Odds TPR 是否超过告警阈值"""
-    eo_fpr_violation: bool = False
+    eo_fpr_violation: bool | None = None
     """Equalized Odds FPR 是否超过告警阈值"""
 
 

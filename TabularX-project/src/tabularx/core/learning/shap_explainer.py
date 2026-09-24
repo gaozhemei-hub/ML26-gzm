@@ -315,6 +315,7 @@ def explain_model(
     max_explain_samples: int = 200,
     n_background: int = 100,
     config: ShapConfig | None = None,
+    fitted_model: Any | None = None,
 ) -> ShapResult:
     """对最优模型执行 SHAP 可解释性分析。
 
@@ -359,7 +360,7 @@ def explain_model(
 
     # ── 1. 重建模型 ─────────────────────────────────────────
     try:
-        model = _rebuild_model(spec, best_params, X_train, y_train)
+        model = fitted_model if fitted_model is not None else _rebuild_model(spec, best_params, X_train, y_train)
     except Exception as e:
         return ShapResult(
             model_name=model_name,
@@ -419,7 +420,7 @@ def explain_model(
     # ── 4. 生成图表（使用配置的 min_samples_for_plots）──────
     artifact_paths = _generate_plots(
         shap_values=shap_values,
-        X_explain=X_explain.iloc[: max(min(len(X_explain), _max_explain), _min_samples)],
+        X_explain=X_explain.iloc[:n_explain_samples],
         feature_names=feature_names,
         output_dir=output_path,
         model_name=model_name,

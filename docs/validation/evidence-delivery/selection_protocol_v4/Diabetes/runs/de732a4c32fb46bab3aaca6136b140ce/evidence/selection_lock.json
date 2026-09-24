@@ -1,0 +1,18 @@
+{
+  "model_name": "random_forest",
+  "parameters": {
+    "min_samples_split": 9,
+    "min_samples_leaf": 10,
+    "max_features": "sqrt",
+    "ccp_alpha": 0.007799726016810133,
+    "n_estimators": 8,
+    "max_depth": 3
+  },
+  "metric": "rmse",
+  "validation_metrics": {
+    "rmse": 55.8671506106094,
+    "mae": 47.675597207200695,
+    "r2": 0.4303265452391899
+  },
+  "basis": "validation only; voting is a validation-only diagnostic"
+}

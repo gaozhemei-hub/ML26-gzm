@@ -1,0 +1,126 @@
+{
+  "selection_metric": "roc_auc",
+  "selected_model": "xgboost",
+  "models": [
+    {
+      "model_name": "random_forest",
+      "task_type": "binary",
+      "status": "success",
+      "best_params": {
+        "min_samples_split": 9,
+        "min_samples_leaf": 10,
+        "max_features": "sqrt",
+        "ccp_alpha": 0.007799726016810133,
+        "n_estimators": 32,
+        "max_depth": 5,
+        "random_state": 42
+      },
+      "n_trials": 1,
+      "optuna_duration_seconds": 0.18,
+      "optuna_trials": [
+        {
+          "trial_number": 0,
+          "params": {
+            "min_samples_split": 9,
+            "min_samples_leaf": 10,
+            "max_features": "sqrt",
+            "ccp_alpha": 0.007799726016810133
+          },
+          "value": 0.8864545607172123,
+          "state": "COMPLETE",
+          "duration_seconds": 0.181612
+        }
+      ],
+      "train_metrics": {
+        "accuracy": 0.8142915642915642,
+        "balanced_accuracy": 0.6254898040006064,
+        "f1": 0.40433450087565675,
+        "f1_macro": 0.6471664418996653,
+        "roc_auc": 0.8829710607864154,
+        "precision": 0.8695856873822976,
+        "recall": 0.26340559041642897
+      },
+      "validation_metrics": {
+        "accuracy": 0.8155389497389702,
+        "balanced_accuracy": 0.6279568904408097,
+        "f1": 0.41034031413612565,
+        "f1_macro": 0.6505044611573724,
+        "roc_auc": 0.8864545607172123,
+        "precision": 0.8720445062586927,
+        "recall": 0.2682926829268293
+      },
+      "test_metrics": null,
+      "model_path": null,
+      "artifact_paths": {},
+      "error": null,
+      "note": null
+    },
+    {
+      "model_name": "xgboost",
+      "task_type": "binary",
+      "status": "success",
+      "best_params": {
+        "learning_rate": 0.008468008575248327,
+        "subsample": 0.9753571532049581,
+        "colsample_bytree": 0.8659969709057025,
+        "min_child_weight": 6,
+        "gamma": 0.7800932022121826,
+        "reg_alpha": 2.5348407664333426e-07,
+        "reg_lambda": 3.3323645788192616e-08,
+        "n_estimators": 32,
+        "max_depth": 5,
+        "random_state": 42
+      },
+      "n_trials": 1,
+      "optuna_duration_seconds": 0.17,
+      "optuna_trials": [
+        {
+          "trial_number": 0,
+          "params": {
+            "learning_rate": 0.008468008575248327,
+            "subsample": 0.9753571532049581,
+            "colsample_bytree": 0.8659969709057025,
+            "min_child_weight": 6,
+            "gamma": 0.7800932022121826,
+            "reg_alpha": 2.5348407664333426e-07,
+            "reg_lambda": 3.3323645788192616e-08
+          },
+          "value": 0.9034095986178262,
+          "state": "COMPLETE",
+          "duration_seconds": 0.172765
+        }
+      ],
+      "train_metrics": {
+        "accuracy": 0.7607152607152607,
+        "balanced_accuracy": 0.5,
+        "f1": 0.0,
+        "f1_macro": 0.4320489960462051,
+        "roc_auc": 0.9034289920209583,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "validation_metrics": {
+        "accuracy": 0.7607738765482649,
+        "balanced_accuracy": 0.5,
+        "f1": 0.0,
+        "f1_macro": 0.4320679030288937,
+        "roc_auc": 0.9034095986178262,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "test_metrics": {
+        "accuracy": 0.7606715119254785,
+        "balanced_accuracy": 0.5,
+        "f1": 0.0,
+        "f1_macro": 0.43203488372093024,
+        "roc_auc": 0.9016953405030299,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "model_path": null,
+      "artifact_paths": {},
+      "error": null,
+      "note": null
+    }
+  ]
+}

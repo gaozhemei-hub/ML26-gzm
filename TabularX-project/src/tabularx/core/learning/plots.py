@@ -28,6 +28,7 @@ def save_model_plots(
     preprocessed: PreprocessedData,
     task_type: str,
     registry=None,
+    fitted_model=None,
 ) -> None:
     """为单个模型生成混淆矩阵和 ROC 曲线，保存到 assets_dir 并写入 run.artifact_paths。
 
@@ -53,10 +54,12 @@ def save_model_plots(
         return
 
     # 重建模型
-    model = spec.factory(**run.best_params, **(spec.default_params or {}))
+    model = fitted_model
     X_full = pd.concat([preprocessed.X_train, preprocessed.X_valid])
     y_full = pd.concat([preprocessed.y_train, preprocessed.y_valid])
-    model.fit(X_full, y_full)
+    if model is None:
+        model = spec.factory(**{**(spec.default_params or {}), **run.best_params})
+        model.fit(X_full, y_full)
     y_pred = model.predict(preprocessed.X_test)
 
     if is_classification:
