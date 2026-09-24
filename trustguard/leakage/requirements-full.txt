@@ -1,0 +1,8 @@
+# Extra dependencies for the complete TabularX modelling experiment.
+# From the repository root, install the base project first:
+# python -m pip install -e ./TabularX-project
+-r requirements-safe-search.txt
+xgboost>=2.0
+lightgbm>=4.0
+catboost>=1.2
+shap>=0.45

@@ -13,7 +13,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "TabularX" / "src"))
 
 from tabularx import build_profile, preprocess, split_data
-from tabularx.reports import render_preprocess_report, render_profile_report, render_split_report
+from tabularx.core.reports import render_preprocess_report, render_profile_report, render_split_report
 
 
 # 目标目录

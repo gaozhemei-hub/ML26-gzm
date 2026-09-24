@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "TabularX" / "src")
 from tabularx.core.params import ModelSearchConfig
 from tabularx.core.learning import search_models, build_voting
 from tabularx.core.learning.model_registry import get_default_registry
-from tabularx.reports import render_model_search_report, render_model_detail_report
+from tabularx.core.reports import render_model_search_report, render_model_detail_report
 from tabularx.schema.learning import ModelSearchResult
 from tabularx.schema.preprocess import PreprocessedData
 from tabularx.schema.profile import DataProfile, TargetFact

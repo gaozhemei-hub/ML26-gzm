@@ -18,7 +18,11 @@ import pandas as pd
 import pytest
 from sklearn.datasets import load_iris, load_diabetes
 
-from tabularx.core.params import ModelSearchConfig, TabularXParams
+from tabularx.core.params import (
+    ModelSearchConfig,
+    TabularXParams,
+    FairnessConfig,
+)
 from tabularx.core.learning import (
     ModelRegistry,
     get_default_registry,
@@ -42,7 +46,6 @@ from tabularx.exceptions.learning import (
 from tabularx.schema.learning import (
     ModelRunResult,
     ModelSearchResult,
-    FairnessConfig,
     ParamDef,
 )
 from tabularx.schema.preprocess import PreprocessedData
@@ -583,16 +586,13 @@ class TestEnsembleSearch:
 class TestFairnessConfig:
     def test_default(self):
         cfg = FairnessConfig()
-        assert cfg.enabled is False
         assert cfg.sensitive_features == []
         assert "demographic_parity" in cfg.metrics
 
     def test_custom(self):
         cfg = FairnessConfig(
-            enabled=True,
             sensitive_features=["gender", "race"],
         )
-        assert cfg.enabled is True
         assert "gender" in cfg.sensitive_features
 
 

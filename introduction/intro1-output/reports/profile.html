@@ -1,0 +1,1894 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>TabularX 数据概况报告</title>
+  <style>
+    body { font-family: "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; margin: 2rem; color: #333; line-height: 1.6; }
+    h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: .5rem; }
+    h2 { color: #34495e; margin-top: 2rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ddd; padding: .5rem .75rem; text-align: left; font-size: .9rem; }
+    th { background: #f5f6fa; font-weight: 600; }
+    tr:nth-child(even) td { background: #fafbfc; }
+    .badge { display: inline-block; background: #ecf0f1; border-radius: 3px; padding: .1rem .5rem; margin: .1rem .2rem; font-size: .8rem; }
+    .badge-warn { background: #fef3cd; color: #856404; }
+    .badge-ok { background: #d4edda; color: #155724; }
+    .badge-info { background: #cce5ff; color: #004085; }
+    .summary { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .card { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; min-width: 140px; }
+    .card .num { font-size: 1.5rem; font-weight: 700; color: #2c3e50; word-break: break-all; }
+    .card .label { font-size: .8rem; color: #7f8c8d; }
+    .conclusion { background: #eaf4fd; border-left: 4px solid #3498db; padding: .75rem 1rem; margin: 1rem 0; border-radius: 4px; }
+    .evidence { background: #f8f9fa; border: 1px solid #eee; border-left: 3px solid #27ae60; padding: .75rem 1rem; margin: .75rem 0; border-radius: 4px; font-size: .9rem; }
+    .evidence .rule { color: #7f8c8d; font-size: .85rem; margin-top: .25rem; }
+    .hint { color: #7f8c8d; font-size: .85rem; }
+    .mermaid-note { background: #f5f6fa; border: 1px dashed #bdc3c7; padding: 1rem; border-radius: 6px; margin: 1rem 0; font-size: .85rem; color: #7f8c8d; }
+    footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #95a5a6; font-size: .85rem; }
+    /* Mermaid 流程图样式 */
+    .mermaid { background: #fff; padding: 1rem; border-radius: 6px; border: 1px solid #eee; }
+  </style>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+  </script>
+</head>
+<body>
+  <h1>TabularX 数据概况报告</h1>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 1 部分：摘要（输入 / 输出 / 结论）
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>① 摘要</h2>
+
+    <h3>输入</h3>
+    <div class="summary">
+      <div class="card"><div class="num">569</div><div class="label">样本数（行）</div></div>
+      <div class="card"><div class="num">31</div><div class="label">特征数（列）</div></div>
+      <div class="card"><div class="num" style="font-size:1rem">c4255f37fde14b18</div><div class="label">数据指纹</div></div>
+    </div>
+
+    <h3>输出（结论）</h3>
+    <div class="conclusion">
+      
+        判定为 <b>binary 分类任务</b>，
+        共 2 个类别。
+      
+    </div>
+
+    <h3>关键发现</h3>
+    <ul>
+      
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+      <li>11 列建议标准化（scale_needed）</li>
+      <li>0 列存在缺失值（has_missing）</li>
+      <li>0 列为常数列、0 列为全空列（预处理器将丢弃）</li>
+      <li>0 列为高基数文本列</li>
+      <li>22 列分布偏斜（skewed，建议 log 变换或缩尾）</li>
+      <li>0 列高基数类别（high_cardinality，建议目标编码）</li>
+    </ul>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 2 部分：判断流程与证据（核心解释）
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>② 判断流程与证据</h2>
+
+    <!-- 2.1 判断流程图 -->
+    <h3>2.1 判断流程图</h3>
+    <div class="mermaid">
+flowchart TD
+  Start([开始：接收 X, y]) --> InputCheck{输入类型检查}
+  InputCheck -->|X 不是 DataFrame 或 y 不是 Series| InvalidInput[失败：InvalidDataError]
+  InputCheck -->|类型正确| ShapeCheck{数据非空检查}
+  ShapeCheck -->|X 无行/无列，或 y 无样本| EmptyData[失败：EmptyDataError]
+  ShapeCheck -->|数据非空| AlignCheck{X/y 长度检查}
+  AlignCheck -->|行数不一致| LengthError[失败：MismatchedLengthError]
+  AlignCheck -->|长度一致| TaskCheck{任务类型判断}
+  TaskCheck -->|y 全为空| EmptyTarget[失败：EmptyTargetError]
+  TaskCheck -->|task_type 非法或无法推断| TaskError[失败：TaskTypeError]
+  TaskCheck -->|唯一值 = 2| Binary[二分类任务]
+  TaskCheck -->|唯一值 3~20| Multi[多分类任务]
+  TaskCheck -->|连续值或浮点且唯一值 > 20| Reg[回归任务]
+  Binary --> Imbalance{类别不平衡检测}
+  Multi --> Imbalance
+  Reg --> ColLoop[逐列分析]
+  Imbalance -->|最小类别占比 < 10%| Imbalanced[标记 imbalanced]
+  Imbalance -->|否则| Balanced[类别分布较均衡]
+  Imbalanced --> ColLoop
+  Balanced --> ColLoop
+  ColLoop --> EmptyColCheck{是否全空列？}
+  EmptyColCheck -->|是：非缺失值 = 0| EmptyColumn[标记 empty_column]
+  EmptyColCheck -->|否| ConstantCheck{是否常数列？}
+  ConstantCheck -->|是：唯一值 = 1| ConstantColumn[标记 constant_column]
+  ConstantCheck -->|否| ColType{列类型判断}
+  EmptyColumn --> Done([完成：输出 DataProfile])
+  ConstantColumn --> Done
+  ColType -->|datetime| DateTime[日期时间列]
+  ColType -->|boolean| Boolean[布尔列]
+  ColType -->|整数且唯一值 ≤ 20| Cate[类别列]
+  ColType -->|整数且唯一值 > 20 或浮点| Num[数值列]
+  ColType -->|object/str/category| Cat{唯一值与行唯一率}
+  Cat -->|唯一值 > 200 且 >50% 行唯一| Text[文本列]
+  Cat -->|其他| Cate
+  Cate --> HighCard{基数检测}
+  HighCard -->|unique > 50| HighCardYes[标记 high_cardinality]
+  HighCard -->|unique ≤ 50| LowCard[基数正常]
+  HighCardYes --> Miss{缺失值检查}
+  LowCard --> Miss
+  Num --> Scale{scale 判据}
+  Scale -->|‖mean‖>0.5 或 std>1.5| ScaleYes[标记 scale_needed]
+  Scale -->|否则| ScaleNo[无需标准化]
+  ScaleYes --> Skew{偏度检测}
+  ScaleNo --> Skew
+  Skew -->|‖skew‖ > 1| Skewed[标记 skewed]
+  Skew -->|否则| NoSkew[分布风险较低]
+  Skewed --> Miss{缺失值检查}
+  NoSkew --> Miss
+  DateTime --> Miss
+  Boolean --> Miss
+  Text --> Miss
+  Miss -->|n_missing > 0| MissYes[标记 has_missing]
+  Miss -->|无缺失| Done
+  MissYes --> Done
+  classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
+  classDef warning fill:#fff3cd,stroke:#856404,stroke-width:1px;
+  class InvalidInput,EmptyData,LengthError,EmptyTarget,TaskError error;
+  class EmptyColumn,ConstantColumn,MissYes,ScaleYes,Skewed,HighCardYes,Imbalanced warning;
+    </div>
+    <div class="mermaid-note">↑ profile 阶段完整判断流程。后续阶段：Split → Preprocess → Model Search。</div>
+
+    <!-- 2.2 目标变量判断依据 -->
+    <h3>2.2 目标变量判断依据</h3>
+    <div class="evidence">
+      <b>任务类型：binary</b>
+      <ul style="margin: .5rem 0 0 0;">
+        
+          <li><b>task_type_source</b> = <code>user+auto</code>
+            <span class="hint">— 用户手动指定分类任务；按唯一值数 2 细分为 binary</span>
+          </li>
+        
+      </ul>
+      <div class="rule">规则：唯一值 ≤2 → 二分类；3~20 → 多分类；浮点连续且唯一值 &gt;20 → 回归</div>
+    </div>
+
+    
+
+    <!-- 2.3 特征列判断依据（仅列特殊情况的列） -->
+    <h3>2.3 特征列判断依据（仅列特殊情况）</h3>
+    
+    
+      
+      <div class="evidence">
+        <b>mean radius</b>
+        <span class="badge badge-warn">numeric, scale_needed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=14.1273, std=3.5210，满足判据 → scale_needed</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>mean texture</b>
+        <span class="badge badge-warn">numeric, scale_needed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=19.2896, std=4.2973，满足判据 → scale_needed</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>mean perimeter</b>
+        <span class="badge badge-warn">numeric, scale_needed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=91.9690, std=24.2776，满足判据 → scale_needed</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>mean area</b>
+        <span class="badge badge-warn">numeric, scale_needed, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=654.8891, std=351.6048，满足判据 → scale_needed</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>1.6457</code>
+              <span class="hint">— 偏度 = 1.6457，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>mean smoothness</b>
+        <span class="badge ">numeric</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.0964, std=0.0141，不满足判据 → 无需 scale</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>mean compactness</b>
+        <span class="badge badge-warn">numeric, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.1043, std=0.0528，不满足判据 → 无需 scale</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>1.1901</code>
+              <span class="hint">— 偏度 = 1.1901，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>mean concavity</b>
+        <span class="badge badge-warn">numeric, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.0888, std=0.0796，不满足判据 → 无需 scale</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>1.4012</code>
+              <span class="hint">— 偏度 = 1.4012，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>mean concave points</b>
+        <span class="badge badge-warn">numeric, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.0489, std=0.0388，不满足判据 → 无需 scale</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>1.1712</code>
+              <span class="hint">— 偏度 = 1.1712，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>mean symmetry</b>
+        <span class="badge ">numeric</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.1812, std=0.0274，不满足判据 → 无需 scale</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>mean fractal dimension</b>
+        <span class="badge badge-warn">numeric, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.0628, std=0.0071，不满足判据 → 无需 scale</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>1.3045</code>
+              <span class="hint">— 偏度 = 1.3045，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>radius error</b>
+        <span class="badge badge-warn">numeric, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.4052, std=0.2771，不满足判据 → 无需 scale</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>3.0886</code>
+              <span class="hint">— 偏度 = 3.0886，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>texture error</b>
+        <span class="badge badge-warn">numeric, scale_needed, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=1.2169, std=0.5512，满足判据 → scale_needed</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>1.6464</code>
+              <span class="hint">— 偏度 = 1.6464，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>perimeter error</b>
+        <span class="badge badge-warn">numeric, scale_needed, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=2.8661, std=2.0201，满足判据 → scale_needed</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>3.4436</code>
+              <span class="hint">— 偏度 = 3.4436，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>area error</b>
+        <span class="badge badge-warn">numeric, scale_needed, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=40.3371, std=45.4510，满足判据 → scale_needed</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>5.4472</code>
+              <span class="hint">— 偏度 = 5.4472，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>smoothness error</b>
+        <span class="badge badge-warn">numeric, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.0070, std=0.0030，不满足判据 → 无需 scale</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>2.3145</code>
+              <span class="hint">— 偏度 = 2.3145，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>compactness error</b>
+        <span class="badge badge-warn">numeric, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.0255, std=0.0179，不满足判据 → 无需 scale</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>1.9022</code>
+              <span class="hint">— 偏度 = 1.9022，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>concavity error</b>
+        <span class="badge badge-warn">numeric, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.0319, std=0.0302，不满足判据 → 无需 scale</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>5.1105</code>
+              <span class="hint">— 偏度 = 5.1105，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>concave points error</b>
+        <span class="badge badge-warn">numeric, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.0118, std=0.0062，不满足判据 → 无需 scale</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>1.4447</code>
+              <span class="hint">— 偏度 = 1.4447，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>symmetry error</b>
+        <span class="badge badge-warn">numeric, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.0205, std=0.0083，不满足判据 → 无需 scale</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>2.1951</code>
+              <span class="hint">— 偏度 = 2.1951，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>fractal dimension error</b>
+        <span class="badge badge-warn">numeric, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.0038, std=0.0026，不满足判据 → 无需 scale</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>3.924</code>
+              <span class="hint">— 偏度 = 3.9240，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>worst radius</b>
+        <span class="badge badge-warn">numeric, scale_needed, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=16.2692, std=4.8290，满足判据 → scale_needed</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>1.1031</code>
+              <span class="hint">— 偏度 = 1.1031，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>worst texture</b>
+        <span class="badge badge-warn">numeric, scale_needed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=25.6772, std=6.1409，满足判据 → scale_needed</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>worst perimeter</b>
+        <span class="badge badge-warn">numeric, scale_needed, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=107.2612, std=33.5730，满足判据 → scale_needed</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>1.1282</code>
+              <span class="hint">— 偏度 = 1.1282，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>worst area</b>
+        <span class="badge badge-warn">numeric, scale_needed, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=880.5831, std=568.8565，满足判据 → scale_needed</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>1.8594</code>
+              <span class="hint">— 偏度 = 1.8594，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>worst smoothness</b>
+        <span class="badge ">numeric</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.1324, std=0.0228，不满足判据 → 无需 scale</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>worst compactness</b>
+        <span class="badge badge-warn">numeric, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.2543, std=0.1572，不满足判据 → 无需 scale</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>1.4736</code>
+              <span class="hint">— 偏度 = 1.4736，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>worst concavity</b>
+        <span class="badge badge-warn">numeric, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.2722, std=0.2084，不满足判据 → 无需 scale</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>1.1502</code>
+              <span class="hint">— 偏度 = 1.1502，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>worst concave points</b>
+        <span class="badge ">numeric</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.1146, std=0.0657，不满足判据 → 无需 scale</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>worst symmetry</b>
+        <span class="badge badge-warn">numeric, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.2901, std=0.0618，不满足判据 → 无需 scale</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>1.4339</code>
+              <span class="hint">— 偏度 = 1.4339，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>worst fractal dimension</b>
+        <span class="badge badge-warn">numeric, skewed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.0839, std=0.0180，不满足判据 → 无需 scale</span>
+            </li>
+          
+            <li><b>skewness</b> = <code>1.6626</code>
+              <span class="hint">— 偏度 = 1.6626，|skew| &gt; 1.0，分布偏斜明显，建议评估 log 变换或缩尾处理</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+          <div class="rule">规则：|skew| &gt; 1 → 分布偏斜，建议评估 log 变换或缩尾处理</div>
+        
+        
+      </div>
+      
+      
+    
+      
+    
+    
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 3 部分：详细描述性统计
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>③ 详细描述性统计</h2>
+
+    <h3>目标变量</h3>
+    <table>
+      <tr><th>任务类型</th><td>binary</td></tr>
+      
+        <tr><th>类别数</th><td>2</td></tr>
+        <tr><th>类别分布</th>
+          <td>
+            
+              <span class="badge badge-info">1: 62.7%</span>
+            
+              <span class="badge badge-info">0: 37.3%</span>
+            
+          </td>
+        </tr>
+      
+      <tr><th>缺失率</th><td>0.00%</td></tr>
+    </table>
+
+    <h3>特征列</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>列名</th><th>类型</th><th>dtype</th><th>缺失数</th><th>缺失率</th>
+          <th>唯一值</th><th>标签</th><th>均值</th><th>标准差</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td>mean radius</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>456</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+          </td>
+          <td>14.1273</td>
+          <td>3.5210</td>
+        </tr>
+        
+        <tr>
+          <td>mean texture</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>479</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+          </td>
+          <td>19.2896</td>
+          <td>4.2973</td>
+        </tr>
+        
+        <tr>
+          <td>mean perimeter</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>522</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+          </td>
+          <td>91.9690</td>
+          <td>24.2776</td>
+        </tr>
+        
+        <tr>
+          <td>mean area</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>539</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>654.8891</td>
+          <td>351.6048</td>
+        </tr>
+        
+        <tr>
+          <td>mean smoothness</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>474</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+          </td>
+          <td>0.0964</td>
+          <td>0.0141</td>
+        </tr>
+        
+        <tr>
+          <td>mean compactness</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>537</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>0.1043</td>
+          <td>0.0528</td>
+        </tr>
+        
+        <tr>
+          <td>mean concavity</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>537</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>0.0888</td>
+          <td>0.0796</td>
+        </tr>
+        
+        <tr>
+          <td>mean concave points</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>542</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>0.0489</td>
+          <td>0.0388</td>
+        </tr>
+        
+        <tr>
+          <td>mean symmetry</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>432</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+          </td>
+          <td>0.1812</td>
+          <td>0.0274</td>
+        </tr>
+        
+        <tr>
+          <td>mean fractal dimension</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>499</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>0.0628</td>
+          <td>0.0071</td>
+        </tr>
+        
+        <tr>
+          <td>radius error</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>540</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>0.4052</td>
+          <td>0.2771</td>
+        </tr>
+        
+        <tr>
+          <td>texture error</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>519</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>1.2169</td>
+          <td>0.5512</td>
+        </tr>
+        
+        <tr>
+          <td>perimeter error</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>533</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>2.8661</td>
+          <td>2.0201</td>
+        </tr>
+        
+        <tr>
+          <td>area error</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>528</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>40.3371</td>
+          <td>45.4510</td>
+        </tr>
+        
+        <tr>
+          <td>smoothness error</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>547</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>0.0070</td>
+          <td>0.0030</td>
+        </tr>
+        
+        <tr>
+          <td>compactness error</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>541</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>0.0255</td>
+          <td>0.0179</td>
+        </tr>
+        
+        <tr>
+          <td>concavity error</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>533</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>0.0319</td>
+          <td>0.0302</td>
+        </tr>
+        
+        <tr>
+          <td>concave points error</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>507</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>0.0118</td>
+          <td>0.0062</td>
+        </tr>
+        
+        <tr>
+          <td>symmetry error</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>498</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>0.0205</td>
+          <td>0.0083</td>
+        </tr>
+        
+        <tr>
+          <td>fractal dimension error</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>545</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>0.0038</td>
+          <td>0.0026</td>
+        </tr>
+        
+        <tr>
+          <td>worst radius</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>457</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>16.2692</td>
+          <td>4.8290</td>
+        </tr>
+        
+        <tr>
+          <td>worst texture</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>511</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+          </td>
+          <td>25.6772</td>
+          <td>6.1409</td>
+        </tr>
+        
+        <tr>
+          <td>worst perimeter</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>514</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>107.2612</td>
+          <td>33.5730</td>
+        </tr>
+        
+        <tr>
+          <td>worst area</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>544</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>880.5831</td>
+          <td>568.8565</td>
+        </tr>
+        
+        <tr>
+          <td>worst smoothness</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>411</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+          </td>
+          <td>0.1324</td>
+          <td>0.0228</td>
+        </tr>
+        
+        <tr>
+          <td>worst compactness</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>529</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>0.2543</td>
+          <td>0.1572</td>
+        </tr>
+        
+        <tr>
+          <td>worst concavity</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>539</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>0.2722</td>
+          <td>0.2084</td>
+        </tr>
+        
+        <tr>
+          <td>worst concave points</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>492</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+          </td>
+          <td>0.1146</td>
+          <td>0.0657</td>
+        </tr>
+        
+        <tr>
+          <td>worst symmetry</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>500</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>0.2901</td>
+          <td>0.0618</td>
+        </tr>
+        
+        <tr>
+          <td>worst fractal dimension</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>535</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">skewed</span>
+            
+          </td>
+          <td>0.0839</td>
+          <td>0.0180</td>
+        </tr>
+        
+        <tr>
+          <td>radius_group</td>
+          <td>categorical</td>
+          <td>category</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>3</td>
+          <td>
+            
+              <span class="badge ">categorical</span>
+            
+          </td>
+          <td>—</td>
+          <td>—</td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    <p>由 TabularX 自动生成 · 数据指纹 c4255f37fde14b18</p>
+  </footer>
+</body>
+</html>

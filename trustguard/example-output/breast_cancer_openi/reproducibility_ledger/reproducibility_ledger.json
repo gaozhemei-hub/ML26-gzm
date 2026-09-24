@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "created_at_utc": "2026-09-20T13:18:41.652416+00:00",
+  "data": {
+    "rows": 569,
+    "columns": 30,
+    "fingerprint_sha256": "fb2ffaee659f439c53544cd2682543cbcc5ee0bf644d3c180176f8bbf450f44d"
+  },
+  "split": {
+    "train_indices": {
+      "count": 341,
+      "sha256": "eb8f763209d46a68d79b01ee344cb41ae38c667f92f66fec08d29e8eca2bb273"
+    },
+    "valid_indices": {
+      "count": 114,
+      "sha256": "51db88483b91ba9101e61479e7fe1cc8c6329d3cd277751fb163c44f50676a34"
+    },
+    "test_indices": {
+      "count": 114,
+      "sha256": "0a2018f79e32c8dd82733658de70d76bece5e527f1826d90118891817717a8c4"
+    }
+  },
+  "config": {
+    "task_type": "auto",
+    "group_column": null,
+    "time_column": null,
+    "sensitive_features": [],
+    "pdf_report": true,
+    "command": "sklearn breast cancer; RF/XGBoost/LightGBM/CatBoost; 5 Optuna trials per model",
+    "benchmark_summary_path": null
+  },
+  "command": "sklearn breast cancer; RF/XGBoost/LightGBM/CatBoost; 5 Optuna trials per model",
+  "environment": {
+    "python": "3.10.13 (main, Sep 11 2023, 13:44:35) [GCC 11.2.0]",
+    "platform": "Linux-4.15.0-112-generic-x86_64-with-glibc2.35",
+    "packages": {
+      "tabularx": "0.1.0",
+      "numpy": "2.2.6",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "optuna": "5.0.0",
+      "xgboost": null,
+      "lightgbm": "4.7.0",
+      "catboost": "1.2.10"
+    }
+  },
+  "privacy_note": "Raw rows and target values are not stored in this evidence package."
+}

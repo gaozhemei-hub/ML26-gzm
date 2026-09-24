@@ -1,0 +1,231 @@
+{
+  "primary_metric": "roc_auc",
+  "direction": "maximize",
+  "selected_model_name": "lightgbm",
+  "selected_params": {
+    "random_state": 42,
+    "n_jobs": 1,
+    "verbose": -1,
+    "n_estimators": 400,
+    "max_depth": 3,
+    "learning_rate": 0.2526878207508456,
+    "subsample": 0.9162213204002109,
+    "colsample_bytree": 0.6061695553391381,
+    "min_child_samples": 22,
+    "num_leaves": 35,
+    "reg_alpha": 5.472429642032198e-06,
+    "reg_lambda": 0.00052821153945323
+  },
+  "final_test_metrics": {
+    "accuracy": 0.956140350877193,
+    "balanced_accuracy": 0.9454365079365079,
+    "f1": 0.9659863945578231,
+    "f1_macro": 0.9521289997480473,
+    "roc_auc": 0.9861111111111112,
+    "precision": 0.9466666666666667,
+    "recall": 0.9861111111111112
+  },
+  "protocol": {
+    "policy": "候选模型只根据验证集选择；测试集仅允许被最终锁定的模型访问一次。",
+    "validation_candidates": [
+      "random_forest",
+      "xgboost",
+      "lightgbm",
+      "catboost"
+    ],
+    "selected_model": "lightgbm",
+    "test_access_count": 1,
+    "compliant": true,
+    "status": "complete",
+    "events": [
+      {
+        "stage": "validation",
+        "model_name": "random_forest",
+        "purpose": "validation metric: roc_auc"
+      },
+      {
+        "stage": "validation",
+        "model_name": "xgboost",
+        "purpose": "validation metric: roc_auc"
+      },
+      {
+        "stage": "validation",
+        "model_name": "lightgbm",
+        "purpose": "validation metric: roc_auc"
+      },
+      {
+        "stage": "validation",
+        "model_name": "catboost",
+        "purpose": "validation metric: roc_auc"
+      },
+      {
+        "stage": "selection",
+        "model_name": "lightgbm",
+        "purpose": "best validation roc_auc"
+      },
+      {
+        "stage": "test",
+        "model_name": "lightgbm",
+        "purpose": "single final held-out evaluation"
+      }
+    ]
+  },
+  "candidates": [
+    {
+      "model_name": "random_forest",
+      "best_params": {
+        "random_state": 42,
+        "n_jobs": 1,
+        "verbose": 0,
+        "n_estimators": 350,
+        "max_depth": 24,
+        "min_samples_split": 2,
+        "min_samples_leaf": 10,
+        "max_features": "sqrt",
+        "ccp_alpha": 0.00917022549267169
+      },
+      "train_metrics": {
+        "accuracy": 0.9706744868035191,
+        "balanced_accuracy": 0.9670321583633821,
+        "f1": 0.9767441860465116,
+        "f1_macro": 0.968530823181986,
+        "roc_auc": 0.9959158142615351,
+        "precision": 0.9722222222222222,
+        "recall": 0.9813084112149533
+      },
+      "validation_metrics": {
+        "accuracy": 0.956140350877193,
+        "balanced_accuracy": 0.9510317720275139,
+        "f1": 0.965034965034965,
+        "f1_macro": 0.9531057178116001,
+        "roc_auc": 0.9875532263347526,
+        "precision": 0.9583333333333334,
+        "recall": 0.971830985915493
+      },
+      "n_trials": 5,
+      "error": null
+    },
+    {
+      "model_name": "xgboost",
+      "best_params": {
+        "random_state": 42,
+        "n_jobs": 1,
+        "verbosity": 0,
+        "n_estimators": 200,
+        "max_depth": 15,
+        "learning_rate": 0.06504856968981275,
+        "subsample": 0.7993292420985183,
+        "colsample_bytree": 0.5780093202212182,
+        "min_child_weight": 2,
+        "gamma": 0.2904180608409973,
+        "reg_alpha": 0.6245760287469893,
+        "reg_lambda": 0.002570603566117598
+      },
+      "train_metrics": {
+        "accuracy": 0.9941348973607038,
+        "balanced_accuracy": 0.9921259842519685,
+        "f1": 0.9953488372093023,
+        "f1_macro": 0.9937061646363972,
+        "roc_auc": 0.9997792332033262,
+        "precision": 0.9907407407407407,
+        "recall": 1.0
+      },
+      "validation_metrics": {
+        "accuracy": 0.9649122807017544,
+        "balanced_accuracy": 0.9626596790042581,
+        "f1": 0.971830985915493,
+        "f1_macro": 0.9626596790042581,
+        "roc_auc": 0.9921388797903701,
+        "precision": 0.971830985915493,
+        "recall": 0.971830985915493
+      },
+      "n_trials": 5,
+      "error": null
+    },
+    {
+      "model_name": "lightgbm",
+      "best_params": {
+        "random_state": 42,
+        "n_jobs": 1,
+        "verbose": -1,
+        "n_estimators": 400,
+        "max_depth": 3,
+        "learning_rate": 0.2526878207508456,
+        "subsample": 0.9162213204002109,
+        "colsample_bytree": 0.6061695553391381,
+        "min_child_samples": 22,
+        "num_leaves": 35,
+        "reg_alpha": 5.472429642032198e-06,
+        "reg_lambda": 0.00052821153945323
+      },
+      "train_metrics": {
+        "accuracy": 1.0,
+        "balanced_accuracy": 1.0,
+        "f1": 1.0,
+        "f1_macro": 1.0,
+        "roc_auc": 1.0,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "validation_metrics": {
+        "accuracy": 0.9649122807017544,
+        "balanced_accuracy": 0.9626596790042581,
+        "f1": 0.971830985915493,
+        "f1_macro": 0.9626596790042581,
+        "roc_auc": 0.9941041598427776,
+        "precision": 0.971830985915493,
+        "recall": 0.971830985915493
+      },
+      "n_trials": 5,
+      "error": null
+    },
+    {
+      "model_name": "catboost",
+      "best_params": {
+        "random_seed": 42,
+        "thread_count": 1,
+        "verbose": 0,
+        "allow_writing_files": false,
+        "bootstrap_type": "Bernoulli",
+        "iterations": 200,
+        "depth": 10,
+        "learning_rate": 0.06504856968981275,
+        "subsample": 0.7993292420985183,
+        "colsample_bylevel": 0.5780093202212182,
+        "min_data_in_leaf": 8,
+        "l2_leaf_reg": 3.3323645788192616e-08,
+        "random_strength": 0.6245760287469893
+      },
+      "train_metrics": {
+        "accuracy": 1.0,
+        "balanced_accuracy": 1.0,
+        "f1": 1.0,
+        "f1_macro": 1.0,
+        "roc_auc": 1.0,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "validation_metrics": {
+        "accuracy": 0.9473684210526315,
+        "balanced_accuracy": 0.9394038650507697,
+        "f1": 0.9583333333333334,
+        "f1_macro": 0.9434523809523809,
+        "roc_auc": 0.9901735997379626,
+        "precision": 0.9452054794520548,
+        "recall": 0.971830985915493
+      },
+      "n_trials": 5,
+      "error": null
+    }
+  ],
+  "test_access_policy": "Only the validation-selected candidate is evaluated on test.",
+  "dataset": {
+    "name": "sklearn_breast_cancer",
+    "source": {
+      "source": "sklearn:breast_cancer",
+      "target": "target"
+    },
+    "rows": 569,
+    "features": 30
+  }
+}

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>TabularX 模型详情 — {{ data.run.model_name }}</title>
+  <style>
+    body { font-family: "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; margin: 2rem; color: #333; line-height: 1.6; }
+    h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: .5rem; }
+    h2 { color: #34495e; margin-top: 2rem; }
+    h3 { color: #2c3e50; margin-top: 1.5rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ddd; padding: .5rem .75rem; text-align: left; font-size: .9rem; }
+    th { background: #f5f6fa; font-weight: 600; }
+    tr:nth-child(even) td { background: #fafbfc; }
+    .summary { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .card { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; min-width: 120px; }
+    .card .num { font-size: 1.5rem; font-weight: 700; color: #2c3e50; }
+    .card .label { font-size: .8rem; color: #7f8c8d; }
+    .hint { color: #7f8c8d; font-size: .85rem; }
+    .chart-container { background: #fff; border: 1px solid #eee; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+    .param-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .5rem; margin: 1rem 0; }
+    .param-item { background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; padding: .5rem .75rem; }
+    .param-item .name { font-size: .8rem; color: #7f8c8d; }
+    .param-item .value { font-size: .9rem; font-weight: 600; color: #2c3e50; word-break: break-all; }
+    .plot-grid { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
+    .plot-item { flex: 1; min-width: 320px; border: 1px solid #eee; border-radius: 6px; padding: .5rem; text-align: center; }
+    .plot-item img { max-width: 100%; height: auto; border-radius: 4px; }
+    .plot-item .caption { font-size: .85rem; color: #7f8c8d; margin-top: .25rem; }
+    footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #95a5a6; font-size: .85rem; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<body>
+  <p><a href="../model_search.html" style="color: #2980b9;">← 返回总览</a></p>
+  <h1>模型详情：{{ data.run.model_name }}</h1>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 1 部分：基本信息
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>① 基本信息</h2>
+    <div class="summary">
+      <div class="card"><div class="num">{{ data.run.n_trials }}</div><div class="label">Trial 次数</div></div>
+      <div class="card"><div class="num">{{ "%.1f"|format(data.run.optuna_duration_seconds or 0) }}s</div><div class="label">调参耗时</div></div>
+      <div class="card"><div class="num" style="font-size:1.1rem">{{ data.run.model_name }}</div><div class="label">算法</div></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 2 部分：调参轨迹图（仅成功模型）
+       ══════════════════════════════════════════════════════════ -->
+  {% if data.run.status == "success" and data.run.optuna_trials and data.has_trial_trajectory %}
+  <section>
+    <h2>② 调参轨迹</h2>
+    <div class="plot-item">
+      <img src="{{ data.artifact_dir }}/{{ data.run.model_name }}_trial_trajectory.png" alt="调参轨迹">
+      <div class="caption">横轴为 Trial 序号，纵轴为主指标（{{ data.primary_metric }}）。每个点代表一次 trial 的验证集 {{ data.primary_metric }} 值。</div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 3 部分：分类评估图（仅分类任务）
+       ══════════════════════════════════════════════════════════ -->
+  {% if data.run.status == "success" and data.is_classification and data.artifact_dir %}
+  {% set has_section_2 = data.run.optuna_trials %}
+  <section>
+    <h2>③ 分类评估图</h2>
+    <div class="plot-grid">
+      {% if data.has_confusion_matrix %}
+      <div class="plot-item">
+        <img src="{{ data.artifact_dir }}/{{ data.run.model_name }}_confusion_matrix.png" alt="混淆矩阵">
+        <div class="caption">混淆矩阵（测试集）</div>
+      </div>
+      {% endif %}
+      {% if data.has_roc_curve %}
+      <div class="plot-item">
+        <img src="{{ data.artifact_dir }}/{{ data.run.model_name }}_roc_curve.png" alt="ROC 曲线">
+        <div class="caption">ROC 曲线（测试集）</div>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 4 部分：三集表现对比
+       ══════════════════════════════════════════════════════════ -->
+  {% if data.run.status == "success" %}
+  <section>
+    <h2>④ 三集表现对比</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>数据集</th>
+          {% for metric_name in data.run.validation_metrics %}
+          <th>{{ metric_name }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>训练集</b></td>
+          {% for metric_name in data.run.validation_metrics %}
+          <td>
+            {% if metric_name in data.run.train_metrics %}
+              {{ "%.4f"|format(data.run.train_metrics[metric_name]) }}
+            {% else %}<span class="hint">—</span>{% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        <tr style="background: #f0fdf4;">
+          <td><b>验证集</b></td>
+          {% for metric_name, metric_val in data.run.validation_metrics.items() %}
+          <td>{{ "%.4f"|format(metric_val) }}</td>
+          {% endfor %}
+        </tr>
+        {% if data.run.test_metrics %}
+        <tr>
+          <td><b>测试集</b></td>
+          {% for metric_name in data.run.validation_metrics %}
+          <td>
+            {% if metric_name in data.run.test_metrics %}
+              {{ "%.4f"|format(data.run.test_metrics[metric_name]) }}
+            {% else %}<span class="hint">—</span>{% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <h3>最佳参数</h3>
+    <div class="param-grid">
+      {% for k, v in data.run.best_params.items() %}
+      <div class="param-item">
+        <div class="name"><code>{{ k }}</code></div>
+        <div class="value">{{ v }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if data.run.status == "failed" %}
+  <section>
+    <h2>② 错误信息</h2>
+    <div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; padding: 1rem;">
+      <pre>{{ data.run.error }}</pre>
+    </div>
+  </section>
+  {% endif %}
+
+  <footer>
+    <p>由 TabularX 自动生成 · 模型详情报告</p>
+  </footer>
+</body>
+</html>

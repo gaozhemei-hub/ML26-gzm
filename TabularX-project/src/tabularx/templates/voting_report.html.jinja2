@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>TabularX Voting 组合模型报告</title>
+  <style>
+    body { font-family: "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; margin: 2rem; color: #333; line-height: 1.6; }
+    h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: .5rem; }
+    h2 { color: #34495e; margin-top: 2rem; }
+    h3 { color: #2c3e50; margin-top: 1.5rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ddd; padding: .5rem .75rem; text-align: left; font-size: .9rem; }
+    th { background: #f5f6fa; font-weight: 600; }
+    tr:nth-child(even) td { background: #fafbfc; }
+    .summary { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .card { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; min-width: 120px; }
+    .card .num { font-size: 1.5rem; font-weight: 700; color: #2c3e50; }
+    .card .label { font-size: .8rem; color: #7f8c8d; }
+    .conclusion { background: #eaf4fd; border-left: 4px solid #3498db; padding: .75rem 1rem; margin: 1rem 0; border-radius: 4px; }
+    .conclusion-win { background: #d4edda; border-left: 4px solid #28a745; padding: .75rem 1rem; margin: 1rem 0; border-radius: 4px; }
+    .conclusion-lose { background: #fef3cd; border-left: 4px solid #ffc107; padding: .75rem 1rem; margin: 1rem 0; border-radius: 4px; }
+    .hint { color: #7f8c8d; font-size: .85rem; }
+    .badge { display: inline-block; border-radius: 3px; padding: .1rem .5rem; margin: .1rem .2rem; font-size: .8rem; }
+    .badge-ok { background: #d4edda; color: #155724; }
+    .badge-info { background: #cce5ff; color: #004085; }
+    .badge-best { background: #d4edda; color: #155724; font-weight: 700; border: 1px solid #28a745; }
+    .bar-chart { margin: 1rem 0; }
+    .bar-row { display: flex; align-items: center; margin: .3rem 0; }
+    .bar-label { width: 130px; font-size: .85rem; padding-right: .5rem; text-align: right; }
+    .bar-fill { height: 22px; border-radius: 3px; transition: width .5s; min-width: 2px; }
+    .bar-value { margin-left: .5rem; font-size: .8rem; color: #555; white-space: nowrap; }
+    .bar-voting { background: #e67e22; }
+    .plot-grid { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
+    .plot-item { flex: 1; min-width: 320px; border: 1px solid #eee; border-radius: 6px; padding: .5rem; text-align: center; }
+    .plot-item img { max-width: 100%; height: auto; border-radius: 4px; }
+    .plot-item .caption { font-size: .85rem; color: #7f8c8d; margin-top: .25rem; }
+    .chart-container { background: #fff; border: 1px solid #eee; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+    footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #95a5a6; font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <p><a href="../model_search.html" style="color: #2980b9;">← 返回总览</a></p>
+  <h1>Voting 组合模型报告</h1>
+
+  {% set run = data.run %}
+  {% set members = run.best_params.get("estimators", []) %}
+  {% set member_count = members | length %}
+  {% set primary = data.primary_metric %}
+  {% set voting_test = run.test_metrics.get(primary, 0) if run.test_metrics else run.validation_metrics.get(primary, 0) %}
+  {% set best_single_test = data.best_single_test or 0 %}
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 1 部分：基本信息
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>① 基本信息</h2>
+    <div class="summary">
+      <div class="card"><div class="num">{{ member_count }}</div><div class="label">成员模型数</div></div>
+      <div class="card"><div class="num">soft</div><div class="label">Voting 策略</div></div>
+      <div class="card"><div class="num" style="font-size: 1.1rem">{{ run.model_name }}</div><div class="label">组合方法</div></div>
+    </div>
+
+    <h3>成员模型</h3>
+    <p>
+      {% for m in members %}
+        <span class="badge badge-info">{{ m }}</span>
+      {% endfor %}
+    </p>
+
+    {% if member_count > 0 and voting_test is defined %}
+      {% if data.optimization_direction == "maximize" %}
+        {% set improved = voting_test >= best_single_test %}
+      {% else %}
+        {% set improved = voting_test <= best_single_test %}
+      {% endif %}
+      {% if improved %}
+      <div class="conclusion-win">
+        <b>Voting 优于最佳单模型</b>
+        <br>
+        Voting {{ primary }} = {{ "%.4f"|format(voting_test) }}
+        vs 最佳单模型 {{ primary }} = {{ "%.4f"|format(best_single_test) }}
+        — 组合有效提升了性能。
+      </div>
+      {% else %}
+      <div class="conclusion-lose">
+        <b>Voting 未超过最佳单模型</b>
+        <br>
+        Voting {{ primary }} = {{ "%.4f"|format(voting_test) }}
+        vs 最佳单模型 {{ primary }} = {{ "%.4f"|format(best_single_test) }}
+        — 建议仍然保留最佳单模型作为最终选择。
+      </div>
+      {% endif %}
+    {% endif %}
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 2 部分：主指标对比图
+       ══════════════════════════════════════════════════════════ -->
+  {% if data.succeeded_results %}
+  <section>
+    <h2>② 主指标对比（{{ primary }}）</h2>
+    {% if data.has_voting_comparison %}
+    <div class="plot-item">
+      <img src="{{ data.artifact_dir }}/voting_comparison.png" alt="模型对比">
+      <div class="caption">橙色柱为 Voting 组合，蓝色柱为各单模型。纵轴为 {{ primary }}。</div>
+    </div>
+    {% endif %}
+                  label: function(ctx) {
+                    return ctx.parsed.y.toFixed(4);
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                title: { display: true, text: '{{ primary }}' }
+              },
+              x: {
+                grid: { display: false }
+              }
+            }
+          }
+        });
+      })();
+    </script>
+  </section>
+  {% endif %}
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 3 部分：三集表现
+       ══════════════════════════════════════════════════════════ -->
+  {% if run.status == "success" %}
+  <section>
+    <h2>③ 三集表现</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>数据集</th>
+          {% for metric_name in run.validation_metrics %}
+          <th>{{ metric_name }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% if run.train_metrics %}
+        <tr>
+          <td><b>训练集</b></td>
+          {% for metric_name in run.validation_metrics %}
+          <td>
+            {% if metric_name in run.train_metrics %}
+              {{ "%.4f"|format(run.train_metrics[metric_name]) }}
+            {% else %}<span class="hint">—</span>{% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endif %}
+        <tr style="background: #f0fdf4;">
+          <td><b>验证集</b></td>
+          {% for metric_name, metric_val in run.validation_metrics.items() %}
+          <td>{{ "%.4f"|format(metric_val) }}</td>
+          {% endfor %}
+        </tr>
+        {% if run.test_metrics %}
+        <tr>
+          <td><b>测试集</b></td>
+          {% for metric_name in run.validation_metrics %}
+          <td>
+            {% if metric_name in run.test_metrics %}
+              {{ "%.4f"|format(run.test_metrics[metric_name]) }}
+            {% else %}<span class="hint">—</span>{% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 4 部分：分类评估图
+       ══════════════════════════════════════════════════════════ -->
+  {% if data.is_classification and data.artifact_dir %}
+  <section>
+    <h2>④ 分类评估图</h2>
+    <div class="plot-grid">
+      {% if data.has_confusion_matrix %}
+      <div class="plot-item">
+        <img src="{{ data.artifact_dir }}/voting_confusion_matrix.png" alt="混淆矩阵">
+        <div class="caption">混淆矩阵（测试集）</div>
+      </div>
+      {% endif %}
+      {% if data.has_roc_curve %}
+      <div class="plot-item">
+        <img src="{{ data.artifact_dir }}/voting_roc_curve.png" alt="ROC 曲线">
+        <div class="caption">ROC 曲线（测试集）</div>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 5 部分：结论
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>⑤ 结论</h2>
+    <div class="conclusion">
+      Voting 组合 <b>{{ member_count }}</b> 个模型（{{ members | join(", ") }}），
+      策略为 soft voting（概率平均）。
+      {% if improved %}
+      <b>推荐采用</b> Voting 组合模型作为最终方案。
+      {% else %}
+      <b>推荐采用</b> 最佳单模型作为最终方案。
+      {% endif %}
+    </div>
+  </section>
+
+  <footer>
+    <p>由 TabularX 自动生成 · Voting 组合模型报告</p>
+  </footer>
+</body>
+</html>
