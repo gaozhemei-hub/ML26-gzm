@@ -13,7 +13,6 @@ from tabularx.schema.learning import (
     ShapResult,
     FairnessResult,
 )
-from tabularx.schema.evidence import EvidenceManifest
 
 
 @dataclass
@@ -29,7 +28,6 @@ class AutoResult:
     searched: ModelSearchResult
     shap: ShapResult | None = None
     fairness: FairnessResult | None = None
-    evidence: EvidenceManifest | None = None
     output_dir: Path | None = None
     report_paths: dict[str, str] = field(default_factory=dict)
     """报告文件路径字典，键为报告类型，如 "profile" / "model_search" 等。"""

@@ -26,10 +26,7 @@ class EvidenceEstimatorMixin:
             raise RuntimeError("No recoverable fitted run in this session")
         if self._context_token() != self._evidence_context:
             raise RuntimeError("Model/data/configuration changed; start a new fit instead")
-        result = self.evidence_.retry(keys)
-        if self.result_ is not None:
-            self.result_.evidence = self.evidence_.audit_contract()
-        return result
+        return self.evidence_.retry(keys)
 
     def _save_evidence(self):
         from tabularx.core import reports
@@ -277,6 +274,5 @@ class EvidenceEstimatorMixin:
             "evidence": str(root / "evidence" / "delivery.html"),
             "evidence_json": str(root / "evidence" / "delivery.json")}
         summary = delivery.write()
-        result.evidence = delivery.audit_contract()
         if not summary["complete"]:
             warnings.warn("Evidence delivery incomplete; inspect result.report_paths['evidence']", stacklevel=2)
