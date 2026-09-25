@@ -57,11 +57,17 @@
 
     <h3>关键结论</h3>
     <div class="conclusion">
-      {% if data.stratify %}
+      {% if data.strategy == "group" %}
+        按实体列 <code>{{ data.group_column }}</code> 执行 <b>分组切分</b>（group split），
+        同一实体只进入训练集、验证集或测试集之一。
+      {% elif data.strategy == "temporal" %}
+        按时间列 <code>{{ data.time_column }}</code> 执行 <b>时序切分</b>（temporal split），
+        训练集最早、验证集居中、测试集最晚。
+      {% elif data.stratify %}
         任务为 <b>分类任务</b>，使用了 <b>分层采样</b>（stratified split），
         保证训练/验证/测试集各类别分布与原数据一致。
       {% else %}
-        任务为 <b>回归任务</b>，使用了 <b>纯随机采样</b>（random split）。
+        任务为 <b>回归任务</b>或已指定随机策略，使用了 <b>纯随机采样</b>（random split）。
       {% endif %}
       随机种子：<code>{{ data.random_state }}</code>。
     </div>
@@ -76,12 +82,17 @@
     <h3>2.1 判断流程图</h3>
     <div class="mermaid">
 flowchart TD
-  Start([开始：接收 X, y, profile, config]) --> TaskCheck{任务类型判断}
-  TaskCheck -->|binary / multiclass| Stratify[使用分层采样 stratify=y]
-  TaskCheck -->|regression| Random[使用纯随机采样]
+  Start([开始：接收 X, y, profile, config]) --> StrategyCheck{解析切分策略}
+  StrategyCheck -->|group| GroupSplit[GroupShuffleSplit 按实体切分]
+  StrategyCheck -->|temporal| TemporalSplit[按时间排序顺序切分]
+  StrategyCheck -->|stratified| Stratify[分层采样 stratify=y]
+  StrategyCheck -->|random| Random[纯随机采样]
+  GroupSplit --> Phase1
+  TemporalSplit --> Phase1
   Stratify --> Phase1[阶段 1：分出测试集]
   Random --> Phase1
   Phase1 -->|stratify 失败（类别样本不足）| StratifyFail1[失败：StratifyError]
+  Phase1 -->|分组/时间列不存在| ColumnFail[失败：SplitColumnMissingError]
   Phase1 -->|成功| Phase2[阶段 2：从剩余部分分验证集]
   Phase2 -->|stratify 失败| StratifyFail2[失败：StratifyError]
   Phase2 -->|成功| SizeCheck{子集样本数检查}
@@ -89,11 +100,21 @@ flowchart TD
   SizeCheck -->|全部达标| DistCheck{类别分布对比}
   DistCheck -->|max_shift < 0.05| Good[分布一致 ✅]
   DistCheck -->|max_shift ≥ 0.05| Warn[分布差异较大 ⚠️ 记录警告]
-  Good --> Done([完成：输出 SplitResult])
-  Warn --> Done
+  Good --> Audit[划分完整性审计]
+  Warn --> Audit
+  Audit --> DupCheck{跨集合重复检测}
+  DupCheck -->|存在重复行| DupRisk[critical：建议切分前去重]
+  DupCheck -->|无重复| GroupCheck{实体分组检查}
+  DupRisk --> GroupCheck
+  GroupCheck -->|有实体跨集合| GroupRisk[critical：建议 group 切分]
+  GroupCheck -->|无跨集合实体| TimeCheck{时间顺序检查}
+  GroupRisk --> TimeCheck
+  TimeCheck -->|时间重叠或倒置| TimeRisk[critical：建议 temporal 切分]
+  TimeCheck -->|顺序合规| Done([完成：输出 SplitResult])
+  TimeRisk --> Done
   classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
   classDef warning fill:#fff3cd,stroke:#856404,stroke-width:1px;
-  class StratifyFail1,StratifyFail2,SizeFail error;
+  class StratifyFail1,StratifyFail2,SizeFail,ColumnFail,DupRisk,GroupRisk,TimeRisk error;
   class Warn warning;
     </div>
     <div class="mermaid-note">↑ split 阶段完整判断流程。</div>
@@ -106,6 +127,79 @@ flowchart TD
     </div>
     {% endfor %}
   </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 3 部分：划分完整性审计（阶段 2 新增）
+       ══════════════════════════════════════════════════════════ -->
+  {% if data.audit is not none %}
+  <section>
+    <h2>③ 划分完整性审计</h2>
+
+    <div class="conclusion" style="border-left-color: {% if data.audit.risk_level in ['critical', 'high'] %}#e74c3c; background: #fdf2f2;{% elif data.audit.risk_level == 'medium' %}#f39c12; background: #fef9e7;{% else %}#27ae60; background: #eafaf1;{% endif %}">
+      <b>审计风险综合评级：</b>
+      <span class="badge {% if data.audit.risk_level in ['critical', 'high', 'medium'] %}badge-warn{% else %}badge-ok{% endif %}" style="font-weight: bold;">
+        {{ data.audit.risk_level|upper }}
+      </span>
+      {% if data.audit.high_risk_count > 0 %}
+        <span style="color: #c0392b; margin-left: 0.5rem;">发现 <b>{{ data.audit.high_risk_count }}</b> 项高危问题，划分方式需要调整。</span>
+      {% else %}
+        <span style="color: #27ae60; margin-left: 0.5rem;">未发现跨集合重复、实体泄漏或时间穿越。</span>
+      {% endif %}
+    </div>
+
+    <h3>3.1 固定检查项清单</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 25%;">检查项目</th>
+          <th style="width: 15%;">状态</th>
+          <th>检查结果与依据</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for chk in data.audit.check_results %}
+        <tr>
+          <td><b>{{ chk.check }}</b></td>
+          <td>
+            <span class="badge {% if chk.status == '通过' %}badge-ok{% elif chk.status == '发现风险' %}badge-warn{% else %}badge-info{% endif %}">
+              {{ chk.status }}
+            </span>
+          </td>
+          <td>{{ chk.result }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if data.audit.findings %}
+    <h3>3.2 风险详情</h3>
+    {% for finding in data.audit.findings %}
+    <div class="evidence" style="border-left-color: {% if finding.severity in ['critical', 'high'] %}#e74c3c;{% elif finding.severity == 'medium' %}#f39c12;{% else %}#3498db;{% endif %}">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <b>{{ finding.title }}</b>
+        <span class="badge {% if finding.severity in ['critical', 'high'] %}badge-warn{% else %}badge-info{% endif %}">{{ finding.severity }}</span>
+      </div>
+      {% if finding.columns %}
+      <p style="margin: 0.3rem 0;"><b>关联列：</b><code>{{ finding.columns|join(', ') }}</code></p>
+      {% endif %}
+      <p style="margin: 0.3rem 0; color: #555;"><b>证据依据：</b>{{ finding.evidence }}</p>
+      <p style="margin: 0.3rem 0; color: #2c3e50;"><b>处置建议：</b>{{ finding.recommendation }}</p>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if data.audit.suggested_actions %}
+    <div class="evidence" style="border-left-color: #e67e22; background: #fffaf0;">
+      <b>建议动作：</b>
+      <ul style="margin: .4rem 0 0 1.1rem;">
+        {% for action in data.audit.suggested_actions %}
+        <li>{{ action }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </section>
+  {% endif %}
 
   <footer>
     <p>由 TabularX 自动生成 · 随机种子 {{ data.random_state }}</p>

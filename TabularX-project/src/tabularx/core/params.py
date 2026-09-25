@@ -206,7 +206,12 @@ class ProfileConfig:
 
 @dataclass
 class SplitConfig:
-    """Split 阶段参数配置。"""
+    """Split 阶段参数配置。
+
+    ``group_column`` / ``time_column`` 只声明数据结构（用于触发相应审计），
+    ``split_strategy`` 才决定实际切分方式。二者分离的目的是允许
+    「用随机切分 + 审计暴露分组/时间泄漏」这种诊断用法。
+    """
 
     test_size: float = 0.2
     """测试集占比（占总样本的比例）"""
@@ -217,17 +222,38 @@ class SplitConfig:
     min_samples_split: int = 5
     """训练/验证/测试集每集最少样本数，任一子集少于该值则报错"""
 
+    # ── 结构声明与切分策略（阶段 2 新增）──
+    split_strategy: str = "auto"
+    """切分策略：auto（按声明推断）/ stratified / random / group / temporal"""
+    group_column: str | None = None
+    """实体分组列名（如患者 ID）；声明后 auto 策略会改用分组切分并审计分组泄漏"""
+    time_column: str | None = None
+    """时间列名；声明后 auto 策略会改用时序切分并审计时间穿越"""
+    enable_split_audit: bool = True
+    """是否在切分后执行划分完整性审计（重复样本/分组泄漏/时间穿越）"""
+    duplicate_audit_max_rows: int = 200_000
+    """跨集合重复检测的最大行数；超过则抽样并标注，避免大表哈希开销"""
+
     _COMMENTS: ClassVar[dict[str, str]] = {
         "test_size": "测试集占比（占总样本的比例）",
         "validation_size": "验证集占比（相对于去掉测试集后剩余部分的比例）",
         "random_state": "随机种子（保证划分可复现）",
         "min_samples_split": "训练/验证/测试集每集最少样本数",
+        "split_strategy": "切分策略：auto / stratified / random / group / temporal",
+        "group_column": "实体分组列名（声明后触发分组泄漏审计）",
+        "time_column": "时间列名（声明后触发时间穿越审计）",
+        "enable_split_audit": "是否执行划分完整性审计",
+        "duplicate_audit_max_rows": "跨集合重复检测的最大行数（超过则抽样）",
     }
     _RANGES: ClassVar[dict[str, _Range]] = {
         "test_size": (0.0, 1.0),
         "validation_size": (0.0, 1.0),
         "random_state": (0, None),
         "min_samples_split": (1, None),
+        "duplicate_audit_max_rows": (1, None),
+    }
+    _CHOICES: ClassVar[dict[str, set[str]]] = {
+        "split_strategy": {"auto", "stratified", "random", "group", "temporal"},
     }
 
     def __post_init__(self) -> None:
@@ -243,6 +269,24 @@ class SplitConfig:
                     f"{name} 不能大于 {hi}，收到 {val}。"
                     f"  {self.get_comments(name)}"
                 )
+        for name, choices in self._CHOICES.items():
+            val = getattr(self, name)
+            if val not in choices:
+                raise ValueError(
+                    f"{name} 必须为 {sorted(choices)} 之一，收到 {val!r}。"
+                    f"  {self.get_comments(name)}"
+                )
+        # 策略与结构声明的一致性检查：显式要求 group/temporal 时必须给出对应列
+        if self.split_strategy == "group" and not self.group_column:
+            raise ValueError(
+                "split_strategy='group' 需要同时设置 group_column。"
+                "  group_column 用于标识同一实体，避免其跨集合出现。"
+            )
+        if self.split_strategy == "temporal" and not self.time_column:
+            raise ValueError(
+                "split_strategy='temporal' 需要同时设置 time_column。"
+                "  time_column 用于按时间顺序切分，避免用未来数据预测过去。"
+            )
         # 推导检查：by-construction train_ratio > 0
         derived_train_ratio = (
             1 - self.test_size - self.validation_size * (1 - self.test_size)
@@ -260,15 +304,22 @@ class SplitConfig:
                 f"未知参数 {name!r}。可用参数：\n"
                 + "\n".join(f"  {k}" for k in self._COMMENTS)
             )
-        lo, hi = self._RANGES[name]
-        if lo is not None and value < lo:
+        if name in self._RANGES:
+            lo, hi = self._RANGES[name]
+            if lo is not None and value < lo:
+                raise ValueError(
+                    f"{name} 不能小于 {lo}，收到 {value}。"
+                    f"  {self.get_comments(name)}"
+                )
+            if hi is not None and value > hi:
+                raise ValueError(
+                    f"{name} 不能大于 {hi}，收到 {value}。"
+                    f"  {self.get_comments(name)}"
+                )
+        choices = self._CHOICES.get(name)
+        if choices is not None and value not in choices:
             raise ValueError(
-                f"{name} 不能小于 {lo}，收到 {value}。"
-                f"  {self.get_comments(name)}"
-            )
-        if hi is not None and value > hi:
-            raise ValueError(
-                f"{name} 不能大于 {hi}，收到 {value}。"
+                f"{name} 必须为 {sorted(choices)} 之一，收到 {value!r}。"
                 f"  {self.get_comments(name)}"
             )
         # 推导检查：修改 test_size / validation_size 时确保 train_ratio > 0
@@ -282,6 +333,16 @@ class SplitConfig:
                     f" 组合导致训练集占比为 {derived_train_ratio:.4f}，应为正数。"
                     f"  test_size 与 validation_size 之和过大，请至少减小其中之一。"
                 )
+        # 策略与结构一致性检查（通过 set_param 修改时同样生效）
+        if name == "split_strategy":
+            if value == "group" and not self.group_column:
+                raise ValueError("split_strategy='group' 需要先设置 group_column。")
+            if value == "temporal" and not self.time_column:
+                raise ValueError("split_strategy='temporal' 需要先设置 time_column。")
+        if name == "group_column" and self.split_strategy == "group" and not value:
+            raise ValueError("当前 split_strategy='group'，group_column 不能置空。")
+        if name == "time_column" and self.split_strategy == "temporal" and not value:
+            raise ValueError("当前 split_strategy='temporal'，time_column 不能置空。")
         setattr(self, name, value)
 
     def get_comments(self, name: str) -> str:

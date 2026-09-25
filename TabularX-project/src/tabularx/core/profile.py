@@ -22,13 +22,15 @@ from tabularx.exceptions import (
     MismatchedLengthError,
     TaskTypeError,
 )
-from tabularx.schema.profile import (
+from tabularx.schema.audit import (
     AuditCheckResult,
     AuditFinding,
+    ProfileAuditResult,
+)
+from tabularx.schema.profile import (
     ColumnFact,
     DataProfile,
     Evidence,
-    ProfileAuditResult,
     TargetFact,
 )
 

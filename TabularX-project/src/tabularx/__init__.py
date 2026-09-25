@@ -17,7 +17,7 @@ from tabularx.core.profile import (
     audit_profile_preflight,
     ProfileUtils,
 )
-from tabularx.core.split import split_data
+from tabularx.core.split import split_data, audit_split, resolve_split_strategy
 from tabularx.core.learning.model_registry import ModelRegistry, get_default_registry
 from tabularx.core.learning.model_search import search_models
 from tabularx.core.learning.ensemble_search import build_voting
@@ -85,6 +85,8 @@ __all__ = [
     "audit_profile_preflight",
     "ProfileUtils",
     "split_data",
+    "audit_split",
+    "resolve_split_strategy",
     "preprocess",
     # 模型搜索
     "ModelRegistry",

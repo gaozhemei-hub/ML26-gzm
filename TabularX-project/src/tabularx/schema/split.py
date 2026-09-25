@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from tabularx.schema.audit import SplitAuditResult
 from tabularx.schema.profile import Evidence
 
 
@@ -49,6 +50,16 @@ class SplitResult:
     # ── 判断依据（报告用）──
     evidences: list[Evidence] = field(default_factory=list)
 
+    # ── 切分策略与结构信息（阶段 2 新增，带默认值保证向后兼容）──
+    strategy: str = "stratified"
+    """实际使用的切分策略：stratified / random / group / temporal。"""
+    group_column: str | None = None
+    """声明的实体分组列（未声明为 None）。"""
+    time_column: str | None = None
+    """声明的时间列（未声明为 None）。"""
+    audit: SplitAuditResult | None = None
+    """划分完整性审计结果；未启用审计时为 None。"""
+
     @property
     def n_total(self) -> int:
         """原始总样本数。"""
@@ -68,4 +79,5 @@ class SplitResult:
 
 __all__ = [
     "SplitResult",
+    "SplitAuditResult",
 ]

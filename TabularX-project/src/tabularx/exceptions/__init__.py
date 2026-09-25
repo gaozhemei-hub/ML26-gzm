@@ -52,8 +52,10 @@ from tabularx.exceptions.profile import (  # noqa: E402
 )
 from tabularx.exceptions.split import (  # noqa: E402
     InvalidSplitError,
+    SplitColumnMissingError,
     SplitError,
     StratifyError,
+    TimeParseError,
 )
 from tabularx.exceptions.preprocess import (  # noqa: E402
     PreprocessError,
@@ -86,6 +88,8 @@ __all__ = [
     "SplitError",
     "InvalidSplitError",
     "StratifyError",
+    "SplitColumnMissingError",
+    "TimeParseError",
     # preprocess 阶段
     "PreprocessError",
     "TextColumnNotSupportedError",

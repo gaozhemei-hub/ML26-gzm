@@ -24,8 +24,18 @@ class StratifyError(SplitError):
     """分层采样失败（如某个类别在子集中样本数不足）。"""
 
 
+class SplitColumnMissingError(InvalidSplitError):
+    """声明的分组列或时间列不在数据中。"""
+
+
+class TimeParseError(InvalidSplitError):
+    """时间列存在空值或无法解析的值，无法进行时序切分/审计。"""
+
+
 __all__ = [
     "SplitError",
     "InvalidSplitError",
     "StratifyError",
+    "SplitColumnMissingError",
+    "TimeParseError",
 ]
