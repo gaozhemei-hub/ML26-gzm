@@ -209,6 +209,15 @@ class TestFullReportAuditOverview:
         assert "可信审计总览" not in html
         assert "示例" in html
 
+    def test_audit_flowchart_covers_all_three_stages(self, tmp_path):
+        df, y = _risky_frame()
+        ae = _small_estimator(tmp_path)
+        ae.fit(df, y)
+
+        html = (Path(ae.output_dir) / "report.html").read_text(encoding="utf-8")
+        for token in ("ProfileAudit", "SplitAudit", "PreAudit", "ExcludeCols"):
+            assert token in html
+
     def test_audit_overview_does_not_break_paging(self, tmp_path):
         df, y = _risky_frame()
         ae = _small_estimator(tmp_path)
@@ -239,7 +248,9 @@ class TestAuditArtifact:
             (Path(ae.output_dir) / "evidence" / "audit.json").read_text(encoding="utf-8")
         )
         assert payload["overall_risk_level"] == "critical"
-        assert {s["stage"] for s in payload["stages"]} == {"画像静态预检", "划分完整性审计"}
+        assert {s["stage"] for s in payload["stages"]} == {
+            "画像静态预检", "划分完整性审计", "预处理分布审计",
+        }
         assert any(f["title"] == "同一实体跨集合出现" for f in payload["findings"])
         assert payload["suggested_actions"]
 

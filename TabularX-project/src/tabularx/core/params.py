@@ -423,6 +423,40 @@ class PreprocessConfig:
     datetime_features: str = "basic"
     """日期特征提取级别："basic"（年/月/日）| "full"（+星期/季度）"""
 
+    # ── 审计排除（阶段 3 新增）──────────────────────────────
+    drop_group_column: bool = True
+    """声明了 group_column 时，是否把该分组列排除出模型输入。
+
+    声明分组列本身即表示「这是实体标识、不是特征」，因此默认排除；
+    希望实体列参与建模时显式设为 False。
+    """
+    apply_audit_drops: str = "off"
+    """是否执行画像阶段的建议排除："off"（仅告警）| "high"（high/critical 级）| "all"（全部建议列）"""
+
+    # ── 分布漂移与群体覆盖审计（阶段 3 新增）────────────────
+    enable_drift_audit: bool = True
+    """是否进行特征分布漂移与敏感群体覆盖审计"""
+    psi_warning: float = 0.10
+    """PSI 告警阈值（≥ 此值记为 medium）"""
+    psi_high: float = 0.25
+    """PSI 高危阈值（≥ 此值记为 high）"""
+    ks_warning: float = 0.10
+    """KS 统计量告警阈值"""
+    ks_high: float = 0.20
+    """KS 统计量高危阈值"""
+    tvd_warning: float = 0.10
+    """类别特征总变差距离告警阈值"""
+    tvd_high: float = 0.25
+    """类别特征总变差距离高危阈值"""
+    min_group_size: int = 20
+    """敏感群体在单个子集中的最小样本数，低于此值记为高危"""
+    drift_bins: int = 10
+    """PSI 分箱数上限；样本不足时按 ``psi_min_bin_count`` 自动下调"""
+    psi_min_bin_count: int = 5
+    """每个 PSI 分箱的最小期望样本数，避免小样本噪声被当作漂移"""
+    drift_max_features: int = 0
+    """漂移审计的最大特征数；0 表示不限制"""
+
     _COMMENTS: ClassVar[dict[str, str]] = {
         "numeric_impute": "数值列填补方法：median / mean / constant",
         "categorical_impute": "类别列填补方法：most_frequent / constant",
@@ -435,10 +469,33 @@ class PreprocessConfig:
         "handle_text": "文本列处理：drop（丢弃）或 keep（当前 keep 会报错）",
         "handle_datetime": "日期列处理：extract / drop / keep",
         "datetime_features": "日期特征提取级别：basic（年/月/日）或 full（+星期/季度）",
+        "drop_group_column": "是否将声明的分组列排除出模型输入",
+        "apply_audit_drops": "是否执行画像建议排除：off / high / all",
+        "enable_drift_audit": "是否进行分布漂移与群体覆盖审计",
+        "psi_warning": "PSI 告警阈值",
+        "psi_high": "PSI 高危阈值",
+        "ks_warning": "KS 统计量告警阈值",
+        "ks_high": "KS 统计量高危阈值",
+        "tvd_warning": "类别特征总变差距离告警阈值",
+        "tvd_high": "类别特征总变差距离高危阈值",
+        "min_group_size": "敏感群体在单个子集中的最小样本数",
+        "drift_bins": "PSI 分箱数上限（样本不足时自动下调）",
+        "psi_min_bin_count": "每个 PSI 分箱的最小期望样本数",
+        "drift_max_features": "漂移审计最大特征数（0 表示不限制）",
     }
     _RANGES: ClassVar[dict[str, _Range]] = {
         "impute_constant_value": (None, None),
         "max_onehot_categories": (1, None),
+        "psi_warning": (0.0, None),
+        "psi_high": (0.0, None),
+        "ks_warning": (0.0, 1.0),
+        "ks_high": (0.0, 1.0),
+        "tvd_warning": (0.0, 1.0),
+        "tvd_high": (0.0, 1.0),
+        "min_group_size": (0, None),
+        "drift_bins": (2, None),
+        "psi_min_bin_count": (1, None),
+        "drift_max_features": (0, None),
     }
     _CHOICES: ClassVar[dict[str, set[str]]] = {
         "numeric_impute": {"median", "mean", "constant"},
@@ -450,6 +507,7 @@ class PreprocessConfig:
         "handle_text": {"drop", "keep"},
         "handle_datetime": {"extract", "drop", "keep"},
         "datetime_features": {"basic", "full"},
+        "apply_audit_drops": {"off", "high", "all"},
     }
 
     def __post_init__(self) -> None:
@@ -474,6 +532,18 @@ class PreprocessConfig:
                     f"{name} 必须为 {choices} 之一，收到 {val!r}。"
                     f"  {self.get_comments(name)}"
                 )
+        # 阈值一致性：高危阈值不应低于告警阈值
+        for warn_name, high_name in (
+            ("psi_warning", "psi_high"),
+            ("ks_warning", "ks_high"),
+            ("tvd_warning", "tvd_high"),
+        ):
+            warn, high = getattr(self, warn_name), getattr(self, high_name)
+            if high < warn:
+                raise ValueError(
+                    f"{high_name}（{high}）不能小于 {warn_name}（{warn}）。"
+                    f"  {self.get_comments(high_name)}"
+                )
 
     def set_param(self, name: str, value: Any) -> None:
         if name not in self._COMMENTS:
@@ -486,6 +556,17 @@ class PreprocessConfig:
         choices = self._CHOICES.get(name)
         if choices is not None and value not in choices:
             raise ValueError(f"{name} 必须为 {choices} 之一，收到 {value!r}。  {self.get_comments(name)}")
+        # 阈值一致性（通过 set_param 修改时同样生效）
+        pair = {"psi_warning": "psi_high", "ks_warning": "ks_high", "tvd_warning": "tvd_high"}
+        if name in pair:
+            other = getattr(self, pair[name])
+            if name.endswith("_warning") and value > other:
+                raise ValueError(f"{name}（{value}）不能大于 {pair[name]}（{other}）。")
+        if name in set(pair.values()):
+            warn_name = next(k for k, v in pair.items() if v == name)
+            warn = getattr(self, warn_name)
+            if value < warn:
+                raise ValueError(f"{name}（{value}）不能小于 {warn_name}（{warn}）。")
         setattr(self, name, value)
 
     def get_comments(self, name: str) -> str:

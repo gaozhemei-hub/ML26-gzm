@@ -37,11 +37,23 @@
 <body>
   <h1>TabularX 数据预处理报告</h1>
 
+  {# 章节序号按实际渲染的 section 动态分配：
+     「④ 列映射关系」仅在存在映射变化时渲染，固定编号会导致后续断号。 #}
+  {% set has_mapping_changes = data.column_mappings | selectattr("is_dropped") | list | length > 0 %}
+  {% set changed_mappings = [] %}
+  {% for m in data.column_mappings %}
+    {% if m.is_dropped or m.output_names != [m.original_name] %}
+      {% set _ = changed_mappings.append(m) %}
+    {% endif %}
+  {% endfor %}
+  {% set numbering = namespace(n=0) %}
+
   <!-- ══════════════════════════════════════════════════════════
        第 1 部分：摘要
        ══════════════════════════════════════════════════════════ -->
+  {% set numbering.n = numbering.n + 1 %}
   <section>
-    <h2>① 摘要</h2>
+    <h2>{{ "①②③④⑤⑥⑦⑧⑨"[numbering.n - 1] }} 摘要</h2>
 
     <h3>输入 / 输出</h3>
     <div class="summary">
@@ -58,7 +70,14 @@
       {% if data.dropped_columns %}
         丢弃了 <b>{{ data.dropped_columns | length }}</b> 列：<code>{{ data.dropped_columns | join(", ") }}</code>
       {% else %}
-        没有列被丢弃。
+        没有列因常数列、空列或文本列被丢弃。
+      {% endif %}
+      <br>
+      {% if data.excluded_by_audit %}
+        因审计建议或分组声明排除了 <b>{{ data.excluded_by_audit | length }}</b> 列：
+        <code>{{ data.excluded_by_audit | join(", ") }}</code>
+      {% else %}
+        没有列因审计建议被排除。
       {% endif %}
       <br>
       {% if data.n_features_in != data.n_features_out %}
@@ -74,15 +93,20 @@
   <!-- ══════════════════════════════════════════════════════════
        第 2 部分：判断流程
        ══════════════════════════════════════════════════════════ -->
+  {% set numbering.n = numbering.n + 1 %}
   <section>
-    <h2>② 判断流程</h2>
+    <h2>{{ "①②③④⑤⑥⑦⑧⑨"[numbering.n - 1] }} 判断流程</h2>
 
     <div class="mermaid">
 flowchart TD
-  Start([开始：接收 X, y, profile, split_result, config]) --> Slice[阶段 1：切片数据]
-  Slice -->|提取 train/valid/test 索引| ColLoop[阶段 2：逐列处理]
+  Start([开始：接收 X, y, profile, split_result, config, sensitive_features]) --> Slice[阶段 1：切片数据]
+  Slice -->|提取 train/valid/test 索引| AuditDrop[阶段 2：解析审计排除列<br/>分组列 + 画像建议列]
 
-  ColLoop --> EmptyCol{常数列或全空列？}
+  AuditDrop --> ColLoop[阶段 3：逐列处理]
+
+  ColLoop --> AuditExcluded{在审计排除集合中？}
+  AuditExcluded -->|是| DropAudit[排除此列<br/>记录 dropped_by_audit 与原因]
+  AuditExcluded -->|否| EmptyCol{常数列或全空列？}
   EmptyCol -->|是| Drop[丢弃此列]
   EmptyCol -->|否| TextCol{文本列？}
   TextCol -->|是，handle_text=drop| Drop
@@ -93,6 +117,7 @@ flowchart TD
   DtCol -->|handle_datetime=extract| DtExtract[提取年/月/日数值特征]
 
   Drop --> NextCol
+  DropAudit --> NextCol
   TextError --> NextCol
   Keep --> NextCol
   DtExtract --> NextCol
@@ -133,21 +158,37 @@ flowchart TD
 
   NextCol{还有下一列？}
   NextCol -->|是| ColLoop
-  NextCol -->|否| Done([完成：输出 PreprocessedData])
+  NextCol -->|否| DriftAudit[阶段 4：分布漂移审计<br/>train vs valid / train vs test]
+  DriftAudit --> KsGate{KS 是否超过同样本量临界值？}
+  KsGate -->|否| DriftInfo[判为 info：差异在抽样噪声内]
+  KsGate -->|是| PsiGate{PSI / TVD 等级}
+  PsiGate -->|≥ high 阈值| DriftHigh[判为 high：记录漂移特征]
+  PsiGate -->|≥ warning 阈值| DriftMed[判为 medium]
+  PsiGate -->|低于阈值| DriftLow[判为 info]
+  DriftHigh --> GroupAudit
+  DriftMed --> GroupAudit
+  DriftLow --> GroupAudit
+  DriftInfo --> GroupAudit
+  GroupAudit[阶段 5：敏感群体覆盖审计] --> Done([完成：输出 PreprocessedData + audit])
 
   classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
   classDef decision fill:#fff3cd,stroke:#856404,stroke-width:1px;
+  classDef audit fill:#e8f4fd,stroke:#2471a3,stroke-width:1px;
+  classDef warning fill:#fff3cd,stroke:#856404,stroke-width:1px;
   class Drop,TextError error;
-  class EmptyCol,TextCol,DtCol,NumCol,BoolCol,CateCol,ScaleQuery,SkewQuery1,SkewQuery2,HighCard,HighEnc,LowEnc decision;
+  class DropAudit,DriftHigh warning;
+  class EmptyCol,TextCol,DtCol,NumCol,BoolCol,CateCol,ScaleQuery,SkewQuery1,SkewQuery2,HighCard,HighEnc,LowEnc,AuditExcluded,KsGate,PsiGate decision;
+  class AuditDrop,DriftAudit,DriftInfo,DriftMed,DriftLow,GroupAudit audit;
     </div>
-    <div class="mermaid-note">↑ preprocess 阶段决策流程。灰色背景节点为决策分支，红色为错误出口。</div>
+    <div class="mermaid-note">↑ preprocess 阶段决策流程：先解析审计排除列，再逐列变换，最后做分布漂移与群体覆盖审计。灰色背景节点为决策分支，蓝色为审计算子，红色为错误出口。漂移判定需先通过同样本量下的 KS 显著性门槛。</div>
   </section>
 
   <!-- ══════════════════════════════════════════════════════════
        第 3 部分：逐列变换记录
        ══════════════════════════════════════════════════════════ -->
+  {% set numbering.n = numbering.n + 1 %}
   <section>
-    <h2>③ 逐列变换记录</h2>
+    <h2>{{ "①②③④⑤⑥⑦⑧⑨"[numbering.n - 1] }} 逐列变换记录</h2>
 
     {% set ns = namespace(n_scale=0, n_impute=0, n_encode=0, n_drop=0) %}
     {% for t in data.transforms %}
@@ -210,9 +251,12 @@ flowchart TD
     {% endif %}
   {% endfor %}
 
+  {% set has_mapping_changes = data.column_mappings | selectattr("is_dropped") | list | length
+     or data.column_mappings | rejectattr("is_dropped") | selectattr("output_names", "ne", None) | list | length %}
   {% if changed_mappings | length > 0 %}
+  {% set numbering.n = numbering.n + 1 %}
   <section>
-    <h2>④ 列映射关系</h2>
+    <h2>{{ "①②③④⑤⑥⑦⑧⑨"[numbering.n - 1] }} 列映射关系</h2>
     <p class="hint">仅展示有变化的列（被丢弃、展开、重命名或提取）。未列出的列原样保留。</p>
 
     <table>
@@ -257,10 +301,161 @@ flowchart TD
   {% endif %}
 
   <!-- ══════════════════════════════════════════════════════════
-       第 5 部分：数据概况（各子集统计）
+       第 5 部分：分布漂移与群体覆盖审计（阶段 3 新增）
        ══════════════════════════════════════════════════════════ -->
+  {% if data.audit is not none %}
+  {% set numbering.n = numbering.n + 1 %}
   <section>
-    <h2>④ 数据概况</h2>
+    <h2>{{ "①②③④⑤⑥⑦⑧⑨"[numbering.n - 1] }} 分布漂移与群体覆盖审计</h2>
+
+    <div class="conclusion" style="border-left-color: {% if data.audit.risk_level in ['critical', 'high'] %}#e74c3c; background: #fdf2f2;{% elif data.audit.risk_level == 'medium' %}#f39c12; background: #fef9e7;{% else %}#27ae60; background: #eafaf1;{% endif %}">
+      <b>审计风险综合评级：</b>
+      <span class="badge {% if data.audit.risk_level in ['critical', 'high', 'medium'] %}badge-warn{% else %}badge-ok{% endif %}" style="font-weight: bold;">
+        {{ data.audit.risk_level|upper }}
+      </span>
+      {% if data.audit.high_drift_features %}
+        <span style="color: #c0392b; margin-left: 0.5rem;">
+          <b>{{ data.audit.high_drift_features | length }}</b> 个特征漂移偏高，
+          最大 PSI = <b>{{ data.audit.max_psi }}</b>。
+        </span>
+      {% else %}
+        <span style="color: #27ae60; margin-left: 0.5rem;">
+          {{ data.audit.audited_features }} 个特征在验证集与测试集方向上均未出现显著漂移。
+        </span>
+      {% endif %}
+      {% if data.audit.drift_truncated %}
+        <br><span class="hint">受 drift_max_features 限制，本次只审计了部分特征。</span>
+      {% endif %}
+    </div>
+
+    <h3>5.1 固定检查项清单</h3>
+    <table>
+      <thead>
+        <tr><th style="width: 25%;">检查项目</th><th style="width: 15%;">状态</th><th>检查结果与依据</th></tr>
+      </thead>
+      <tbody>
+        {% for chk in data.audit.check_results %}
+        <tr>
+          <td><b>{{ chk.check }}</b></td>
+          <td>
+            <span class="badge {% if chk.status == '通过' %}badge-ok{% elif chk.status == '发现风险' %}badge-warn{% else %}badge-info{% endif %}">
+              {{ chk.status }}
+            </span>
+          </td>
+          <td>{{ chk.result }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if data.excluded_by_audit %}
+    <h3>5.2 因审计排除的列</h3>
+    <div class="evidence" style="border-left-color: #e67e22; background: #fffaf0;">
+      <code>{{ data.excluded_by_audit | join(", ") }}</code>
+      <ul style="margin: .4rem 0 0 1.1rem;">
+        {% for t in data.transforms %}
+          {% if "dropped_by_audit" in t.action_sequence %}
+          <li><b>{{ t.col_name }}</b>：{{ t.note }}</li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% set drift = namespace(n_high=0, n_medium=0) %}
+    {% for r in data.audit.drift_records %}
+      {% if r.severity == 'high' %}{% set drift.n_high = drift.n_high + 1 %}{% endif %}
+      {% if r.severity == 'medium' %}{% set drift.n_medium = drift.n_medium + 1 %}{% endif %}
+    {% endfor %}
+    <h3>5.3 特征分布漂移</h3>
+    <p class="hint">
+      共 {{ data.audit.drift_records | length }} 条记录（每个特征两个对比方向）·
+      高危 {{ drift.n_high }} 条 · 中危 {{ drift.n_medium }} 条 ·
+      判定前先校验同样本量下的 KS 显著性，避免小样本噪声被当作漂移
+    </p>
+    {% if data.audit.skipped_columns %}
+    <p class="hint">
+      以下列已被排除出模型输入，未参与漂移审计（其分布差异不影响建模）：
+      <code>{{ data.audit.skipped_columns | join(", ") }}</code>
+    </p>
+    {% endif %}
+    <table>
+      <thead>
+        <tr>
+          <th>特征</th><th>类型</th><th>对比方向</th><th>PSI</th><th>KS</th>
+          <th>TVD</th><th>未见类别率</th><th>判定</th><th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in data.audit.drift_records %}
+          {% if r.severity != 'info' %}
+          <tr>
+            <td><b>{{ r.feature }}</b></td>
+            <td>{{ r.feature_type }}</td>
+            <td>{{ r.comparison }}</td>
+            <td>{{ "%.4f"|format(r.psi) if r.psi is not none else "—" }}</td>
+            <td>{{ "%.4f"|format(r.ks_statistic) if r.ks_statistic is not none else "—" }}</td>
+            <td>{{ "%.4f"|format(r.total_variation) if r.total_variation is not none else "—" }}</td>
+            <td>{{ "%.4f"|format(r.unseen_rate) if r.unseen_rate is not none else "—" }}</td>
+            <td><span class="badge badge-warn">{{ r.severity }}</span></td>
+            <td class="hint">{{ r.recommendation }}</td>
+          </tr>
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if drift.n_high == 0 and drift.n_medium == 0 %}
+      <p class="hint">所有特征的漂移判定均为 info（通过显著性门槛且未超阈值）。</p>
+    {% endif %}
+
+    {% if data.audit.group_coverage %}
+    <h3>5.4 敏感群体覆盖</h3>
+    <table>
+      <thead>
+        <tr><th>敏感特征</th><th>群体</th><th>子集</th><th>样本数</th><th>占比</th><th>判定</th></tr>
+      </thead>
+      <tbody>
+        {% for g in data.audit.group_coverage %}
+        <tr>
+          <td>{{ g.sensitive_feature }}</td>
+          <td>{{ g.group }}</td>
+          <td>{{ g.split }}</td>
+          <td>{{ g.count }}</td>
+          <td>{{ "%.2f"|format(g.proportion * 100) }}%</td>
+          <td>
+            <span class="badge {% if g.severity == 'high' %}badge-warn{% else %}badge-ok{% endif %}">{{ g.severity }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <h3>5.4 敏感群体覆盖</h3>
+    <p class="hint">未提供敏感特征，本次未执行群体覆盖审计。如需该检查，请调用 <code>fit(X, y, sensitive_features=[...])</code>。</p>
+    {% endif %}
+
+    {% if data.audit.findings %}
+    <h3>5.5 风险详情</h3>
+    {% for finding in data.audit.findings %}
+    <div class="evidence" style="border-left-color: {% if finding.severity in ['critical', 'high'] %}#e74c3c;{% elif finding.severity == 'medium' %}#f39c12;{% else %}#3498db;{% endif %}">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <b>{{ finding.title }}</b>
+        <span class="badge {% if finding.severity in ['critical', 'high'] %}badge-warn{% else %}badge-info{% endif %}">{{ finding.severity }}</span>
+      </div>
+      <p style="margin: 0.3rem 0; color: #555;"><b>证据依据：</b>{{ finding.evidence }}</p>
+      <p style="margin: 0.3rem 0; color: #2c3e50;"><b>处置建议：</b>{{ finding.recommendation }}</p>
+    </div>
+    {% endfor %}
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 6 部分：数据概况（各子集统计）
+       ══════════════════════════════════════════════════════════ -->
+  {% set numbering.n = numbering.n + 1 %}
+  <section>
+    <h2>{{ "①②③④⑤⑥⑦⑧⑨"[numbering.n - 1] }} 数据概况</h2>
 
     <h3>输出特征名</h3>
     <p>

@@ -9,7 +9,7 @@ from tabularx.core.params import (
     ShapConfig,
     FairnessConfig,
 )
-from tabularx.core.preprocess import preprocess
+from tabularx.core.preprocess import preprocess, audit_drift
 from tabularx.core.profile import (
     build_profile,
     build_column_fact,
@@ -88,6 +88,7 @@ __all__ = [
     "audit_split",
     "resolve_split_strategy",
     "preprocess",
+    "audit_drift",
     # 模型搜索
     "ModelRegistry",
     "get_default_registry",

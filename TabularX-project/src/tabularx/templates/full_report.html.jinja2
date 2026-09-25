@@ -178,22 +178,24 @@
 flowchart LR
   Raw([原始 X, y]) --> ProfileAudit[画像静态预检<br/>ID / 目标复制 / 目标代理 / 禁用特征]
   ProfileAudit --> ProfileRisk{画像风险等级}
-  ProfileRisk -->|critical / high| DropCols[输出建议排除列<br/>供预处理决策参考]
-  ProfileRisk -->|info / low / medium| NoDrop[无需排除列]
+  ProfileRisk -->|critical / high| DropCols[建议排除列<br/>供预处理决策参考]
+  ProfileRisk -->|info / low / medium| NoDrop[无高危排除建议]
   DropCols --> SplitAudit
   NoDrop --> SplitAudit[划分完整性审计<br/>重复 / 实体泄漏 / 时间穿越]
   SplitAudit --> SplitRisk{划分风险等级}
   SplitRisk -->|critical| FixSplit[建议改用 group 或 temporal 切分]
   SplitRisk -->|info / medium| KeepSplit[划分方式可接受]
-  FixSplit --> Ledger
-  KeepSplit --> Ledger[预检结论并入统一报告与交付清单]
+  FixSplit --> PreAudit
+  KeepSplit --> PreAudit[预处理排除与分布审计<br/>分组列 / 建议列排除，PSI / KS / TVD，群体覆盖]
+  PreAudit --> ExcludeCols[实际排除列<br/>不进入模型输入]
+  ExcludeCols --> Ledger[结论并入统一报告与交付清单]
   classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
   classDef warning fill:#fff3cd,stroke:#856404,stroke-width:1px;
   classDef audit fill:#e8f4fd,stroke:#2471a3,stroke-width:1px;
-  class DropCols,FixSplit warning;
-  class ProfileAudit,SplitAudit,ProfileRisk,SplitRisk,Ledger audit;
+  class DropCols,FixSplit,ExcludeCols warning;
+  class ProfileAudit,SplitAudit,PreAudit,ProfileRisk,SplitRisk,Ledger audit;
     </div>
-    <p class="hint">↑ 阶段 1（画像）与阶段 2（划分）的审计链路。未声明 group_column / time_column 时，对应检查标记为「未执行」而非通过。</p>
+    <p class="hint">↑ 阶段 1（画像）、阶段 2（划分）与阶段 3（预处理）的审计链路。未声明 group_column / time_column 时对应检查标记为「未执行」而非通过；分布漂移需先通过同样本量下的显著性门槛才会判为风险。</p>
   </div>
   {% endif %}
 

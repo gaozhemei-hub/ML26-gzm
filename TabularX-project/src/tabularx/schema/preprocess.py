@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 import pandas as pd
 from typing import Any
 
+from tabularx.schema.audit import PreprocessAuditResult
+
 
 @dataclass
 class TransformRecord:
@@ -80,9 +82,16 @@ class PreprocessedData:
     """原始列到输出列的映射（用于追踪敏感特征等）"""
     fitted_preprocessor: Any | None = field(default=None, repr=False)
 
+    # ── 预处理阶段审计（阶段 3 新增，带默认值保证向后兼容）──
+    audit: PreprocessAuditResult | None = None
+    """特征分布漂移与群体覆盖审计结果；未启用时为 None。"""
+    excluded_by_audit: list[str] = field(default_factory=list)
+    """因审计建议或分组声明而被排除出模型输入的列（与 dropped_columns 分列记录）。"""
+
 
 __all__ = [
     "TransformRecord",
     "ColumnMapping",
     "PreprocessedData",
+    "PreprocessAuditResult",
 ]

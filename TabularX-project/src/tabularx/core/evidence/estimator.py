@@ -83,7 +83,7 @@ class EvidenceEstimatorMixin:
             return EvidenceOutcome([str(path)])
 
         def build_audit_summary():
-            """汇总画像与划分两个阶段的审计结论，供总报告安全审计页使用。"""
+            """汇总画像、划分与预处理三个阶段的审计结论，供总报告审计页使用。"""
             from tabularx.schema.audit import SEVERITY_ORDER
             stages = []
             findings = []
@@ -119,6 +119,21 @@ class EvidenceEstimatorMixin:
                                          columns=list(f.columns)))
                 actions.extend(split_audit.suggested_actions)
 
+            preprocess_audit = getattr(result.preprocessed, "audit", None)
+            if preprocess_audit is not None:
+                drift_count = len(preprocess_audit.high_drift_features)
+                stages.append(dict(
+                    stage="预处理分布审计",
+                    risk_level=preprocess_audit.risk_level,
+                    summary=f"{preprocess_audit.audited_features} 个特征受检，"
+                            f"{drift_count} 个漂移偏高，"
+                            f"排除 {len(preprocess_audit.excluded_by_audit)} 列",
+                ))
+                for f in preprocess_audit.findings:
+                    findings.append(dict(stage="预处理", severity=f.severity, title=f.title,
+                                         evidence=f.evidence, recommendation=f.recommendation,
+                                         columns=list(f.columns)))
+                drop_columns.extend(preprocess_audit.excluded_by_audit)
             overall = max((s["risk_level"] for s in stages),
                           key=lambda s: SEVERITY_ORDER.get(s, 0), default="info")
             return dict(overall_risk_level=overall, stages=stages, findings=findings,

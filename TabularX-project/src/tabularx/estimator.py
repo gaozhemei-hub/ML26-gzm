@@ -69,7 +69,8 @@ class AutoEstimator(EvidenceEstimatorMixin):
         split = split_data(X, y, profile=profile, config=self.param.split)
         self._raw_test = X.iloc[split.test_indices].copy(deep=True)
         preprocessed = preprocess(X, y, profile=profile, split_result=split,
-                                  config=self.param.preprocess)
+                                  config=self.param.preprocess,
+                                  sensitive_features=list(sensitive_features or []))
         searched = search_models(preprocessed_data=preprocessed, profile=profile,
                                  config=self.param.model_search)
 
