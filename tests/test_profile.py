@@ -769,3 +769,203 @@ class TestTargetFactTags:
         col = pd.Series([1.0, 2.0, 3.0], name="x")
         fact = build_column_fact(col)
         assert hasattr(fact, "skewness")
+
+
+# ─────────────────────────────────────────────────────────────
+# 阶段 1 新增：数据安全与可信泄漏静态预检测试
+# ─────────────────────────────────────────────────────────────
+
+class TestProfileAuditPreflight:
+    """测试 Profile 阶段的静态数据泄漏与风险预检功能。"""
+
+    def test_identifier_column_detected(self):
+        """测试列名含 ID 且唯一率高的特征被识别为 identifier_like_column。"""
+        n = 100
+        df = pd.DataFrame({
+            "patient_id": [f"P_{i:04d}" for i in range(n)],
+            "feature_1": np.random.randn(n),
+        })
+        y = pd.Series([0, 1] * (n // 2))
+
+        profile = build_profile(df, y)
+        assert profile.audit is not None
+        codes = [f.code for f in profile.audit.findings]
+        assert "identifier_like_column" in codes
+
+        finding = next(f for f in profile.audit.findings if f.code == "identifier_like_column")
+        assert "patient_id" in finding.columns
+        assert finding.severity == "high"
+        assert "patient_id" in profile.audit.suggested_drop_columns
+
+        # 检查对应列的 tag 也被打上 identifier_like
+        id_fact = next(c for c in profile.columns if c.col_name == "patient_id")
+        assert "identifier_like" in id_fact.tags
+
+    def test_target_copy_detected(self):
+        """测试特征与目标完全相同时标记为 target_copy 严重风险。"""
+        n = 50
+        y = pd.Series(np.random.choice([0, 1], size=n))
+        df = pd.DataFrame({
+            "feat_normal": np.random.randn(n),
+            "feat_leak": y.copy(),
+        })
+
+        profile = build_profile(df, y)
+        assert profile.audit is not None
+        assert profile.audit.risk_level == "critical"
+        assert "feat_leak" in profile.audit.suggested_drop_columns
+
+        finding = next(f for f in profile.audit.findings if f.code == "target_copy")
+        assert finding.severity == "critical"
+        assert "feat_leak" in finding.columns
+
+    def test_target_proxy_by_name_and_score(self):
+        """测试根据列名（后验词）或单特征高预测力识别疑似目标代理。"""
+        n = 80
+        rng = np.random.default_rng(42)
+        y = pd.Series([0] * 40 + [1] * 40)
+        df = pd.DataFrame({
+            "post_treatment_result": rng.normal(0, 1, n),  # 命中了列名正则
+            "normal_feat": rng.normal(0, 1, n),
+        })
+
+        profile = build_profile(df, y)
+        assert profile.audit is not None
+        proxy_findings = [f for f in profile.audit.findings if f.code == "possible_target_proxy"]
+        assert len(proxy_findings) >= 1
+        cols = [c for f in proxy_findings for c in f.columns]
+        assert "post_treatment_result" in cols
+
+    def test_target_proxy_by_high_auc(self):
+        """测试非正则列因 AUC 极高而被识别为疑似代理特征。"""
+        n = 100
+        y = pd.Series([0] * 50 + [1] * 50)
+        # 极强预测力特征（几乎完全分开两类，AUC 接近 1.0）
+        df = pd.DataFrame({
+            "strong_signal": [0.1 + 0.01 * i for i in range(50)] + [10.0 + 0.01 * i for i in range(50)],
+        })
+
+        from tabularx.core.params import ProfileConfig
+        cfg = ProfileConfig(target_proxy_threshold=0.95)
+        profile = build_profile(df, y, config=cfg)
+        assert profile.audit is not None
+        codes = [f.code for f in profile.audit.findings]
+        assert "possible_target_proxy" in codes
+
+    def test_forbidden_features_detected(self):
+        """测试用户显式声明的 forbidden_features 被标记并加入建议剔除列表。"""
+        n = 60
+        df = pd.DataFrame({
+            "feature_a": np.random.randn(n),
+            "unauthorized_feature": np.random.randn(n),
+        })
+        y = pd.Series([0, 1] * 30)
+
+        from tabularx.core.params import ProfileConfig
+        cfg = ProfileConfig(forbidden_features=["unauthorized_feature"])
+        profile = build_profile(df, y, config=cfg)
+
+        assert profile.audit is not None
+        assert "unauthorized_feature" in profile.audit.suggested_drop_columns
+        finding = next(f for f in profile.audit.findings if f.code == "forbidden_feature")
+        assert finding.severity == "critical"
+
+    def test_user_id_columns_config(self):
+        """测试用户通过 id_columns 指定的特征被正确识别并建议剔除。"""
+        n = 60
+        df = pd.DataFrame({
+            "custom_tag": [f"tag_{i % 5}" for i in range(n)],  # 唯一率不高
+            "normal_x": np.random.randn(n),
+        })
+        y = pd.Series([0, 1] * 30)
+
+        from tabularx.core.params import ProfileConfig
+        cfg = ProfileConfig(id_columns=["custom_tag"])
+        profile = build_profile(df, y, config=cfg)
+
+        assert profile.audit is not None
+        assert "custom_tag" in profile.audit.suggested_drop_columns
+
+    def test_disable_leakage_audit(self):
+        """测试禁用 leakage_audit 时 audit 结果为空。"""
+        n = 50
+        df = pd.DataFrame({"id": range(n)})
+        y = pd.Series([0, 1] * 25)
+
+        from tabularx.core.params import ProfileConfig
+        cfg = ProfileConfig(enable_leakage_audit=False)
+        profile = build_profile(df, y, config=cfg)
+
+        assert profile.audit is not None
+        assert len(profile.audit.findings) == 0
+        assert len(profile.audit.check_results) == 0
+
+    def test_audit_results_serialization(self):
+        """测试 ProfileAuditResult 的 to_dict 序列化。"""
+        n = 60
+        df = pd.DataFrame({
+            "user_uuid": [f"u_{i}" for i in range(n)],
+            "normal_val": range(n),
+        })
+        y = pd.Series([0, 1] * 30)
+
+        profile = build_profile(df, y)
+        d = profile.audit.to_dict()
+        assert "risk_level" in d
+        assert "high_risk_count" in d
+        assert "findings" in d
+        assert "check_results" in d
+        assert "suggested_drop_columns" in d
+        assert isinstance(d["findings"], list)
+
+    def test_report_includes_audit_section(self):
+        """测试渲染 profile 报告时包含数据安全预检板块。"""
+        from tabularx.core.reports import render_profile_report
+
+        n = 80
+        df = pd.DataFrame({
+            "patient_guid": [f"uuid_{i}" for i in range(n)],
+            "feature_x": np.random.randn(n),
+        })
+        y = pd.Series([0, 1] * 40)
+
+        profile = build_profile(df, y)
+        html = render_profile_report(profile)
+        assert "数据安全与泄漏预检" in html
+        assert "patient_guid" in html
+        assert "疑似标识符特征" in html
+
+    def test_regression_univariate_score_detection(self):
+        """测试回归任务中强相关特征（R2 极高）被检测为疑似目标代理。"""
+        n = 100
+        rng = np.random.default_rng(42)
+        y = pd.Series(rng.normal(10, 5, n))
+        df = pd.DataFrame({
+            "nearly_target": y + rng.normal(0, 0.001, n),  # 与目标近乎一致，但有微小噪声避免 target_copy
+            "normal_feat": rng.normal(0, 1, n),
+        })
+
+        from tabularx.core.params import ProfileConfig
+        cfg = ProfileConfig(target_proxy_threshold=0.95)
+        profile = build_profile(df, y, task_type="regression", config=cfg)
+        assert profile.audit is not None
+        codes = [f.code for f in profile.audit.findings]
+        assert "possible_target_proxy" in codes
+        finding = next(f for f in profile.audit.findings if f.code == "possible_target_proxy")
+        assert "nearly_target" in finding.columns
+        assert finding.details.get("score") is not None
+        assert finding.details["score"] > 0.95
+
+    def test_clean_data_no_findings(self):
+        """测试纯净、无 ID、无后验、无高关联的数据集，预检应全部通过。"""
+        data = load_iris(as_frame=True)
+        profile = build_profile(data.data, data.target)
+        assert profile.audit is not None
+        assert profile.audit.risk_level == "info"
+        assert profile.audit.high_risk_count == 0
+        assert len(profile.audit.findings) == 0
+        assert len(profile.audit.suggested_drop_columns) == 0
+        for chk in profile.audit.check_results:
+            assert chk.status == "通过"
+
+

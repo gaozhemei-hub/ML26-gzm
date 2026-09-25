@@ -15,6 +15,66 @@ class Evidence:
     note: str | None = None  # 补充说明，如 "目标列去空后的唯一值个数"
 
 
+AuditSeverity = Literal["info", "low", "medium", "high", "critical"]
+_SEVERITY_ORDER: dict[str, int] = {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
+
+
+@dataclass
+class AuditFinding:
+    """单项风险/合规发现项。"""
+
+    code: str
+    severity: AuditSeverity
+    title: str
+    evidence: str
+    recommendation: str
+    columns: list[str] = field(default_factory=list)
+    details: dict = field(default_factory=dict)
+
+
+@dataclass
+class AuditCheckResult:
+    """固定审计检查项目的判定记录（含通过、风险、未执行）。"""
+
+    code: str
+    check: str
+    status: Literal["通过", "发现风险", "未执行"]
+    result: str
+
+
+@dataclass
+class ProfileAuditResult:
+    """Profile 阶段的数据泄漏与完整性静态预检结果。"""
+
+    findings: list[AuditFinding] = field(default_factory=list)
+    check_results: list[AuditCheckResult] = field(default_factory=list)
+    suggested_drop_columns: list[str] = field(default_factory=list)
+    model_info_questions: list[str] = field(default_factory=list)
+
+    @property
+    def risk_level(self) -> AuditSeverity:
+        return max(
+            (f.severity for f in self.findings),
+            key=lambda s: _SEVERITY_ORDER.get(s, 0),
+            default="info",
+        )
+
+    @property
+    def high_risk_count(self) -> int:
+        return sum(f.severity in {"high", "critical"} for f in self.findings)
+
+    def to_dict(self) -> dict:
+        import dataclasses
+        return {
+            "risk_level": self.risk_level,
+            "high_risk_count": self.high_risk_count,
+            "suggested_drop_columns": self.suggested_drop_columns,
+            "findings": [dataclasses.asdict(f) for f in self.findings],
+            "check_results": [dataclasses.asdict(c) for c in self.check_results],
+            "model_info_questions": self.model_info_questions,
+        }
+
+
 @dataclass
 class ColumnFact:
     """单列的事实记录（只描述，不决策）。"""
@@ -62,3 +122,4 @@ class DataProfile:
     columns: list[ColumnFact]
     target: TargetFact
     fingerprint: str  # 数据指纹（sha256），用于复现校验
+    audit: ProfileAuditResult | None = None  # 静态数据泄漏与合规预检结果

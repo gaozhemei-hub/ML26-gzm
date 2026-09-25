@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from typing import Literal
 
 import numpy as np
@@ -22,14 +23,27 @@ from tabularx.exceptions import (
     TaskTypeError,
 )
 from tabularx.schema.profile import (
+    AuditCheckResult,
+    AuditFinding,
     ColumnFact,
     DataProfile,
     Evidence,
+    ProfileAuditResult,
     TargetFact,
 )
 
 # 合法的任务类型取值
 TASK_TYPES = ("binary", "multiclass", "regression")
+
+# 正则：识别疑似 ID 字段与结果/目标代理字段
+_ID_PATTERN = re.compile(
+    r"(^|[_-])(id|uuid|guid|record|patient|user|account|device|code)([_-]|$)",
+    re.I,
+)
+_OUTCOME_PATTERN = re.compile(
+    r"(target|label|outcome|diagnos|post[_-]|result|ground[_-]?truth)",
+    re.I,
+)
 
 
 class ProfileUtils:
@@ -264,6 +278,19 @@ def build_column_fact(
     # 确定标签 tags
     tags = [col_type]
 
+    # ID/高唯一性标识初步标记
+    ratio = n_unique / max(1, len(col_clean))
+    is_id_name = bool(_ID_PATTERN.search(str(col.name)))
+    if is_id_name or ratio >= cfg.identifier_unique_ratio:
+        tags.append("identifier_like")
+        evidences.append(
+            Evidence(
+                "identifier_like",
+                f"{ratio:.2%}",
+                f"唯一值占比为 {ratio:.2%}" + ("，列名命中 ID 模式" if is_id_name else "，唯一率较高"),
+            )
+        )
+
     # 高基数类别检测
     if col_type == ProfileUtils.CATEGORICAL and n_unique > cfg.high_cardinality_threshold:
         tags.append("high_cardinality")
@@ -428,6 +455,180 @@ def build_target_fact(
         )
 
 
+def _compute_univariate_score(
+    series: pd.Series,
+    y: pd.Series,
+    task_type: str,
+) -> float | None:
+    """计算单个数值特征对目标的预测力，用于检测强相关目标代理特征。"""
+    if not pd.api.types.is_numeric_dtype(series):
+        return None
+    mask = series.notna() & y.notna()
+    if mask.sum() < 10:
+        return None
+    try:
+        if task_type == "binary" and y[mask].nunique() == 2:
+            labels = pd.factorize(y[mask])[0]
+            score = series[mask].astype(float)
+            ranks = score.rank(method="average").to_numpy()
+            n_pos = int((labels == 1).sum())
+            n_neg = int((labels == 0).sum())
+            if n_pos == 0 or n_neg == 0:
+                return None
+            auc = (ranks[labels == 1].sum() - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg)
+            return float(max(auc, 1 - auc))
+        if task_type == "regression":
+            actual = y[mask].astype(float)
+            predicted = series[mask].astype(float)
+            denom = float(((actual - actual.mean()) ** 2).sum())
+            if denom == 0.0:
+                return None
+            r2 = 1.0 - float(((actual - predicted) ** 2).sum()) / denom
+            return max(0.0, float(r2))
+    except Exception:
+        pass
+    return None
+
+
+def _set_check(
+    result: ProfileAuditResult,
+    code: str,
+    check: str,
+    status: Literal["通过", "发现风险", "未执行"],
+    message: str,
+) -> None:
+    item = AuditCheckResult(code=code, check=check, status=status, result=message)
+    for index, existing in enumerate(result.check_results):
+        if existing.code == code:
+            result.check_results[index] = item
+            return
+    result.check_results.append(item)
+
+
+def _set_check_from_findings(
+    result: ProfileAuditResult,
+    code: str,
+    check: str,
+    pass_message: str,
+) -> None:
+    matched = [item for item in result.findings if item.code == code]
+    if matched:
+        columns = list(dict.fromkeys(col for item in matched for col in item.columns))
+        detail = "、".join(map(str, columns)) if columns else f"{len(matched)} 项"
+        _set_check(result, code, check, "发现风险", f"发现 {len(matched)} 项：{detail}。")
+    else:
+        _set_check(result, code, check, "通过", pass_message)
+
+
+def audit_profile_preflight(
+    X: pd.DataFrame,
+    y: pd.Series,
+    task_type: str,
+    config: ProfileConfig | None = None,
+) -> ProfileAuditResult:
+    """在划分前进行静态数据风险与泄漏预检（纯观测，零副作用）。"""
+    cfg = config if config is not None else ProfileConfig()
+    result = ProfileAuditResult()
+
+    if not cfg.enable_leakage_audit:
+        return result
+
+    suggested_drops: list[str] = []
+
+    for col in X.columns:
+        series = X[col]
+        clean_s = series.dropna()
+        ratio = clean_s.nunique() / max(1, len(clean_s))
+        id_name = bool(_ID_PATTERN.search(str(col)))
+        is_user_id = col in cfg.id_columns
+
+        # 1. 标识符特征 / 高唯一性特征
+        if is_user_id or id_name or ratio >= cfg.identifier_unique_ratio:
+            sev: Literal["high", "medium"] = (
+                "high" if (is_user_id or (id_name and ratio >= cfg.identifier_unique_ratio)) else "medium"
+            )
+            result.findings.append(
+                AuditFinding(
+                    code="identifier_like_column",
+                    severity=sev,
+                    title="疑似标识符特征",
+                    evidence=f"{col!r} 唯一值比例为 {ratio:.1%}"
+                    + ("，列名命中标识符模式" if id_name else "。"),
+                    recommendation="确认预测时是否可得；通常应作为分组列或从模型特征中排除。",
+                    columns=[str(col)],
+                    details={"unique_ratio": ratio},
+                )
+            )
+            if sev == "high" or is_user_id:
+                suggested_drops.append(str(col))
+
+        # 2. 目标直接复制
+        same = series.astype("string").fillna("<NA>").equals(y.astype("string").fillna("<NA>"))
+        if same:
+            result.findings.append(
+                AuditFinding(
+                    code="target_copy",
+                    severity="critical",
+                    title="特征与目标完全相同",
+                    evidence=f"列 {col!r} 与目标逐行完全一致。",
+                    recommendation="立即从特征集中排除该列，并追溯数据导出流程。",
+                    columns=[str(col)],
+                )
+            )
+            suggested_drops.append(str(col))
+        else:
+            # 3. 疑似目标代理特征 (Outcome Proxy / Leakage)
+            score = _compute_univariate_score(series, y, task_type)
+            name_hit = bool(_OUTCOME_PATTERN.search(str(col)))
+            high_score = score is not None and score >= cfg.target_proxy_threshold
+            if name_hit or high_score:
+                ev_text = (
+                    f"列名 {col!r} 命中后验/结果字段规则。"
+                    if name_hit
+                    else f"单特征判别力分数为 {score:.3f}（阈值 {cfg.target_proxy_threshold}）。"
+                )
+                result.findings.append(
+                    AuditFinding(
+                        code="possible_target_proxy",
+                        severity="high",
+                        title="疑似目标代理特征",
+                        evidence=ev_text,
+                        recommendation="检查该特征是否在真实预测时已产生，避免时序事后泄漏。",
+                        columns=[str(col)],
+                        details={"score": score},
+                    )
+                )
+
+    # 4. 用户显式指定的不可用特征
+    for col in cfg.forbidden_features:
+        if col in X.columns:
+            result.findings.append(
+                AuditFinding(
+                    code="forbidden_feature",
+                    severity="critical",
+                    title="声明的非法/禁用特征",
+                    evidence=f"{col!r} 已被用户声明为预测时不可获得。",
+                    recommendation="从建模特征集中排除。",
+                    columns=[str(col)],
+                )
+            )
+            suggested_drops.append(str(col))
+
+    result.suggested_drop_columns = list(dict.fromkeys(suggested_drops))
+    result.model_info_questions = [
+        "每个保留特征是否在真实预测时已经可获得，而不是结果发生后才产生？",
+        "测试集是否代表要泛化到的人群、地点与时间段？",
+        "是否存在实体、时间、空间或层级依赖，需要相应的分组切分？",
+    ]
+
+    _set_check_from_findings(result, "target_copy", "目标复制检测", "未发现特征与目标逐行一致。")
+    _set_check_from_findings(result, "possible_target_proxy", "目标代理特征检测", "未发现超过阈值的疑似目标代理特征。")
+    _set_check_from_findings(result, "identifier_like_column", "ID/高唯一性字段检测", "未发现疑似 ID 或超高唯一性字段。")
+    _set_check_from_findings(result, "forbidden_feature", "用户禁用特征校验", "未发现包含声明的非法特征。")
+
+    return result
+
+
 def build_profile(
     X: pd.DataFrame,
     y: pd.Series,
@@ -502,10 +703,14 @@ def build_profile(
                 f"ProfileConfig.min_samples_per_class 解决。"
             )
 
+    # ── 静态泄漏与合规预检（纯观测） ──────────────────────
+    audit = audit_profile_preflight(X, y, target.task_type, config=cfg)
+
     return DataProfile(
         n_rows=len(X),
         n_cols=len(X.columns),
         columns=columns,
         target=target,
         fingerprint=fingerprint,
+        audit=audit,
     )

@@ -266,6 +266,73 @@ flowchart TD
     </table>
   </section>
 
+  <!-- ══════════════════════════════════════════════════════════
+       第 4 部分：数据安全与可信泄漏预检（TrustGuard Preflight）
+       ══════════════════════════════════════════════════════════ -->
+  {% if data.audit is not none %}
+  <section>
+    <h2>④ 数据安全与泄漏预检</h2>
+    <div class="conclusion" style="border-left-color: {% if data.audit.risk_level in ['critical', 'high'] %}#e74c3c; background: #fdf2f2;{% elif data.audit.risk_level == 'medium' %}#f39c12; background: #fef9e7;{% else %}#27ae60; background: #eafaf1;{% endif %}">
+      <b>预检风险综合评级：</b>
+      <span class="badge {% if data.audit.risk_level in ['critical', 'high'] %}badge-warn{% elif data.audit.risk_level == 'medium' %}badge-warn{% else %}badge-ok{% endif %}" style="font-weight: bold; font-size: 0.95rem;">
+        {{ data.audit.risk_level|upper }}
+      </span>
+      {% if data.audit.high_risk_count > 0 %}
+        <span style="color: #c0392b; margin-left: 0.5rem;">发现 <b>{{ data.audit.high_risk_count }}</b> 项高危风险项，建议在预处理中剔除或核验。</span>
+      {% else %}
+        <span style="color: #27ae60; margin-left: 0.5rem;">未发现严重的数据泄漏或非法特征。</span>
+      {% endif %}
+    </div>
+
+    <h3>4.1 固定检查项清单</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 25%;">检查项目</th>
+          <th style="width: 15%;">状态</th>
+          <th>检查结果与依据</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for chk in data.audit.check_results %}
+        <tr>
+          <td><b>{{ chk.check }}</b></td>
+          <td>
+            <span class="badge {% if chk.status == '通过' %}badge-ok{% elif chk.status == '发现风险' %}badge-warn{% else %}badge-info{% endif %}">
+              {{ chk.status }}
+            </span>
+          </td>
+          <td>{{ chk.result }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if data.audit.findings %}
+    <h3>4.2 详细风险与特征发现</h3>
+    {% for finding in data.audit.findings %}
+    <div class="evidence" style="border-left-color: {% if finding.severity in ['critical', 'high'] %}#e74c3c;{% elif finding.severity == 'medium' %}#f39c12;{% else %}#3498db;{% endif %}">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <b>{{ finding.title }}</b>
+        <span class="badge {% if finding.severity in ['critical', 'high'] %}badge-warn{% else %}badge-info{% endif %}">{{ finding.severity }}</span>
+      </div>
+      <p style="margin: 0.3rem 0;"><b>关联列：</b><code>{{ finding.columns|join(', ') }}</code></p>
+      <p style="margin: 0.3rem 0; color: #555;"><b>证据依据：</b>{{ finding.evidence }}</p>
+      <p style="margin: 0.3rem 0; color: #2c3e50;"><b>处置建议：</b>{{ finding.recommendation }}</p>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if data.audit.suggested_drop_columns %}
+    <div class="evidence" style="border-left-color: #e67e22; background: #fffaf0;">
+      <b>建议排除特征（Suggested Drop Columns）：</b>
+      <code>{{ data.audit.suggested_drop_columns|join(', ') }}</code>
+      <div class="rule">提示：以上特征在进入实际模型训练前建议剔除，以规避信息泄漏或虚高泛化。</div>
+    </div>
+    {% endif %}
+  </section>
+  {% endif %}
+
   <footer>
     <p>由 TabularX 自动生成 · 数据指纹 {{ data.fingerprint }}</p>
   </footer>

@@ -53,6 +53,18 @@ class ProfileConfig:
     min_samples_per_class: int = 2
     """分类任务每类最少样本数：低于此值 → InsufficientDataError"""
 
+    # ── 静态泄漏与合规预检 ──────────────────────────────────
+    enable_leakage_audit: bool = True
+    """是否执行静态数据泄漏与风险预检"""
+    identifier_unique_ratio: float = 0.98
+    """疑似标识符特征判定阈值：唯一值比例 ≥ 此值且列名类似 ID，标记为高危"""
+    target_proxy_threshold: float = 0.98
+    """疑似目标代理特征评分阈值：单特征判别力(AUC/拟合度) ≥ 此值，标记为高危"""
+    id_columns: list[str] = field(default_factory=list)
+    """用户显式指定的 ID 列名列表"""
+    forbidden_features: list[str] = field(default_factory=list)
+    """用户声明预测时不可得的禁止特征列表"""
+
     # ── 元数据（不参与 __init__ / __eq__ / __repr__ / asdict）──
     _COMMENTS: ClassVar[dict[str, str]] = {
         "text_unique_threshold": "文本列判定：唯一值超过此数量 → 可能为文本列",
@@ -65,6 +77,11 @@ class ProfileConfig:
         "imbalance_ratio": "类别不平衡：最小类别占比 < 此值 → imbalanced",
         "min_samples_regression": "回归任务最少样本数（低于此值报错）",
         "min_samples_per_class": "分类任务每类最少样本数（低于此值报错）",
+        "enable_leakage_audit": "是否执行静态数据泄漏与风险预检",
+        "identifier_unique_ratio": "疑似标识符特征判定阈值（唯一值比例上限）",
+        "target_proxy_threshold": "疑似目标代理特征评分阈值（判别力上限）",
+        "id_columns": "用户显式指定的 ID 列名列表",
+        "forbidden_features": "用户声明预测时不可得的禁止特征列表",
     }
     _RANGES: ClassVar[dict[str, _Range]] = {
         "text_unique_threshold": (1, None),
@@ -77,6 +94,8 @@ class ProfileConfig:
         "imbalance_ratio": (0.0, 1.0),
         "min_samples_regression": (1, None),
         "min_samples_per_class": (1, None),
+        "identifier_unique_ratio": (0.0, 1.0),
+        "target_proxy_threshold": (0.0, 1.0),
     }
 
     def __post_init__(self) -> None:

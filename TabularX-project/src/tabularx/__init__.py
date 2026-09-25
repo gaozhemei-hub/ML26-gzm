@@ -14,6 +14,7 @@ from tabularx.core.profile import (
     build_profile,
     build_column_fact,
     build_target_fact,
+    audit_profile_preflight,
     ProfileUtils,
 )
 from tabularx.core.split import split_data
@@ -81,6 +82,7 @@ __all__ = [
     "build_profile",
     "build_column_fact",
     "build_target_fact",
+    "audit_profile_preflight",
     "ProfileUtils",
     "split_data",
     "preprocess",
