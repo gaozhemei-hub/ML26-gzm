@@ -16,6 +16,141 @@ class EvidenceEstimatorMixin:
                            self.task, self._sensitive_features, self.output_dir, self.pdf_report, self._raw_test, self._selection_lock,
                            r.searched.best_model_name, r.searched.best_model_params))
 
+    def _build_model_search_audit(self):
+        """Build the protocol audit from the finalized selection and test results."""
+        from tabularx.schema.audit import AuditCheckResult, AuditFinding, ModelSearchAuditResult
+        searched = self.result_.searched
+        if not searched.best_model_name:
+            return ModelSearchAuditResult(protocol_status="not_executed")
+        lock = getattr(self, "_selection_lock", None) or {}
+        locked_name = lock.get("model_name")
+        lock_matches = bool(locked_name and locked_name == searched.best_model_name)
+        candidate_test_count = sum(
+            r.test_metrics is not None for r in searched.model_results
+            if r.model_name != locked_name
+        )
+        voting_test = bool(searched.ensemble_result and searched.ensemble_result.test_metrics is not None)
+        locked_test = bool(getattr(self, "_final_test_evaluation_succeeded", False))
+        guard = bool(getattr(self, "_selection_guard_enabled", False))
+        locked_before = bool(lock.get("locked_before_test_evaluation"))
+        findings = []
+        if candidate_test_count:
+            findings.append(AuditFinding(
+                code="unlocked_candidate_test_evaluation", severity="critical",
+                title="未锁定候选模型获得测试集指标",
+                evidence=f"检测到 {candidate_test_count} 个非锁定候选模型带有测试指标。",
+                recommendation="候选比较只能使用验证集；请调查并重新执行独立测试评估。"))
+        if voting_test:
+            findings.append(AuditFinding(
+                code="voting_test_evaluation", severity="high",
+                title="Voting 组合模型获得测试集指标",
+                evidence="Voting 结果中存在测试指标。",
+                recommendation="Voting 仅用于验证集诊断，移除其测试集评估。"))
+        if locked_name and not lock_matches:
+            findings.append(AuditFinding(
+                code="selection_lock_mismatch", severity="critical",
+                title="选模锁定记录与最终模型不一致",
+                evidence=f"锁定记录为 {locked_name}，选定模型为 {searched.best_model_name}。",
+                recommendation="核验锁定记录；测试评估后不得更换模型。"))
+        if not locked_name:
+            findings.append(AuditFinding(
+                code="selection_lock_missing", severity="high",
+                title="缺少验证集选模锁定记录",
+                evidence="没有可核验的锁定模型记录。",
+                recommendation="在读取测试集前锁定模型、参数及验证集指标。"))
+        checks = [
+            AuditCheckResult("validation_selection", "选模依据为验证集主指标", "通过",
+                             f"{searched.primary_metric}（{searched.optimization_direction}）。"),
+            AuditCheckResult("selection_lock", "最终测试前锁定单模型",
+                             "通过" if lock_matches and locked_before else "发现风险",
+                             f"锁定模型：{locked_name or '无'}；先于测试评估：{locked_before}。"),
+            AuditCheckResult("candidate_test_metrics", "未锁定候选没有测试指标",
+                             "发现风险" if candidate_test_count else "通过",
+                             f"数量：{candidate_test_count}。"),
+            AuditCheckResult("voting_test_metrics", "Voting 仅用于验证集比较",
+                             "发现风险" if voting_test else "通过",
+                             "存在测试指标。" if voting_test else "未执行测试评估。"),
+            AuditCheckResult("locked_test_metrics", "最终测试评估仅针对锁定模型",
+                             "通过" if locked_test and not candidate_test_count and not voting_test else "未执行",
+                             "锁定模型测试指标已生成。" if locked_test else "尚未生成锁定模型测试指标。"),
+            AuditCheckResult("test_access_guard", "候选搜索与 Voting 阻止测试集访问",
+                             "通过" if guard else "未执行",
+                             "使用运行时访问保护视图。" if guard else "访问轨迹未观测。"),
+        ]
+        error = getattr(self, "_final_test_evaluation_error", None)
+        if error:
+            checks.append(AuditCheckResult("final_test_error", "锁定模型最终测试评估成功", "发现风险", error))
+        status = "violated" if findings else "passed" if guard and lock_matches and locked_before else "unverified"
+        return ModelSearchAuditResult(
+            findings=findings, check_results=checks,
+            selection_metric=searched.primary_metric,
+            selection_direction=searched.optimization_direction,
+            locked_model=locked_name,
+            locked_before_test_evaluation=locked_before,
+            candidate_test_metrics_count=candidate_test_count,
+            voting_test_metrics_present=voting_test,
+            locked_model_test_evaluated=locked_test,
+            selection_guard_enabled=guard,
+            test_evaluation_error=error,
+            protocol_status=status,
+        )
+
+    def _build_audit_summary(self):
+        """Build the audit summary consumed by JSON artifacts and the full report."""
+        from tabularx.schema.audit import SEVERITY_ORDER
+        result = self.result_
+        stages, findings, actions, drop_columns = [], [], [], []
+        profile_audit = getattr(result.profile, "audit", None)
+        if profile_audit is not None:
+            stages.append(dict(stage="画像静态预检", risk_level=profile_audit.risk_level,
+                               summary=f"{len(profile_audit.findings)} 项发现，{len(profile_audit.check_results)} 项检查"))
+            findings.extend(dict(stage="画像", severity=f.severity, title=f.title,
+                                 evidence=f.evidence, recommendation=f.recommendation,
+                                 columns=list(f.columns)) for f in profile_audit.findings)
+            drop_columns.extend(profile_audit.suggested_drop_columns)
+        split_audit = getattr(result.split, "audit", None)
+        if split_audit is not None:
+            stages.append(dict(stage="划分完整性审计", risk_level=split_audit.risk_level,
+                               summary=f"{len(split_audit.findings)} 项发现，重复样本 {split_audit.duplicate_count}，跨集合实体 {split_audit.group_overlap_count}"))
+            findings.extend(dict(stage="划分", severity=f.severity, title=f.title,
+                                 evidence=f.evidence, recommendation=f.recommendation,
+                                 columns=list(f.columns)) for f in split_audit.findings)
+            actions.extend(split_audit.suggested_actions)
+        preprocess_audit = getattr(result.preprocessed, "audit", None)
+        if preprocess_audit is not None:
+            stages.append(dict(stage="预处理分布审计", risk_level=preprocess_audit.risk_level,
+                               summary=f"{preprocess_audit.audited_features} 个特征受检，{len(preprocess_audit.high_drift_features)} 个漂移偏高，排除 {len(preprocess_audit.excluded_by_audit)} 列"))
+            findings.extend(dict(stage="预处理", severity=f.severity, title=f.title,
+                                 evidence=f.evidence, recommendation=f.recommendation,
+                                 columns=list(f.columns)) for f in preprocess_audit.findings)
+            drop_columns.extend(preprocess_audit.excluded_by_audit)
+        model_audit = self._build_model_search_audit()
+        stages.append(dict(stage="模型搜索评估协议", risk_level=model_audit.risk_level,
+                           summary=f"状态 {model_audit.protocol_status}，锁定模型 {model_audit.locked_model or '无'}，未锁定候选测试指标 {model_audit.candidate_test_metrics_count}"))
+        findings.extend(dict(stage="模型搜索", severity=f.severity, title=f.title,
+                             evidence=f.evidence, recommendation=f.recommendation,
+                             columns=list(f.columns)) for f in model_audit.findings)
+        overall = max((s["risk_level"] for s in stages), key=lambda s: SEVERITY_ORDER.get(s, 0), default="info")
+        return dict(overall_risk_level=overall, stages=stages, findings=findings,
+                    suggested_actions=list(dict.fromkeys(actions)),
+                    suggested_drop_columns=list(dict.fromkeys(drop_columns)),
+                    model_search_protocol=model_audit.to_dict())
+
+    def _refresh_selection_evidence(self):
+        """Refresh protocol audit artifacts when a recoverable test producer succeeds."""
+        root = self.evidence_.root
+        summary = self._build_audit_summary()
+        audit_path = root / "evidence" / "audit.json"
+        protocol_path = root / "evidence" / "model_search_audit.json"
+        audit_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+        protocol_path.write_text(json.dumps(summary["model_search_protocol"], ensure_ascii=False, indent=2), encoding="utf-8")
+        self.evidence_.records["audit"].update(status="generated", reason="Refreshed after evidence retry", paths=["evidence/audit.json"])
+        self.evidence_.records["model_search_audit"].update(status="generated", reason="Refreshed after evidence retry", paths=["evidence/model_search_audit.json"])
+        self._model_search_audit = self._build_model_search_audit()
+        self._evidence_context = self._context_token()
+        self.evidence_.execute("search_report")
+        self.evidence_.execute("full_report")
+
     def retry_evidence(self, keys=None):
         """Retry failed/missing producers in this live estimator, never search/fit.
 
@@ -26,7 +161,11 @@ class EvidenceEstimatorMixin:
             raise RuntimeError("No recoverable fitted run in this session")
         if self._context_token() != self._evidence_context:
             raise RuntimeError("Model/data/configuration changed; start a new fit instead")
-        return self.evidence_.retry(keys)
+        summary = self.evidence_.retry(keys)
+        self._refresh_selection_evidence()
+        self.evidence_.write()
+        self._evidence_context = self._context_token()
+        return summary
 
     def _save_evidence(self):
         from tabularx.core import reports
@@ -46,12 +185,19 @@ class EvidenceEstimatorMixin:
             parameters=deepcopy(result.searched.best_model_params),
             metric=result.searched.primary_metric,
             validation_metrics=deepcopy(result.searched.best_validation_metrics),
-            basis="validation only; voting is a validation-only diagnostic")
+            basis="validation only; voting is a validation-only diagnostic",
+            locked_before_test_evaluation=True,
+            candidate_test_evaluation="not_run",
+            voting_test_evaluation="not_run",
+            final_test_scope="locked_model_only",
+            test_evaluation_succeeded=False)
         (root / "evidence").mkdir(exist_ok=True)
         (root / "evidence" / "selection_lock.json").write_text(
             json.dumps(self._selection_lock, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
         self._evidence_model = None
         model_error = None
+        self._final_test_evaluation_error = None
+        self._final_test_evaluation_succeeded = False
         try:
             fitted = self._get_best_model(result.searched, result.preprocessed)
             if fitted is None:
@@ -69,8 +215,13 @@ class EvidenceEstimatorMixin:
             for run in result.searched.succeeded_results:
                 if run.model_name == result.searched.best_model_name:
                     run.test_metrics = metrics
+            self._selection_lock["test_evaluation_succeeded"] = True
+            self._final_test_evaluation_succeeded = True
         except Exception as exc:
             model_error = f"{type(exc).__name__}: {exc}"
+            self._final_test_evaluation_error = model_error
+            self._selection_lock["test_evaluation_succeeded"] = False
+            self._selection_lock["test_evaluation_error"] = model_error
 
         def require_model():
             if model_error:
@@ -83,66 +234,15 @@ class EvidenceEstimatorMixin:
             return EvidenceOutcome([str(path)])
 
         def build_audit_summary():
-            """汇总画像、划分与预处理三个阶段的审计结论，供总报告审计页使用。"""
-            from tabularx.schema.audit import SEVERITY_ORDER
-            stages = []
-            findings = []
-            actions = []
-            drop_columns = []
-
-            profile_audit = getattr(result.profile, "audit", None)
-            if profile_audit is not None:
-                stages.append(dict(
-                    stage="画像静态预检",
-                    risk_level=profile_audit.risk_level,
-                    summary=f"{len(profile_audit.findings)} 项发现，"
-                            f"{len(profile_audit.check_results)} 项检查",
-                ))
-                for f in profile_audit.findings:
-                    findings.append(dict(stage="画像", severity=f.severity, title=f.title,
-                                         evidence=f.evidence, recommendation=f.recommendation,
-                                         columns=list(f.columns)))
-                drop_columns.extend(profile_audit.suggested_drop_columns)
-
-            split_audit = getattr(result.split, "audit", None)
-            if split_audit is not None:
-                stages.append(dict(
-                    stage="划分完整性审计",
-                    risk_level=split_audit.risk_level,
-                    summary=f"{len(split_audit.findings)} 项发现，"
-                            f"重复样本 {split_audit.duplicate_count}，"
-                            f"跨集合实体 {split_audit.group_overlap_count}",
-                ))
-                for f in split_audit.findings:
-                    findings.append(dict(stage="划分", severity=f.severity, title=f.title,
-                                         evidence=f.evidence, recommendation=f.recommendation,
-                                         columns=list(f.columns)))
-                actions.extend(split_audit.suggested_actions)
-
-            preprocess_audit = getattr(result.preprocessed, "audit", None)
-            if preprocess_audit is not None:
-                drift_count = len(preprocess_audit.high_drift_features)
-                stages.append(dict(
-                    stage="预处理分布审计",
-                    risk_level=preprocess_audit.risk_level,
-                    summary=f"{preprocess_audit.audited_features} 个特征受检，"
-                            f"{drift_count} 个漂移偏高，"
-                            f"排除 {len(preprocess_audit.excluded_by_audit)} 列",
-                ))
-                for f in preprocess_audit.findings:
-                    findings.append(dict(stage="预处理", severity=f.severity, title=f.title,
-                                         evidence=f.evidence, recommendation=f.recommendation,
-                                         columns=list(f.columns)))
-                drop_columns.extend(preprocess_audit.excluded_by_audit)
-            overall = max((s["risk_level"] for s in stages),
-                          key=lambda s: SEVERITY_ORDER.get(s, 0), default="info")
-            return dict(overall_risk_level=overall, stages=stages, findings=findings,
-                        suggested_actions=list(dict.fromkeys(actions)),
-                        suggested_drop_columns=list(dict.fromkeys(drop_columns)))
+            return self._build_audit_summary()
 
         def audit():
             """把审计结论结构化落盘，使交付清单能覆盖审计结果。"""
             return dump_json(root / "evidence" / "audit.json", build_audit_summary())
+
+        def model_search_audit_artifact():
+            return dump_json(root / "evidence" / "model_search_audit.json",
+                             self._build_model_search_audit().to_dict())
 
         def save_model():
             require_model()
@@ -212,6 +312,7 @@ class EvidenceEstimatorMixin:
             delivery.register(key, produce, required=required, refresh=True)
             sections.append((key, title, renderer, data))
 
+        self._model_search_audit = self._build_model_search_audit()
         delivery.register("selection_lock", lambda: dump_json(root / "evidence" / "selection_lock.json", self._selection_lock))
         delivery.register("model", save_model, recoverable=not bool(model_error))
         delivery.register("reload_check", reload_check, refresh=True, recoverable=not bool(model_error))
@@ -231,6 +332,7 @@ class EvidenceEstimatorMixin:
              "models": [asdict(r) for r in result.searched.model_results]}))
         # 审计结论结构化落盘，使交付清单覆盖画像与划分阶段的预检结果。
         delivery.register("audit", audit)
+        delivery.register("model_search_audit", model_search_audit_artifact)
 
         for run in result.searched.succeeded_results:
             selected = run.model_name == result.searched.best_model_name

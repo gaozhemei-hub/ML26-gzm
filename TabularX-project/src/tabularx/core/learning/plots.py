@@ -133,13 +133,13 @@ def save_voting_plots(
         X_full = pd.concat([preprocessed.X_train, preprocessed.X_valid])
         y_full = pd.concat([preprocessed.y_train, preprocessed.y_valid])
         voting.fit(X_full, y_full)
-        y_pred = voting.predict(preprocessed.X_test)
+        y_pred = voting.predict(preprocessed.X_valid)
 
         if is_classification:
             fig, ax = plt.subplots(figsize=(5, 4))
             ConfusionMatrixDisplay.from_predictions(
-                preprocessed.y_test, y_pred, ax=ax, cmap="Blues", colorbar=False)
-            ax.set_title("Voting - Confusion Matrix")
+                preprocessed.y_valid, y_pred, ax=ax, cmap="Blues", colorbar=False)
+            ax.set_title("Voting - Validation Confusion Matrix")
             fig.tight_layout()
             fig.savefig(assets_path / "voting_confusion_matrix.png", dpi=120)
             plt.close(fig)
@@ -147,48 +147,50 @@ def save_voting_plots(
 
             if task_type == "binary":
                 try:
-                    y_prob = voting.predict_proba(preprocessed.X_test)[:, 1]
+                    y_prob = voting.predict_proba(preprocessed.X_valid)[:, 1]
                 except Exception:
                     y_prob = None
                 if y_prob is not None:
                     fig, ax = plt.subplots(figsize=(5, 4))
-                    RocCurveDisplay.from_predictions(preprocessed.y_test, y_prob, ax=ax)
-                    ax.set_title("Voting - ROC Curve")
+                    RocCurveDisplay.from_predictions(preprocessed.y_valid, y_prob, ax=ax)
+                    ax.set_title("Voting - Validation ROC Curve")
                     ax.plot([0, 1], [0, 1], "k--", alpha=0.3)
                     fig.tight_layout()
                     fig.savefig(assets_path / "voting_roc_curve.png", dpi=120)
                     plt.close(fig)
                     ensemble_run.artifact_paths["roc_curve"] = "assets/voting_roc_curve.png"
 
-        # Voting 对比柱状图（所有模型 vs Voting）
+        # 候选模型与 Voting 对比统一使用验证集指标，避免测试/验证口径混用。
         try:
             primary = search_result.primary_metric
             labels = []
             values = []
             colors = []
             for r in search_result.succeeded_results:
+                if primary not in r.validation_metrics:
+                    continue
                 labels.append(r.model_name)
-                val = r.test_metrics.get(primary, r.validation_metrics.get(primary, 0))
-                values.append(val)
+                values.append(r.validation_metrics[primary])
                 colors.append("#3498db")
-            labels.append("Voting")
-            voting_val = (ensemble_run.test_metrics or ensemble_run.validation_metrics).get(primary, 0)
-            values.append(voting_val)
-            colors.append("#e67e22")
+            if primary in ensemble_run.validation_metrics:
+                labels.append("Voting")
+                values.append(ensemble_run.validation_metrics[primary])
+                colors.append("#e67e22")
 
-            fig, ax = plt.subplots(figsize=(7, 4))
-            bars = ax.bar(range(len(labels)), values, color=colors, edgecolor="white")
-            ax.set_xticks(range(len(labels)))
-            ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=9)
-            ax.set_ylabel(primary)
-            ax.set_title("Model Comparison")
-            for bar, val in zip(bars, values):
-                ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                        f"{val:.4f}", ha="center", va="bottom", fontsize=7)
-            fig.tight_layout()
-            fig.savefig(assets_path / "voting_comparison.png", dpi=120)
-            plt.close(fig)
-            ensemble_run.artifact_paths["voting_comparison"] = "assets/voting_comparison.png"
+            if labels:
+                fig, ax = plt.subplots(figsize=(7, 4))
+                bars = ax.bar(range(len(labels)), values, color=colors, edgecolor="white")
+                ax.set_xticks(range(len(labels)))
+                ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=9)
+                ax.set_ylabel(primary)
+                ax.set_title("Validation Model Comparison")
+                for bar, val in zip(bars, values):
+                    ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                            f"{val:.4f}", ha="center", va="bottom", fontsize=7)
+                fig.tight_layout()
+                fig.savefig(assets_path / "voting_comparison.png", dpi=120)
+                plt.close(fig)
+                ensemble_run.artifact_paths["voting_comparison"] = "assets/voting_comparison.png"
         except Exception:
             pass
     except Exception:

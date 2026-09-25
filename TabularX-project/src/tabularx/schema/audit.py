@@ -5,8 +5,8 @@
 - ``AuditReport``：审计结果基类，统一风险等级、高危计数与序列化。
 - ``ProfileAuditResult``：画像阶段的静态泄漏预检结果。
 - ``SplitAuditResult``：划分阶段的完整性审计结果。
-
-各阶段的具体审计算法分别放在 ``core/profile.py`` 与 ``core/split.py``。
+- ``PreprocessAuditResult``：预处理阶段的分布与群体覆盖审计结果。
+- ``ModelSearchAuditResult``：模型搜索阶段的评估协议审计结果。
 """
 
 from __future__ import annotations
@@ -138,6 +138,32 @@ class SplitAuditResult(AuditReport):
     """跨集合出现的实体数量（仅在指定 group_column 时有意义）。"""
     temporal_ordered: bool | None = None
     """三集时间顺序是否合规；未指定 time_column 时为 None。"""
+
+
+@dataclass
+class ModelSearchAuditResult(AuditReport):
+    """模型搜索阶段的选模与测试集使用协议审计结果。"""
+
+    selection_metric: str | None = None
+    """实际用于选模的验证集主指标。"""
+    selection_direction: str | None = None
+    """主指标方向：maximize 或 minimize。"""
+    locked_model: str | None = None
+    """最终锁定、允许接受测试集评估的单模型。"""
+    locked_before_test_evaluation: bool = False
+    """是否在最终测试评估前完成锁定。"""
+    candidate_test_metrics_count: int = 0
+    """拥有测试指标的候选单模型数量。正常应为 0。"""
+    voting_test_metrics_present: bool = False
+    """Voting 是否产生过测试指标。正常应为 False。"""
+    locked_model_test_evaluated: bool = False
+    """锁定模型是否完成最终测试评估。"""
+    selection_guard_enabled: bool = False
+    """搜索和 Voting 是否通过禁止测试集访问的视图执行。"""
+    test_evaluation_error: str | None = None
+    """锁定模型最终测试评估失败原因（若有）。"""
+    protocol_status: Literal["passed", "violated", "not_executed", "unverified"] = "not_executed"
+    """协议状态；无法观察访问过程时使用 unverified。"""
 
 
 @dataclass

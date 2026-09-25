@@ -28,6 +28,22 @@ from tabularx.core.evidence import EvidenceDelivery
 from tabularx.core.evidence.estimator import EvidenceEstimatorMixin
 
 
+class _SelectionDataView:
+    """搜索与组合阶段可访问训练/验证数据，但明确禁止读取测试数据。"""
+
+    _HELDOUT_NAMES = frozenset({"X_test", "y_test", "test_indices", "raw_test"})
+
+    def __init__(self, data):
+        self._data = data
+        self.blocked_accesses = []
+
+    def __getattr__(self, name):
+        if name in self._HELDOUT_NAMES or name.lower().startswith("test_"):
+            self.blocked_accesses.append(name)
+            raise AssertionError(f"Held-out data access is forbidden during model selection: {name}")
+        return getattr(self._data, name)
+
+
 class AutoEstimator(EvidenceEstimatorMixin):
     """一键建模：配置 → 训练 → 解释 → 公平性评估。
 
@@ -63,6 +79,8 @@ class AutoEstimator(EvidenceEstimatorMixin):
         self.result_ = None
         self.evidence_ = None
         self.__dict__.pop("_evidence_context", None)
+        self._selection_guard_enabled = False
+        self._selection_blocked_accesses = []
         profile = build_profile(X, y, task_type=self.task, config=self.param.profile)
         self.task = profile.target.task_type
 
@@ -71,15 +89,18 @@ class AutoEstimator(EvidenceEstimatorMixin):
         preprocessed = preprocess(X, y, profile=profile, split_result=split,
                                   config=self.param.preprocess,
                                   sensitive_features=list(sensitive_features or []))
-        searched = search_models(preprocessed_data=preprocessed, profile=profile,
+        selection_data = _SelectionDataView(preprocessed)
+        searched = search_models(preprocessed_data=selection_data, profile=profile,
                                  config=self.param.model_search)
 
         if searched.best_model_name:
-            voting = build_voting(search_result=searched, preprocessed_data=preprocessed,
+            voting = build_voting(search_result=searched, preprocessed_data=selection_data,
                                   task_type=self.task)
             if voting is not None:
                 searched.ensemble_result = voting
 
+        self._selection_guard_enabled = True
+        self._selection_blocked_accesses = selection_data.blocked_accesses
         self.evidence_ = EvidenceDelivery(self._output_base, self.task)
         self.output_dir = self.evidence_.root
         self._sensitive_features = list(sensitive_features or [])
@@ -225,6 +246,7 @@ class AutoEstimator(EvidenceEstimatorMixin):
         data["succeeded_results"] = searched.succeeded_results
         data["failed_results"] = searched.failed_results
         data["shap_available"] = (result.shap is not None and result.shap.error is None)
+        data["model_search_audit"] = getattr(self, "_model_search_audit", None)
         return data
 
     # ── 内部：保存全部输出 ─────────────────────────────────

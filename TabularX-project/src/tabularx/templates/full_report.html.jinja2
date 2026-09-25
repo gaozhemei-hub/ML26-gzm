@@ -154,8 +154,16 @@
       </tbody>
     </table>
     {% else %}
-    <div class="conclusion" style="border-left-color:#27ae60; background:#eafaf1;">
-      本次运行在画像与划分两个阶段均未发现泄漏、重复或非法特征风险。
+    {% set overall = data.audit_summary.overall_risk_level %}
+    <div class="conclusion" style="border-left-color: {% if overall in ['critical', 'high'] %}#e74c3c; background:#fdf2f2;{% elif overall == 'medium' %}#f39c12; background:#fef9e7;{% else %}#27ae60; background:#eafaf1;{% endif %}">
+      {% set stage_names = data.audit_summary.stages | map(attribute='stage') | list %}
+      {% if overall in ['critical', 'high', 'medium'] %}
+      本次运行的审计综合风险等级为 <b>{{ overall | upper }}</b>，但未产生具体风险条目，建议人工复核各阶段审计结论。
+      {% elif stage_names %}
+      本次运行已执行{{ stage_names | join('、') }}，均未发现泄漏、重复或非法特征风险。
+      {% else %}
+      本次运行未执行审计阶段，未发现泄漏、重复或非法特征风险。
+      {% endif %}
     </div>
     {% endif %}
 
@@ -173,6 +181,19 @@
     <p><code>{{ data.audit_summary.suggested_drop_columns | join(', ') }}</code></p>
     {% endif %}
 
+    {% set model_protocol = data.audit_summary.model_search_protocol %}
+    {% if model_protocol and model_protocol.findings %}
+    <h2>模型搜索协议风险</h2>
+    <table>
+      <thead><tr><th>风险</th><th>证据依据</th><th>处置建议</th></tr></thead>
+      <tbody>
+      {% for finding in model_protocol.findings %}
+        <tr><td>{{ finding.title }}</td><td>{{ finding.evidence }}</td><td>{{ finding.recommendation }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
     <h2>审计链路</h2>
     <div class="mermaid">
 flowchart LR
@@ -188,14 +209,17 @@ flowchart LR
   FixSplit --> PreAudit
   KeepSplit --> PreAudit[预处理排除与分布审计<br/>分组列 / 建议列排除，PSI / KS / TVD，群体覆盖]
   PreAudit --> ExcludeCols[实际排除列<br/>不进入模型输入]
-  ExcludeCols --> Ledger[结论并入统一报告与交付清单]
+  ExcludeCols --> SearchProtocol[模型搜索评估协议<br/>候选与 Voting 仅验证集比较]
+  SearchProtocol --> LockModel[锁定验证集最优单模型]
+  LockModel --> FinalTest[仅对锁定模型执行最终测试]
+  FinalTest --> Ledger[结论并入统一报告与交付清单]
   classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
   classDef warning fill:#fff3cd,stroke:#856404,stroke-width:1px;
   classDef audit fill:#e8f4fd,stroke:#2471a3,stroke-width:1px;
   class DropCols,FixSplit,ExcludeCols warning;
-  class ProfileAudit,SplitAudit,PreAudit,ProfileRisk,SplitRisk,Ledger audit;
+  class ProfileAudit,SplitAudit,PreAudit,ProfileRisk,SplitRisk,SearchProtocol,LockModel,FinalTest,Ledger audit;
     </div>
-    <p class="hint">↑ 阶段 1（画像）、阶段 2（划分）与阶段 3（预处理）的审计链路。未声明 group_column / time_column 时对应检查标记为「未执行」而非通过；分布漂移需先通过同样本量下的显著性门槛才会判为风险。</p>
+    <p class="hint">↑ 阶段 1（画像）、阶段 2（划分）、阶段 3（预处理）与阶段 4（模型搜索评估协议）的链路。候选模型与 Voting 仅按验证集比较；锁定模型后才执行最终测试评估。</p>
   </div>
   {% endif %}
 

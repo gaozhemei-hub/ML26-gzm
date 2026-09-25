@@ -85,6 +85,8 @@
       {% if data.ensemble_result.test_metrics %}
         <br>
         测试集 {{ data.primary_metric }} = {{ "%.4f"|format(data.ensemble_result.test_metrics.get(data.primary_metric, 0)) }}
+      {% else %}
+        <br><span class="hint">测试集：未评估（Voting 仅用于验证集比较）</span>
       {% endif %}
       <br>
       <a class="model-link" href="models/voting.html">查看详细报告</a>
@@ -121,15 +123,41 @@ flowchart TB
   VoteEval --> Output
   Output --> Report[生成 HTML 报告]
 </div>
-<div class="mermaid-note">模型搜索阶段完整流程。核心：并行调参 → 最佳参数重训 → 排序选出最优 → Voting 组合。</div>
+<div class="mermaid-note">模型搜索阶段完整流程：并行调参 → 按验证集指标排序 → Voting 仅作验证集诊断 → 锁定单模型 → 仅锁定模型接受最终测试评估。</div>
   </section>
 
   <!-- ══════════════════════════════════════════════════════════
-       第 3 部分：最优模型（含详细指标和图）
+       第 3 部分：评估协议审计
+       ══════════════════════════════════════════════════════════ -->
+  {% if data.model_search_audit %}
+  <section>
+    <h2>④ 评估协议审计</h2>
+    <div class="conclusion">
+      <b>协议状态：</b> {{ data.model_search_audit.protocol_status }}
+      <br><b>锁定模型：</b> {{ data.model_search_audit.locked_model or "未锁定" }}
+      <br><b>最终测试范围：</b> 仅锁定的单模型
+      <br><b>候选模型测试指标数：</b> {{ data.model_search_audit.candidate_test_metrics_count }}
+      <br><b>Voting 测试评估：</b> {{ "已发现" if data.model_search_audit.voting_test_metrics_present else "未执行" }}
+    </div>
+    {% if data.model_search_audit.check_results %}
+    <table>
+      <thead><tr><th>检查项</th><th>状态</th><th>结果</th></tr></thead>
+      <tbody>
+      {% for check in data.model_search_audit.check_results %}
+        <tr><td>{{ check.check }}</td><td>{{ check.status }}</td><td>{{ check.result }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 4 部分：最优模型（含详细指标和图）
        ══════════════════════════════════════════════════════════ -->
   {% if data.best_model_name %}
   <section>
-    <h2>③ 最优模型：{{ data.best_model_name }}</h2>
+    <h2>④ 最优模型：{{ data.best_model_name }}</h2>
 
     <div class="conclusion-best">
       <b>{{ data.best_model_name }}</b>
@@ -311,12 +339,12 @@ flowchart TB
   </section>
 
   <!-- ══════════════════════════════════════════════════════════
-       第 5 部分：失败模型
+       第 6 部分：失败模型
        ══════════════════════════════════════════════════════════ -->
   {% set failed = data.failed_results %}
   {% if failed %}
   <section>
-    <h2>⑤ 失败模型</h2>
+    <h2>⑥ 失败模型</h2>
     <table>
       <thead>
         <tr><th>模型</th><th>错误原因</th></tr>
@@ -334,11 +362,11 @@ flowchart TB
   {% endif %}
 
   <!-- ══════════════════════════════════════════════════════════
-       第 6 部分：可解释性与公平性
+       第 7 部分：可解释性与公平性
        ══════════════════════════════════════════════════════════ -->
   {% if data.shap_available %}
   <section>
-    <h2>⑥ 可解释性与公平性</h2>
+    <h2>⑦ 可解释性与公平性</h2>
     <div class="conclusion">
       <b>SHAP 可解释性分析</b> — 对最优模型 <b>{{ data.best_model_name }}</b> 的决策逻辑进行了可视化解构。
       <br>

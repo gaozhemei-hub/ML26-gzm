@@ -38,14 +38,8 @@
   <h1>TabularX 数据预处理报告</h1>
 
   {# 章节序号按实际渲染的 section 动态分配：
-     「④ 列映射关系」仅在存在映射变化时渲染，固定编号会导致后续断号。 #}
-  {% set has_mapping_changes = data.column_mappings | selectattr("is_dropped") | list | length > 0 %}
-  {% set changed_mappings = [] %}
-  {% for m in data.column_mappings %}
-    {% if m.is_dropped or m.output_names != [m.original_name] %}
-      {% set _ = changed_mappings.append(m) %}
-    {% endif %}
-  {% endfor %}
+     「列映射关系」与「分布漂移与群体覆盖审计」都是条件渲染，
+     固定编号会导致后续断号，因此主序号与子序号都动态递增。 #}
   {% set numbering = namespace(n=0) %}
 
   <!-- ══════════════════════════════════════════════════════════
@@ -242,8 +236,6 @@ flowchart TD
   <!-- ══════════════════════════════════════════════════════════
        第 4 部分：列映射关系（变换追踪）
        ══════════════════════════════════════════════════════════ -->
-  {% set has_mapping_changes = data.column_mappings | selectattr("is_dropped") | list | length
-     or data.column_mappings | rejectattr("is_dropped") | selectattr("output_names", "ne", None) | list | length %}
   {% set changed_mappings = [] %}
   {% for m in data.column_mappings %}
     {% if m.is_dropped or m.output_names != [m.original_name] %}
@@ -251,8 +243,6 @@ flowchart TD
     {% endif %}
   {% endfor %}
 
-  {% set has_mapping_changes = data.column_mappings | selectattr("is_dropped") | list | length
-     or data.column_mappings | rejectattr("is_dropped") | selectattr("output_names", "ne", None) | list | length %}
   {% if changed_mappings | length > 0 %}
   {% set numbering.n = numbering.n + 1 %}
   <section>
@@ -305,6 +295,7 @@ flowchart TD
        ══════════════════════════════════════════════════════════ -->
   {% if data.audit is not none %}
   {% set numbering.n = numbering.n + 1 %}
+  {% set sub = namespace(n=0) %}
   <section>
     <h2>{{ "①②③④⑤⑥⑦⑧⑨"[numbering.n - 1] }} 分布漂移与群体覆盖审计</h2>
 
@@ -328,7 +319,8 @@ flowchart TD
       {% endif %}
     </div>
 
-    <h3>5.1 固定检查项清单</h3>
+    {% set sub.n = sub.n + 1 %}
+    <h3>{{ numbering.n }}.{{ sub.n }} 固定检查项清单</h3>
     <table>
       <thead>
         <tr><th style="width: 25%;">检查项目</th><th style="width: 15%;">状态</th><th>检查结果与依据</th></tr>
@@ -349,7 +341,8 @@ flowchart TD
     </table>
 
     {% if data.excluded_by_audit %}
-    <h3>5.2 因审计排除的列</h3>
+    {% set sub.n = sub.n + 1 %}
+    <h3>{{ numbering.n }}.{{ sub.n }} 因审计排除的列</h3>
     <div class="evidence" style="border-left-color: #e67e22; background: #fffaf0;">
       <code>{{ data.excluded_by_audit | join(", ") }}</code>
       <ul style="margin: .4rem 0 0 1.1rem;">
@@ -367,7 +360,8 @@ flowchart TD
       {% if r.severity == 'high' %}{% set drift.n_high = drift.n_high + 1 %}{% endif %}
       {% if r.severity == 'medium' %}{% set drift.n_medium = drift.n_medium + 1 %}{% endif %}
     {% endfor %}
-    <h3>5.3 特征分布漂移</h3>
+    {% set sub.n = sub.n + 1 %}
+    <h3>{{ numbering.n }}.{{ sub.n }} 特征分布漂移</h3>
     <p class="hint">
       共 {{ data.audit.drift_records | length }} 条记录（每个特征两个对比方向）·
       高危 {{ drift.n_high }} 条 · 中危 {{ drift.n_medium }} 条 ·
@@ -409,7 +403,8 @@ flowchart TD
     {% endif %}
 
     {% if data.audit.group_coverage %}
-    <h3>5.4 敏感群体覆盖</h3>
+    {% set sub.n = sub.n + 1 %}
+    <h3>{{ numbering.n }}.{{ sub.n }} 敏感群体覆盖</h3>
     <table>
       <thead>
         <tr><th>敏感特征</th><th>群体</th><th>子集</th><th>样本数</th><th>占比</th><th>判定</th></tr>
@@ -430,12 +425,14 @@ flowchart TD
       </tbody>
     </table>
     {% else %}
-    <h3>5.4 敏感群体覆盖</h3>
+    {% set sub.n = sub.n + 1 %}
+    <h3>{{ numbering.n }}.{{ sub.n }} 敏感群体覆盖</h3>
     <p class="hint">未提供敏感特征，本次未执行群体覆盖审计。如需该检查，请调用 <code>fit(X, y, sensitive_features=[...])</code>。</p>
     {% endif %}
 
     {% if data.audit.findings %}
-    <h3>5.5 风险详情</h3>
+    {% set sub.n = sub.n + 1 %}
+    <h3>{{ numbering.n }}.{{ sub.n }} 风险详情</h3>
     {% for finding in data.audit.findings %}
     <div class="evidence" style="border-left-color: {% if finding.severity in ['critical', 'high'] %}#e74c3c;{% elif finding.severity == 'medium' %}#f39c12;{% else %}#3498db;{% endif %}">
       <div style="display: flex; justify-content: space-between; align-items: center;">

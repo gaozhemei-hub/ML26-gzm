@@ -763,6 +763,28 @@ class TestPreprocessReportRender:
         expected = ["①②③④⑤⑥⑦⑧⑨"[: i + 1][-1] for i in range(len(numbers))]
         assert numbers == expected
         assert numbers[0] == "①"
+        self._assert_audit_subsection_numbering(html, expected_parent=4)
+
+    @staticmethod
+    def _assert_audit_subsection_numbering(html, expected_parent):
+        import re as _re
+        headings = _re.findall(r"<h3>([0-9]+)\.([0-9]+) ([^<]+)</h3>", html)
+        audit_headings = [(int(parent), int(child), title) for parent, child, title in headings]
+        audit_headings = [item for item in audit_headings if item[2] in {
+            "固定检查项清单", "因审计排除的列", "特征分布漂移", "敏感群体覆盖", "风险详情",
+        }]
+        assert audit_headings
+        assert {parent for parent, _, _ in audit_headings} == {expected_parent}
+        assert [child for _, child, _ in audit_headings] == list(range(1, len(audit_headings) + 1))
+
+    def test_audit_subsection_numbering_tracks_parent_with_mapping_section(self):
+        df, y = _grouped_frame()
+        _, _, pre = _pipeline(
+            df, y, split_cfg=SplitConfig(group_column="patient_id"), sensitive=["patient_id"]
+        )
+        html = render_preprocess_report(pre)
+        assert "⑤ 分布漂移与群体覆盖审计" in html
+        self._assert_audit_subsection_numbering(html, expected_parent=5)
 
     def test_report_numbering_continuous_with_mapping_section(self):
         import re as _re
@@ -817,7 +839,10 @@ class TestEndToEndAudit:
             (Path(ae.output_dir) / "evidence" / "audit.json").read_text(encoding="utf-8")
         )
         stages = {s["stage"] for s in payload["stages"]}
-        assert stages == {"画像静态预检", "划分完整性审计", "预处理分布审计"}
+        assert stages == {
+            "画像静态预检", "划分完整性审计", "预处理分布审计", "模型搜索评估协议",
+        }
+        assert payload["model_search_protocol"]["candidate_test_metrics_count"] == 0
         assert "patient_id" in payload["suggested_drop_columns"]
 
     def test_end_to_end_models_do_not_see_group_column(self, tmp_path: Path):

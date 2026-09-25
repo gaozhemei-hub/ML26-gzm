@@ -138,7 +138,8 @@ class EvidenceDelivery:
         labels = {"pending": "待执行", "generated": "已生成", "failed": "失败",
                   "missing": "缺失", "not_enabled": "未启用", "not_applicable": "不适用"}
         names = {"selection_lock": "验证集选模锁定记录", "model": "模型与原始表格推断流水线", "reload_check": "重载预测一致性核对", "shap": "SHAP 解释图（三类）", "fairness": "公平性评估",
-                 "audit": "可信审计结论（画像预检与划分审计）",
+                 "audit": "可信审计结论（画像、划分、预处理与模型搜索协议）",
+                 "model_search_audit": "模型搜索评估协议审计结论",
                  "model_scores": "候选模型分数", "profile_report": "数据概况报告",
                  "split_report": "数据划分报告", "preprocess_report": "预处理报告",
                  "search_report": "模型搜索报告", "explanation_report": "解释与公平性报告",

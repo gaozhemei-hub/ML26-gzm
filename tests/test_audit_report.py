@@ -200,7 +200,37 @@ class TestFullReportAuditOverview:
         html = (Path(ae.output_dir) / "report.html").read_text(encoding="utf-8")
         assert "可信审计总览" in html
         assert "均未发现泄漏、重复或非法特征风险" in html
+        assert "已执行画像静态预检、划分完整性审计、预处理分布审计" in html
+        assert "两个阶段均未发现" not in html
         assert "风险与发现汇总" not in html
+
+    @pytest.mark.parametrize(
+        ("overall", "stages", "expected"),
+        [
+            ("info", ["画像静态预检", "划分完整性审计", "预处理分布审计"],
+             "已执行画像静态预检、划分完整性审计、预处理分布审计"),
+            ("info", ["画像静态预检"], "已执行画像静态预检"),
+            ("info", [], "未执行审计阶段"),
+            ("high", ["画像静态预检"], "审计综合风险等级为 <b>HIGH</b>"),
+        ],
+    )
+    def test_empty_findings_conclusion_reflects_stages_and_risk(self, overall, stages, expected):
+        audit_summary = dict(
+            overall_risk_level=overall,
+            stages=[dict(stage=name, risk_level=overall, summary="测试") for name in stages],
+            findings=[],
+            suggested_actions=[],
+            suggested_drop_columns=[],
+        )
+        html = render_full_report(dict(
+            sections=[dict(id="a", title="示例", body="<p>x</p>")],
+            audit_summary=audit_summary,
+        ))
+        assert expected in html
+        if overall == "high":
+            assert "#fdf2f2" in html
+        else:
+            assert "#eafaf1" in html
 
     def test_full_report_without_audit_summary_still_renders(self):
         """未提供 audit_summary 时模板降级：不渲染总览页，其余结构正常。"""
@@ -215,8 +245,10 @@ class TestFullReportAuditOverview:
         ae.fit(df, y)
 
         html = (Path(ae.output_dir) / "report.html").read_text(encoding="utf-8")
-        for token in ("ProfileAudit", "SplitAudit", "PreAudit", "ExcludeCols"):
+        for token in ("ProfileAudit", "SplitAudit", "PreAudit", "ExcludeCols", "SearchProtocol", "LockModel", "FinalTest"):
             assert token in html
+        assert "模型搜索评估协议" in html
+        assert "仅锁定模型执行最终测试" in html
 
     def test_audit_overview_does_not_break_paging(self, tmp_path):
         df, y = _risky_frame()
@@ -249,8 +281,9 @@ class TestAuditArtifact:
         )
         assert payload["overall_risk_level"] == "critical"
         assert {s["stage"] for s in payload["stages"]} == {
-            "画像静态预检", "划分完整性审计", "预处理分布审计",
+            "画像静态预检", "划分完整性审计", "预处理分布审计", "模型搜索评估协议",
         }
+        assert payload["model_search_protocol"]["protocol_status"] in {"passed", "unverified"}
         assert any(f["title"] == "同一实体跨集合出现" for f in payload["findings"])
         assert payload["suggested_actions"]
 

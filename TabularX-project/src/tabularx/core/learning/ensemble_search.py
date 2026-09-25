@@ -94,7 +94,7 @@ def build_voting(
             n_trials=0,
             validation_metrics=valid_metrics,
             test_metrics=None,
-            note=f"Voting 组合：{', '.join(e[0] for e in estimators)}",
+            note=f"仅验证集比较；Voting 组合：{', '.join(e[0] for e in estimators)}",
         )
 
     except Exception as e:

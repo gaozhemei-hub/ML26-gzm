@@ -11,6 +11,7 @@ from tabularx.schema.audit import (
     PreprocessAuditResult,
     ProfileAuditResult,
     SplitAuditResult,
+    ModelSearchAuditResult,
 )
 from tabularx.schema.preprocess import ColumnMapping, PreprocessedData, TransformRecord
 from tabularx.schema.profile import ColumnFact, DataProfile, Evidence, TargetFact
@@ -38,6 +39,7 @@ __all__ = [
     "FeatureDriftRecord",
     "GroupCoverageRecord",
     "PreprocessAuditResult",
+    "ModelSearchAuditResult",
     "SplitResult",
     "PreprocessedData",
     "TransformRecord",
