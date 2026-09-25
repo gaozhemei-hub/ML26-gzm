@@ -102,13 +102,105 @@
         </p>
       {% endif %}
       {% if data.best_model_name %}<p>最佳模型：{{ data.best_model_name }}</p>{% endif %}
+      {% if data.audit_summary %}
+        <p>
+          <span style="color: {% if data.audit_summary.overall_risk_level in ['critical', 'high'] %}#c0392b{% elif data.audit_summary.overall_risk_level == 'medium' %}#b9770e{% else %}#1e8449{% endif %}; font-weight: 600;">
+            可信审计综合风险：{{ data.audit_summary.overall_risk_level | upper }}
+          </span>
+        </p>
+      {% endif %}
     </div>
     <p style="margin-top:2rem;color:#bdc3c7;font-size:.85rem;">← 点击左右两侧或按键盘方向键翻页 →</p>
   </div>
 
+  {% if data.audit_summary %}
+  <!-- ── 可信审计总览页 ── -->
+  <div class="page" data-index="1">
+    <div class="page-header">
+      <span>可信审计总览</span>
+      <span>TabularX</span>
+    </div>
+    <h1>可信审计总览</h1>
+
+    <div class="summary">
+      {% for row in data.audit_summary.stages %}
+      <div class="card">
+        <div class="num" style="font-size:1rem; color: {% if row.risk_level in ['critical', 'high'] %}#c0392b{% elif row.risk_level == 'medium' %}#b9770e{% else %}#1e8449{% endif %};">
+          {{ row.risk_level | upper }}
+        </div>
+        <div class="label">{{ row.stage }}：{{ row.summary }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if data.audit_summary.findings %}
+    <h2>风险与发现汇总</h2>
+    <table>
+      <thead>
+        <tr><th style="width:14%;">阶段</th><th style="width:12%;">级别</th><th style="width:24%;">标题</th><th>证据依据</th><th style="width:26%;">处置建议</th></tr>
+      </thead>
+      <tbody>
+        {% for f in data.audit_summary.findings %}
+        <tr>
+          <td>{{ f.stage }}</td>
+          <td>
+            <span class="badge {% if f.severity in ['critical', 'high'] %}badge-warn{% else %}badge-info{% endif %}">{{ f.severity }}</span>
+          </td>
+          <td>{{ f.title }}</td>
+          <td>{{ f.evidence }}</td>
+          <td>{{ f.recommendation }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="conclusion" style="border-left-color:#27ae60; background:#eafaf1;">
+      本次运行在画像与划分两个阶段均未发现泄漏、重复或非法特征风险。
+    </div>
+    {% endif %}
+
+    {% if data.audit_summary.suggested_actions %}
+    <h2>建议动作</h2>
+    <ul>
+      {% for action in data.audit_summary.suggested_actions %}
+      <li>{{ action }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if data.audit_summary.suggested_drop_columns %}
+    <h2>建议排除特征</h2>
+    <p><code>{{ data.audit_summary.suggested_drop_columns | join(', ') }}</code></p>
+    {% endif %}
+
+    <h2>审计链路</h2>
+    <div class="mermaid">
+flowchart LR
+  Raw([原始 X, y]) --> ProfileAudit[画像静态预检<br/>ID / 目标复制 / 目标代理 / 禁用特征]
+  ProfileAudit --> ProfileRisk{画像风险等级}
+  ProfileRisk -->|critical / high| DropCols[输出建议排除列<br/>供预处理决策参考]
+  ProfileRisk -->|info / low / medium| NoDrop[无需排除列]
+  DropCols --> SplitAudit
+  NoDrop --> SplitAudit[划分完整性审计<br/>重复 / 实体泄漏 / 时间穿越]
+  SplitAudit --> SplitRisk{划分风险等级}
+  SplitRisk -->|critical| FixSplit[建议改用 group 或 temporal 切分]
+  SplitRisk -->|info / medium| KeepSplit[划分方式可接受]
+  FixSplit --> Ledger
+  KeepSplit --> Ledger[预检结论并入统一报告与交付清单]
+  classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
+  classDef warning fill:#fff3cd,stroke:#856404,stroke-width:1px;
+  classDef audit fill:#e8f4fd,stroke:#2471a3,stroke-width:1px;
+  class DropCols,FixSplit warning;
+  class ProfileAudit,SplitAudit,ProfileRisk,SplitRisk,Ledger audit;
+    </div>
+    <p class="hint">↑ 阶段 1（画像）与阶段 2（划分）的审计链路。未声明 group_column / time_column 时，对应检查标记为「未执行」而非通过。</p>
+  </div>
+  {% endif %}
+
   <!-- ── 各节 ── -->
+  {% set section_offset = 2 if data.audit_summary else 1 %}
   {% for section in data.sections %}
-  <div class="page" data-index="{{ loop.index }}">
+  <div class="page" data-index="{{ loop.index + section_offset - 1 }}">
     <div class="page-header">
       <span>{{ section.title }}</span>
       <span>TabularX</span>
@@ -118,7 +210,7 @@
   {% endfor %}
 
   <!-- ── 尾页 ── -->
-  <div class="page closing-active page-closing" data-index="{{ data.sections | length + 1 }}">
+  <div class="page closing-active page-closing" data-index="{{ data.sections | length + (2 if data.audit_summary else 1) }}">
     <h2>报告结束</h2>
     <p>
       本报告由 <strong>TabularX</strong> 自动生成。<br>

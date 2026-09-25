@@ -82,6 +82,53 @@ class EvidenceEstimatorMixin:
                 default=lambda x: x.tolist() if hasattr(x, "tolist") else str(x)), encoding="utf-8")
             return EvidenceOutcome([str(path)])
 
+        def build_audit_summary():
+            """汇总画像与划分两个阶段的审计结论，供总报告安全审计页使用。"""
+            from tabularx.schema.audit import SEVERITY_ORDER
+            stages = []
+            findings = []
+            actions = []
+            drop_columns = []
+
+            profile_audit = getattr(result.profile, "audit", None)
+            if profile_audit is not None:
+                stages.append(dict(
+                    stage="画像静态预检",
+                    risk_level=profile_audit.risk_level,
+                    summary=f"{len(profile_audit.findings)} 项发现，"
+                            f"{len(profile_audit.check_results)} 项检查",
+                ))
+                for f in profile_audit.findings:
+                    findings.append(dict(stage="画像", severity=f.severity, title=f.title,
+                                         evidence=f.evidence, recommendation=f.recommendation,
+                                         columns=list(f.columns)))
+                drop_columns.extend(profile_audit.suggested_drop_columns)
+
+            split_audit = getattr(result.split, "audit", None)
+            if split_audit is not None:
+                stages.append(dict(
+                    stage="划分完整性审计",
+                    risk_level=split_audit.risk_level,
+                    summary=f"{len(split_audit.findings)} 项发现，"
+                            f"重复样本 {split_audit.duplicate_count}，"
+                            f"跨集合实体 {split_audit.group_overlap_count}",
+                ))
+                for f in split_audit.findings:
+                    findings.append(dict(stage="划分", severity=f.severity, title=f.title,
+                                         evidence=f.evidence, recommendation=f.recommendation,
+                                         columns=list(f.columns)))
+                actions.extend(split_audit.suggested_actions)
+
+            overall = max((s["risk_level"] for s in stages),
+                          key=lambda s: SEVERITY_ORDER.get(s, 0), default="info")
+            return dict(overall_risk_level=overall, stages=stages, findings=findings,
+                        suggested_actions=list(dict.fromkeys(actions)),
+                        suggested_drop_columns=list(dict.fromkeys(drop_columns)))
+
+        def audit():
+            """把审计结论结构化落盘，使交付清单能覆盖审计结果。"""
+            return dump_json(root / "evidence" / "audit.json", build_audit_summary())
+
         def save_model():
             require_model()
             from sklearn.pipeline import Pipeline
@@ -167,6 +214,8 @@ class EvidenceEstimatorMixin:
             {"selection_metric": result.searched.primary_metric,
              "selected_model": result.searched.best_model_name,
              "models": [asdict(r) for r in result.searched.model_results]}))
+        # 审计结论结构化落盘，使交付清单覆盖画像与划分阶段的预检结果。
+        delivery.register("audit", audit)
 
         for run in result.searched.succeeded_results:
             selected = run.model_name == result.searched.best_model_name
@@ -246,7 +295,8 @@ class EvidenceEstimatorMixin:
             content = reports.render_full_report(dict(
                 generated_at=datetime.now().isoformat(), task_type=self.task,
                 best_model_name=result.searched.best_model_name,
-                dataset_info=dict(n_rows=result.profile.n_rows, n_cols=result.profile.n_cols), sections=items))
+                dataset_info=dict(n_rows=result.profile.n_rows, n_cols=result.profile.n_cols),
+                audit_summary=build_audit_summary(), sections=items))
             banner = '<p style="padding:12px;background:#fff3cd">本报告生成成功不代表证据包完整。请查看 <a href="evidence/delivery.html">证据交付验收</a>。</p>'
             content = re.sub(r"(<body[^>]*>)", lambda m: m.group(1) + banner, content, count=1)
             path.write_text(content, encoding="utf-8")

@@ -61,7 +61,7 @@
 
     <h3>关键发现</h3>
     <ul>
-      {% set ns = namespace(n_scale=0, n_missing=0, n_constant=0, n_empty=0, n_text=0, n_skewed=0, n_highcard=0) %}
+      {% set ns = namespace(n_scale=0, n_missing=0, n_constant=0, n_empty=0, n_text=0, n_skewed=0, n_highcard=0, n_identifier=0) %}
       {% for col in data.columns %}
         {% if "scale_needed" in col.tags %}{% set ns.n_scale = ns.n_scale + 1 %}{% endif %}
         {% if "has_missing" in col.tags %}{% set ns.n_missing = ns.n_missing + 1 %}{% endif %}
@@ -70,6 +70,7 @@
         {% if "text" in col.tags %}{% set ns.n_text = ns.n_text + 1 %}{% endif %}
         {% if "skewed" in col.tags %}{% set ns.n_skewed = ns.n_skewed + 1 %}{% endif %}
         {% if "high_cardinality" in col.tags %}{% set ns.n_highcard = ns.n_highcard + 1 %}{% endif %}
+        {% if "identifier_like" in col.tags %}{% set ns.n_identifier = ns.n_identifier + 1 %}{% endif %}
       {% endfor %}
       <li>{{ ns.n_scale }} 列建议标准化（scale_needed）</li>
       <li>{{ ns.n_missing }} 列存在缺失值（has_missing）</li>
@@ -77,6 +78,15 @@
       <li>{{ ns.n_text }} 列为高基数文本列</li>
       <li>{{ ns.n_skewed }} 列分布偏斜（skewed，建议 log 变换或缩尾）</li>
       <li>{{ ns.n_highcard }} 列高基数类别（high_cardinality，建议目标编码）</li>
+      <li>{{ ns.n_identifier }} 列疑似标识符（identifier_like，建议排除或作为分组列）</li>
+        {% if data.audit is not none %}
+        <li>
+          静态泄漏预检风险等级：<b>{{ data.audit.risk_level }}</b>
+          {% if data.audit.high_risk_count > 0 %}
+            （{{ data.audit.high_risk_count }} 项高危 / 严重发现）
+          {% endif %}
+        </li>
+        {% endif %}
     </ul>
   </section>
 
@@ -114,8 +124,8 @@ flowchart TD
   EmptyColCheck -->|否| ConstantCheck{是否常数列？}
   ConstantCheck -->|是：唯一值 = 1| ConstantColumn[标记 constant_column]
   ConstantCheck -->|否| ColType{列类型判断}
-  EmptyColumn --> Done([完成：输出 DataProfile])
-  ConstantColumn --> Done
+  EmptyColumn --> ColDone[所有列分析完成]
+  ConstantColumn --> ColDone
   ColType -->|datetime| DateTime[日期时间列]
   ColType -->|boolean| Boolean[布尔列]
   ColType -->|整数且唯一值 ≤ 20| Cate[类别列]
@@ -141,14 +151,35 @@ flowchart TD
   Boolean --> Miss
   Text --> Miss
   Miss -->|n_missing > 0| MissYes[标记 has_missing]
-  Miss -->|无缺失| Done
-  MissYes --> Done
+  MissYes --> ColDone
+  Miss -->|无缺失| ColDone
+  ColDone --> AuditStart[静态泄漏预检<br/>对 X 与 y 整体扫描]
+  AuditStart --> AuditID{ID / 高唯一性检测}
+  AuditID -->|列名命中 ID 模式，或唯一值比例 ≥ 阈值| AuditIDYes[标记 identifier_like<br/>风险：疑似标识符特征]
+  AuditID -->|否| AuditCopy
+  AuditIDYes --> AuditCopy{目标复制 / 目标代理检测}
+  AuditCopy -->|特征与目标逐行完全一致| CopyHit[严重：目标复制]
+  AuditCopy -->|列名命中后验规则，或单特征判别力 ≥ 阈值| ProxyHit[高危：疑似目标代理特征]
+  AuditCopy -->|否| AuditForbid
+  CopyHit --> AuditForbid{用户禁用特征校验}
+  ProxyHit --> AuditForbid
+  AuditForbid -->|命中 forbidden_features| ForbidHit[严重：声明的禁用特征]
+  AuditForbid -->|否| RiskSum
+  ForbidHit --> RiskSum{汇总预检风险等级}
+  RiskSum -->|critical / high| AuditHigh[预检高风险：给出建议排除列]
+  RiskSum -->|medium| AuditMed[预检中风险：建议人工核验]
+  RiskSum -->|info| AuditClean[预检通过：未发现泄漏特征]
+  AuditHigh --> Done([完成：输出 DataProfile])
+  AuditMed --> Done
+  AuditClean --> Done
   classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
   classDef warning fill:#fff3cd,stroke:#856404,stroke-width:1px;
-  class InvalidInput,EmptyData,LengthError,EmptyTarget,TaskError error;
-  class EmptyColumn,ConstantColumn,MissYes,ScaleYes,Skewed,HighCardYes,Imbalanced warning;
+  classDef audit fill:#e8f4fd,stroke:#2471a3,stroke-width:1px;
+  class InvalidInput,EmptyData,LengthError,EmptyTarget,TaskError,CopyHit,ProxyHit,ForbidHit,AuditHigh error;
+  class EmptyColumn,ConstantColumn,MissYes,ScaleYes,Skewed,HighCardYes,Imbalanced,AuditIDYes,AuditMed warning;
+  class AuditStart,AuditID,AuditCopy,AuditForbid,RiskSum,AuditClean audit;
     </div>
-    <div class="mermaid-note">↑ profile 阶段完整判断流程。后续阶段：Split → Preprocess → Model Search。</div>
+    <div class="mermaid-note">↑ profile 阶段完整判断流程：先逐列观测，再对整体做静态泄漏预检（ID / 目标复制 / 目标代理 / 禁用特征），最后按风险等级输出结论。后续阶段：Split → Preprocess → Model Search。</div>
 
     <!-- 2.2 目标变量判断依据 -->
     <h3>2.2 目标变量判断依据</h3>
@@ -179,7 +210,7 @@ flowchart TD
       {% if col.evidences | length > 1 or "constant_column" in col.tags or "empty_column" in col.tags %}
       <div class="evidence">
         <b>{{ col.col_name }}</b>
-        <span class="badge {{ 'badge-warn' if 'scale_needed' in col.tags or 'has_missing' in col.tags or 'constant_column' in col.tags or 'empty_column' in col.tags or 'skewed' in col.tags or 'high_cardinality' in col.tags else '' }}">{{ col.tags | join(', ') }}</span>
+        <span class="badge {{ 'badge-warn' if 'scale_needed' in col.tags or 'has_missing' in col.tags or 'constant_column' in col.tags or 'empty_column' in col.tags or 'skewed' in col.tags or 'high_cardinality' in col.tags or 'identifier_like' in col.tags else '' }}">{{ col.tags | join(', ') }}</span>
         <ul style="margin: .5rem 0 0 0;">
           {% for ev in col.evidences %}
             <li><b>{{ ev.metric }}</b> = <code>{{ ev.value }}</code>
@@ -255,7 +286,7 @@ flowchart TD
           <td>{{ col.n_unique }}</td>
           <td>
             {% for tag in col.tags %}
-              <span class="badge {{ 'badge-warn' if tag == 'has_missing' or tag == 'scale_needed' or tag == 'constant_column' or tag == 'empty_column' or tag == 'skewed' or tag == 'high_cardinality' else 'badge-ok' if tag == 'numeric' else '' }}">{{ tag }}</span>
+              <span class="badge {{ 'badge-warn' if tag == 'has_missing' or tag == 'scale_needed' or tag == 'constant_column' or tag == 'empty_column' or tag == 'skewed' or tag == 'high_cardinality' or tag == 'identifier_like' else 'badge-ok' if tag == 'numeric' else '' }}">{{ tag }}</span>
             {% endfor %}
           </td>
           <td>{{ "%.4f"|format(col.mean) if col.mean is not none else "—" }}</td>
