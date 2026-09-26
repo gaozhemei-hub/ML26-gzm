@@ -12,6 +12,17 @@
 
 两个工程增量是“知道应该交付什么并检查缺口”和“同会话内只补做失败项”；不是宣称新增了训练、SHAP 或公平性算法。以下原始选题说明是任务目标，不表示全部功能已完成，也不作为学术首创结论。
 
+## 本周增量：可信审计整合
+
+原独立 TrustGuard（`feature/trust-audit`）用单独入口完成泄露、评估协议、复现证据、漂移和群体覆盖检查。本周没有把旧目录原样并入主程序，而是将可复用能力拆入 TabularX 的画像、划分、预处理、模型选择和报告流程。
+
+- **先看整合内容与使用边界**：[可信审计整合说明书](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/docs/trust-audit-integration-guide.md)
+- **看画像与划分审计代码**：[画像预检](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/TabularX-project/src/tabularx/core/profile.py) · [划分审计](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/TabularX-project/src/tabularx/core/split.py)
+- **看漂移、群体覆盖与审计排除**：[预处理审计](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/TabularX-project/src/tabularx/core/preprocess.py)
+- **看公共审计结构与报告聚合**：[审计契约](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/TabularX-project/src/tabularx/schema/audit.py) · [总流程接入](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/TabularX-project/src/tabularx/core/evidence/estimator.py)
+- **看专项测试**：[划分审计测试](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/tests/test_split.py) · [预处理审计测试](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/tests/test_preprocess_audit.py) · [报告审计测试](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/tests/test_audit_report.py) · [评估协议测试](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/tests/test_selection_protocol.py)
+- **看相关提交**：[画像与总报告](https://github.com/gaozhemei-hub/ML26-gzm/commits/develop) · [划分完整性](https://github.com/gaozhemei-hub/ML26-gzm/commits/develop) · [漂移与群体覆盖](https://github.com/gaozhemei-hub/ML26-gzm/commits/develop) · [评估协议](https://github.com/gaozhemei-hub/ML26-gzm/commits/develop)
+
 
 选题：题目10
 
