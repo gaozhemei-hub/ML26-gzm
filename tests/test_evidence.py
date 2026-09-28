@@ -174,3 +174,63 @@ def test_real_pipeline_failure_retry_never_refits(tmp_path, task, loader):
     ae.param.shap.max_explain_samples += 1
     with pytest.raises(RuntimeError, match="changed"):
         ae.retry_evidence()
+
+
+@pytest.mark.parametrize("failure", ["full_report", "audit"])
+def test_retry_refresh_has_one_final_state_and_tracked_failures(tmp_path, failure):
+    """Return value, disk state and attempts agree even if a refresh fails."""
+    from tabularx.core import reports
+
+    data = load_breast_cancer(as_frame=True)
+    ae = estimator(tmp_path, "classification")
+    ae.fit(data.data, data.target)
+    delivery = ae.evidence_
+    (delivery.root / "best_model.joblib").unlink()
+    before = {key: len(record["attempts"]) for key, record in delivery.records.items()}
+    target, name = ((reports, "render_full_report") if failure == "full_report"
+                    else (ae, "_build_audit_summary"))
+    with patch.object(target, name, side_effect=RuntimeError("Refresh outage")), \
+         patch.object(type(ae._evidence_model), "fit", side_effect=AssertionError("Unexpected refit")):
+        result = ae.retry_evidence(["model"])
+    assert not result["complete"]
+    assert result == json.loads((delivery.root / "evidence/delivery.json").read_text())
+    assert result["records"][failure]["status"] == "failed"
+    for key in ("audit", "model_search_audit", "search_report", "full_report"):
+        assert len(result["records"][key]["attempts"]) == before[key] + 1
+
+    with patch.object(reports, "render_full_report", wraps=reports.render_full_report) as render, \
+         patch.object(type(ae._evidence_model), "fit", side_effect=AssertionError("Unexpected refit")):
+        recovered = ae.retry_evidence()
+    assert render.call_count == 1
+    assert recovered["complete"]
+    assert recovered == json.loads((delivery.root / "evidence/delivery.json").read_text())
+    assert ae.retry_evidence() == recovered  # No pending work: no extra attempts.
+
+
+def test_retry_pdf_consumes_final_refreshed_html(tmp_path, monkeypatch):
+    """Mock only PDF export to verify ordering, not PDF rendering quality."""
+    import sys
+    from types import SimpleNamespace
+    from tabularx.core import reports
+
+    class FakeHTML:
+        def __init__(self, filename):
+            self.filename = filename
+
+        def write_pdf(self, path):
+            Path(path).write_bytes(Path(self.filename).read_bytes())
+
+    monkeypatch.setitem(sys.modules, "weasyprint", SimpleNamespace(HTML=FakeHTML))
+    data = load_breast_cancer(as_frame=True)
+    ae = estimator(tmp_path, "classification")
+    ae.pdf_report = True
+    ae.fit(data.data, data.target)
+    root = ae.evidence_.root
+    (root / "best_model.joblib").unlink()
+    original = reports.render_full_report
+    with patch.object(reports, "render_full_report", side_effect=lambda data: original(data) + "<!-- retry -->") as render:
+        result = ae.retry_evidence(["model"])
+    assert result["complete"]
+    assert render.call_count == 1
+    assert (root / "report.pdf").read_bytes() == (root / "report.html").read_bytes()
+    assert b"<!-- retry -->" in (root / "report.pdf").read_bytes()
