@@ -136,21 +136,6 @@ class EvidenceEstimatorMixin:
                     suggested_drop_columns=list(dict.fromkeys(drop_columns)),
                     model_search_protocol=model_audit.to_dict())
 
-    def _refresh_selection_evidence(self):
-        """Refresh protocol audit artifacts when a recoverable test producer succeeds."""
-        root = self.evidence_.root
-        summary = self._build_audit_summary()
-        audit_path = root / "evidence" / "audit.json"
-        protocol_path = root / "evidence" / "model_search_audit.json"
-        audit_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-        protocol_path.write_text(json.dumps(summary["model_search_protocol"], ensure_ascii=False, indent=2), encoding="utf-8")
-        self.evidence_.records["audit"].update(status="generated", reason="Refreshed after evidence retry", paths=["evidence/audit.json"])
-        self.evidence_.records["model_search_audit"].update(status="generated", reason="Refreshed after evidence retry", paths=["evidence/model_search_audit.json"])
-        self._model_search_audit = self._build_model_search_audit()
-        self._evidence_context = self._context_token()
-        self.evidence_.execute("search_report")
-        self.evidence_.execute("full_report")
-
     def retry_evidence(self, keys=None):
         """Retry failed/missing producers in this live estimator, never search/fit.
 
@@ -162,8 +147,6 @@ class EvidenceEstimatorMixin:
         if self._context_token() != self._evidence_context:
             raise RuntimeError("Model/data/configuration changed; start a new fit instead")
         summary = self.evidence_.retry(keys)
-        self._refresh_selection_evidence()
-        self.evidence_.write()
         self._evidence_context = self._context_token()
         return summary
 
@@ -241,8 +224,9 @@ class EvidenceEstimatorMixin:
             return dump_json(root / "evidence" / "audit.json", build_audit_summary())
 
         def model_search_audit_artifact():
+            self._model_search_audit = self._build_model_search_audit()
             return dump_json(root / "evidence" / "model_search_audit.json",
-                             self._build_model_search_audit().to_dict())
+                             self._model_search_audit.to_dict())
 
         def save_model():
             require_model()
@@ -331,8 +315,10 @@ class EvidenceEstimatorMixin:
              "selected_model": result.searched.best_model_name,
              "models": [asdict(r) for r in result.searched.model_results]}))
         # 审计结论结构化落盘，使交付清单覆盖画像与划分阶段的预检结果。
-        delivery.register("audit", audit)
-        delivery.register("model_search_audit", model_search_audit_artifact)
+        # Refresh audits before their dependent reports, using the same tracked
+        # producer lifecycle (including failure isolation and attempt history).
+        delivery.register("audit", audit, refresh=True)
+        delivery.register("model_search_audit", model_search_audit_artifact, refresh=True)
 
         for run in result.searched.succeeded_results:
             selected = run.model_name == result.searched.best_model_name
