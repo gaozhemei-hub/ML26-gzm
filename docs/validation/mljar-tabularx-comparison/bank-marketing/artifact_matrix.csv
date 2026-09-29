@@ -1,0 +1,16 @@
+﻿工件,TabularX 状态,TabularX 证据,MLJAR 状态,MLJAR 证据
+最佳模型及可重载流水线,已生成并验证,pipeline.joblib,已生成并验证,1_Default_LightGBM\learner_fold_0.lightgbm；2_Default_Xgboost\learner_fold_0.xgboost.json；3_Default_CatBoost\learner_fold_0.catboost；4_Default_RandomForest\learner_fold_0.random_forest
+候选模型与验证分数,已生成并验证,evidence\model_scores.json,已生成并验证,leaderboard.csv；params.json
+预处理记录,已生成并验证,reports\preprocess.html,已生成并验证,1_Default_LightGBM\README.md；2_Default_Xgboost\README.md；3_Default_CatBoost\README.md；4_Default_RandomForest\README.md
+特征重要性,已生成并验证,reports\assets\lightgbm_shap_importance.png,已生成并验证,1_Default_LightGBM\learner_fold_0_importance.csv；1_Default_LightGBM\permutation_importance.png；2_Default_Xgboost\learner_fold_0_importance.csv；2_Default_Xgboost\permutation_importance.png
+SHAP,已生成并验证,reports\assets\lightgbm_shap_summary.png,已生成并验证,4_Default_RandomForest\learner_fold_0_shap_summary.png
+ALE,未观察到,,未观察到,
+学习曲线,已生成并验证,reports\assets\lightgbm_trial_trajectory.png；reports\assets\random_forest_trial_trajectory.png；reports\assets\xgboost_trial_trajectory.png,已生成并验证,1_Default_LightGBM\learning_curves.png；2_Default_Xgboost\learning_curves.png；3_Default_CatBoost\learning_curves.png；4_Default_RandomForest\learning_curves.png
+混淆矩阵,已生成并验证,reports\assets\lightgbm_confusion_matrix.png,已生成并验证,1_Default_LightGBM\confusion_matrix.png；1_Default_LightGBM\confusion_matrix_normalized.png；2_Default_Xgboost\confusion_matrix.png；2_Default_Xgboost\confusion_matrix_normalized.png
+公平性,已生成并验证,evidence\fairness.json,已生成并验证,performance_vs_fairness_age_60_plus.png
+泄露/划分/评估协议审计,已生成并验证,evidence\audit.json；evidence\model_search_audit.json,未观察到,
+漂移与群体覆盖,已生成并验证,evidence\audit.json,未观察到,
+重载一致性,已生成并验证,evidence\reload_check.json,未观察到,
+交付状态与失败原因,已生成并验证,evidence\delivery.json,未观察到,
+HTML 报告,已生成并验证,report.html,未观察到,
+PDF 报告,已生成并验证,report.pdf,未观察到,

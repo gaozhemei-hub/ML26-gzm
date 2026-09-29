@@ -9,7 +9,8 @@
 
 ## 实验依据
 
-[证据交付实验验证索引](validation/evidence-delivery/README.md)提供真实运行报告、结构化结果及故障恢复记录。各批次保留对应代码阶段与结论边界，不将历史实验混同为当前版本的重复验证。
+- [MLJAR 与 TabularX 完整工具包对比](validation/mljar-tabularx-comparison/README.md)：在 Bank Marketing、Credit Scoring、Employee Attrition、Wine 和 House Prices 五个公开表格数据集上运行两套工具，使用共同外部测试集，盘点预处理、模型选择、特征重要性、SHAP、学习曲线、混淆矩阵、公平性适用性、可信审计、持久化、报告和证据交付等实际工件。索引提供每个数据集的 [对比报告文件夹](validation/mljar-tabularx-comparison/) 与 [Notebook 文件夹](../introduction/benchmarks/)。实验用于核对工件覆盖和报告边界，不作为严格等预算的性能排名。
+- [证据交付实验验证索引](validation/evidence-delivery/README.md)：提供真实运行报告、结构化结果及故障恢复记录。各批次保留对应代码阶段与结论边界，不将历史实验混同为当前版本的重复验证。
 
 ## 架构与任务背景
 
