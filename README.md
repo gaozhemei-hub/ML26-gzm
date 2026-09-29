@@ -1,16 +1,17 @@
 # ML26-qyr
 
-## 本周增量：证据交付检查与局部补做（feature/gzm）
+正式交付材料统一从 [docs 文档目录](docs/README.md) 阅读。
 
-在现有训练、解释和报告流程上增加独立的交付检查与恢复模块，没有合并 TrustGuard。
+## 证据交付检查与局部补做
 
-- **先看什么改了、怎么用**：[队友同步与使用说明](docs/teammate-sync.md)
-- **看真实实验与工作记录**：[实验索引](docs/validation/evidence-delivery/README.md)
-- **看技术细节与边界**：[证据交付设计](docs/evidence-delivery.md)
-- **看核心代码**：[证据模块](TabularX-project/src/tabularx/core/evidence/) · [接入位置](TabularX-project/src/tabularx/estimator.py)
-- **复跑与核对**：[演示脚本](introduction/) · [新增流程测试](tests/test_selection_protocol.py)
+在训练、解释和报告流程中声明应交付的证据，按适用条件检查生成状态、文件与失败原因；在同一程序会话内补做可恢复的失败或缺失项，复用已拟合模型并保留尝试历史。可信审计识别实验风险，本模块检查相关证据是否完整交付。
 
-两个工程增量是“知道应该交付什么并检查缺口”和“同会话内只补做失败项”；不是宣称新增了训练、SHAP 或公平性算法。以下原始选题说明是任务目标，不表示全部功能已完成，也不作为学术首创结论。
+- **功能、使用方法与边界**：[证据交付与局部补做说明书](docs/evidence-delivery-guide.md)
+- **真实实验与原始结果**：[实验验证索引](docs/validation/evidence-delivery/README.md)
+- **核心实现**：[交付检查与调度](TabularX-project/src/tabularx/core/evidence/delivery.py) · [主流程接入](TabularX-project/src/tabularx/core/evidence/estimator.py)
+- **验证代码**：[交付恢复测试](tests/test_evidence.py) · [选模协议测试](tests/test_selection_protocol.py)
+
+交付完整不等于模型准确、公平或跨环境完全复现。本模块的贡献是交付检查与恢复机制，不将已有训练、SHAP 和公平性算法列为新增贡献。文末原始选题为任务目标，不表示全部能力已经完成。
 
 ## 本周增量：可信审计整合
 

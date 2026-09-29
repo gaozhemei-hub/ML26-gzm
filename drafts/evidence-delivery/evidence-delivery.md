@@ -173,4 +173,4 @@ predictions = pipeline.predict(raw_dataframe)
 独立的旧 `save_voting_plots` 工具仍可被外部显式调用；AutoEstimator 默认流程不再调用它。
 
 
-本周简明使用说明与创新对照见 [teammate-sync.md](teammate-sync.md)。Adult 完整数据验证脚本为 `introduction/adult_evidence_demo.py`。
+本周简明使用说明与创新对照见 [历史同步说明](teammate-sync.md)。Adult 完整数据验证脚本为 `introduction/adult_evidence_demo.py`。
