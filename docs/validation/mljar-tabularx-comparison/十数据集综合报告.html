@@ -1,0 +1,346 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><style>
+@page{size:A4;margin:18mm}body{font-family:"Microsoft YaHei",sans-serif;max-width:1120px;margin:32px auto;line-height:1.7;color:#243042}
+h1,h2{color:#123f4a}table{border-collapse:collapse;width:100%;font-size:12px;margin:12px 0 26px}th,td{border:1px solid #cbd5df;padding:7px;vertical-align:top}th{background:#e8f1f3}.status-table{break-inside:avoid;page-break-inside:avoid}
+.note{padding:12px 16px;background:#fff7d8;border-left:4px solid #c99000}.conclusion{padding:16px;background:#e8f4f3;border-left:5px solid #087f8c}</style>
+<h1>MLJAR 与 TabularX 十数据集完整工具包对比报告</h1>
+<p class="note">本报告汇总十个公开表格数据集上的固定配置实验。性能指标用于描述本次运行，不构成严格等预算的普遍性能排名；“未观测”仅指本次运行目录中未找到对应工件。</p>
+<h2>1. 实验设计</h2><p>实验覆盖八个分类任务和两个回归任务。每个数据集按随机种子 42 划分为 80% 开发集与 20% 外部测试集；外部测试集仅在两种工具完成训练与模型选择后评估一次。候选算法统一为随机森林、XGBoost、LightGBM 与 CatBoost。</p>
+<h2>2. 分类任务外部测试结果</h2><table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>数据集</th>
+      <th>任务</th>
+      <th>工具</th>
+      <th>Accuracy</th>
+      <th>Balanced Accuracy</th>
+      <th>Macro-F1</th>
+      <th>ROC-AUC</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Bank Marketing</td>
+      <td>二分类</td>
+      <td>TabularX</td>
+      <td>0.9085</td>
+      <td>0.7108</td>
+      <td>0.7430</td>
+      <td>0.9343</td>
+    </tr>
+    <tr>
+      <td>Bank Marketing</td>
+      <td>二分类</td>
+      <td>MLJAR</td>
+      <td>0.9113</td>
+      <td>0.7616</td>
+      <td>0.7746</td>
+      <td>0.9337</td>
+    </tr>
+    <tr>
+      <td>Credit Scoring</td>
+      <td>二分类</td>
+      <td>TabularX</td>
+      <td>0.7450</td>
+      <td>0.6321</td>
+      <td>0.6427</td>
+      <td>0.7393</td>
+    </tr>
+    <tr>
+      <td>Credit Scoring</td>
+      <td>二分类</td>
+      <td>MLJAR</td>
+      <td>0.7450</td>
+      <td>0.5940</td>
+      <td>0.5899</td>
+      <td>0.7656</td>
+    </tr>
+    <tr>
+      <td>Employee Attrition</td>
+      <td>二分类</td>
+      <td>TabularX</td>
+      <td>0.8435</td>
+      <td>0.5968</td>
+      <td>0.6175</td>
+      <td>0.7151</td>
+    </tr>
+    <tr>
+      <td>Employee Attrition</td>
+      <td>二分类</td>
+      <td>MLJAR</td>
+      <td>0.7347</td>
+      <td>0.7129</td>
+      <td>0.6379</td>
+      <td>0.7708</td>
+    </tr>
+    <tr>
+      <td>Wine</td>
+      <td>三分类</td>
+      <td>TabularX</td>
+      <td>0.9722</td>
+      <td>0.9762</td>
+      <td>0.9743</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+      <td>Wine</td>
+      <td>三分类</td>
+      <td>MLJAR</td>
+      <td>1.0000</td>
+      <td>1.0000</td>
+      <td>1.0000</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+      <td>Adult Income</td>
+      <td>二分类</td>
+      <td>TabularX</td>
+      <td>0.8757</td>
+      <td>0.7981</td>
+      <td>0.8175</td>
+      <td>0.9284</td>
+    </tr>
+    <tr>
+      <td>Adult Income</td>
+      <td>二分类</td>
+      <td>MLJAR</td>
+      <td>0.8572</td>
+      <td>0.7752</td>
+      <td>0.7915</td>
+      <td>0.9120</td>
+    </tr>
+    <tr>
+      <td>Breast Cancer Wisconsin</td>
+      <td>二分类</td>
+      <td>TabularX</td>
+      <td>0.9825</td>
+      <td>0.9762</td>
+      <td>0.9810</td>
+      <td>0.9947</td>
+    </tr>
+    <tr>
+      <td>Breast Cancer Wisconsin</td>
+      <td>二分类</td>
+      <td>MLJAR</td>
+      <td>0.9737</td>
+      <td>0.9692</td>
+      <td>0.9716</td>
+      <td>0.9931</td>
+    </tr>
+    <tr>
+      <td>Titanic</td>
+      <td>二分类</td>
+      <td>TabularX</td>
+      <td>0.6201</td>
+      <td>0.5856</td>
+      <td>0.5865</td>
+      <td>0.6257</td>
+    </tr>
+    <tr>
+      <td>Titanic</td>
+      <td>二分类</td>
+      <td>MLJAR</td>
+      <td>0.6425</td>
+      <td>0.6578</td>
+      <td>0.6399</td>
+      <td>0.7028</td>
+    </tr>
+    <tr>
+      <td>Iris</td>
+      <td>三分类</td>
+      <td>TabularX</td>
+      <td>0.9333</td>
+      <td>0.9333</td>
+      <td>0.9333</td>
+      <td>0.9867</td>
+    </tr>
+    <tr>
+      <td>Iris</td>
+      <td>三分类</td>
+      <td>MLJAR</td>
+      <td>0.9667</td>
+      <td>0.9667</td>
+      <td>0.9666</td>
+      <td>0.9900</td>
+    </tr>
+  </tbody>
+</table>
+<h2>3. 回归任务外部测试结果</h2><table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>数据集</th>
+      <th>任务</th>
+      <th>工具</th>
+      <th>MAE</th>
+      <th>RMSE</th>
+      <th>R2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>House Prices</td>
+      <td>回归</td>
+      <td>TabularX</td>
+      <td>17990.9947</td>
+      <td>29635.3761</td>
+      <td>0.8855</td>
+    </tr>
+    <tr>
+      <td>House Prices</td>
+      <td>回归</td>
+      <td>MLJAR</td>
+      <td>16106.6117</td>
+      <td>27228.6840</td>
+      <td>0.9033</td>
+    </tr>
+    <tr>
+      <td>California Housing</td>
+      <td>回归</td>
+      <td>TabularX</td>
+      <td>0.3104</td>
+      <td>0.4649</td>
+      <td>0.8350</td>
+    </tr>
+    <tr>
+      <td>California Housing</td>
+      <td>回归</td>
+      <td>MLJAR</td>
+      <td>0.2811</td>
+      <td>0.4451</td>
+      <td>0.8488</td>
+    </tr>
+  </tbody>
+</table>
+<h2>4. 跨数据集工件观察次数</h2><table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>工件</th>
+      <th>TabularX 观察次数</th>
+      <th>MLJAR 观察次数</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>ALE</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>PDF 报告</td>
+      <td>1</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>SHAP</td>
+      <td>10</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <td>交付状态与失败原因</td>
+      <td>10</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>候选模型与验证分数</td>
+      <td>10</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <td>公平性</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>原生 HTML 报告</td>
+      <td>10</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>学习曲线或调参轨迹</td>
+      <td>10</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <td>最佳模型及可重载文件</td>
+      <td>10</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <td>泄露、划分与评估协议审计</td>
+      <td>10</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>混淆矩阵</td>
+      <td>8</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <td>漂移与群体覆盖</td>
+      <td>10</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>特征重要性</td>
+      <td>10</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <td>重载一致性</td>
+      <td>10</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>预处理记录</td>
+      <td>10</td>
+      <td>10</td>
+    </tr>
+  </tbody>
+</table>
+<h2>5. 工件状态汇总</h2><table border="1" class="dataframe status-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>工具</th>
+      <th>状态</th>
+      <th>数量</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>TabularX</td>
+      <td>生成并核验</td>
+      <td>124</td>
+    </tr>
+    <tr>
+      <td>TabularX</td>
+      <td>未观测</td>
+      <td>11</td>
+    </tr>
+    <tr>
+      <td>TabularX</td>
+      <td>不适用</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <td>MLJAR</td>
+      <td>生成并核验</td>
+      <td>73</td>
+    </tr>
+    <tr>
+      <td>MLJAR</td>
+      <td>未观测</td>
+      <td>62</td>
+    </tr>
+    <tr>
+      <td>MLJAR</td>
+      <td>不适用</td>
+      <td>6</td>
+    </tr>
+  </tbody>
+</table>
+<h2>6. 结果边界</h2><ul>
+<li>两种工具采用相同外部测试集与算法集合，但搜索机制和公平性缓解流程并非严格等价，因此不将性能差异解释为工具的普遍优劣。</li>
+<li>Adult 与 Titanic 使用具有明确语义的敏感字段进行分组审计；Bank Marketing 与 Credit Scoring 的年龄分组属于预先声明阈值下的探索性审计。</li>
+<li>公平性差异用于描述群体结果，不单独证明模型公平，也不替代场景规范与因果分析。</li>
+</ul>
+<div class="conclusion"><strong>综合结论：</strong>两种工具均能够完成主流模型训练并生成常规解释工件。跨数据集结果显示，TabularX 的主要增量集中在测试隔离、运行审计、模型重载核验以及工件状态与失败原因的统一交付；该结论指向证据交付流程的工程差异，不等同于预测性能优势。</div>
+</html>

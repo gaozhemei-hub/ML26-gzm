@@ -11,6 +11,56 @@ OUTPUT_ROOT = ROOT / "benchmark-output"
 NOTEBOOK_ROOT = ROOT / "introduction" / "benchmarks"
 
 DATASETS = {
+    "adult": {
+        "title": "Adult Income",
+        "source": "OpenML dataset 1590（adult）",
+        "task": "二分类",
+        "description": "Adult Income 数据集包含 48,842 条人口统计记录和 14 个输入特征，目标是预测年收入是否超过 50,000 美元。",
+        "test_size": 9769,
+        "tbx_model": "由本次运行结果确定",
+        "mljar_model": "由本次运行结果确定",
+        "fairness": "按 sex 生成公平性与群体覆盖结果；sex 用于分组审计，不进入两种工具的模型输入。",
+    },
+    "breast-cancer": {
+        "title": "Breast Cancer Wisconsin",
+        "source": "UCI Breast Cancer Wisconsin（仓库固定副本）",
+        "task": "二分类",
+        "description": "Breast Cancer Wisconsin 数据集包含 569 个肿瘤样本及 30 项测量特征，目标是区分恶性与良性肿瘤；标识列 id 不进入模型。",
+        "test_size": 114,
+        "tbx_model": "由本次运行结果确定",
+        "mljar_model": "由本次运行结果确定",
+        "fairness": "数据集没有在本实验中声明具有明确语义的敏感属性，因此公平性工件标记为不适用。",
+    },
+    "titanic": {
+        "title": "Titanic",
+        "source": "Kaggle Titanic（仓库固定副本）",
+        "task": "二分类",
+        "description": "Titanic 数据集包含 891 名乘客的舱位、年龄和家庭关系等信息，目标是预测乘客是否生还；标识和高基数文本列不进入模型。",
+        "test_size": 179,
+        "tbx_model": "由本次运行结果确定",
+        "mljar_model": "由本次运行结果确定",
+        "fairness": "按 Sex 生成公平性与群体覆盖结果；Sex 用于分组审计，不进入两种工具的模型输入。",
+    },
+    "iris": {
+        "title": "Iris",
+        "source": "UCI Iris（仓库固定副本）",
+        "task": "三分类",
+        "description": "Iris 数据集包含 150 个鸢尾花样本及 4 项形态测量特征，目标是识别三个鸢尾花类别。",
+        "test_size": 30,
+        "tbx_model": "由本次运行结果确定",
+        "mljar_model": "由本次运行结果确定",
+        "fairness": "数据集没有在本实验中声明敏感属性，因此公平性工件标记为不适用。",
+    },
+    "california-housing": {
+        "title": "California Housing",
+        "source": "California Housing（仓库固定副本）",
+        "task": "回归",
+        "description": "California Housing 数据集包含 20,640 个街区的住房与人口统计特征，目标是预测街区房价中位数。",
+        "test_size": 4128,
+        "tbx_model": "由本次运行结果确定",
+        "mljar_model": "由本次运行结果确定",
+        "fairness": "本实验未为回归任务声明敏感属性，因此公平性工件标记为不适用。",
+    },
     "credit-scoring": {
         "title": "Credit Scoring",
         "source": "OpenML dataset 31（credit-g）",
@@ -19,7 +69,7 @@ DATASETS = {
         "test_size": 200,
         "tbx_model": "CatBoost",
         "mljar_model": "Ensemble",
-        "fairness": "按 age\_25\_plus 年龄分组生成公平性与群体覆盖结果；该审计分组不作为模型输入。",
+        "fairness": r"按 age\_25\_plus 年龄分组生成公平性与群体覆盖结果；该审计分组不作为模型输入。",
     },
     "employee-attrition": {
         "title": "Employee Attrition",
@@ -33,7 +83,7 @@ DATASETS = {
     },
     "wine": {
         "title": "Wine",
-        "source": "scikit-learn load\_wine（源自 UCI Wine）",
+        "source": r"scikit-learn load\_wine（源自 UCI Wine）",
         "task": "三分类",
         "description": "Wine 数据集包含 178 个葡萄酒样本的 13 项化学测量特征，目标是判断样本属于三个葡萄酒品种中的哪一类。",
         "test_size": 36,
@@ -43,7 +93,7 @@ DATASETS = {
     },
     "house-prices": {
         "title": "House Prices",
-        "source": "OpenML dataset 42165（house\_prices）",
+        "source": r"OpenML dataset 42165（house\_prices）",
         "task": "回归",
         "description": "House Prices 数据集包含 1,460 套住宅的 80 个原始描述特征，目标是预测住宅销售价格 SalePrice；标识列 Id 不进入模型。",
         "test_size": 292,
@@ -55,7 +105,7 @@ DATASETS = {
 
 DESCRIPTIONS = {
     "最佳模型及可重载文件": "两者均保存最终模型；TabularX 另行核验模型接收原始表格后的预测一致性。",
-    "候选模型与验证分数": "TabularX 保存 model\_scores.json；MLJAR 保存 leaderboard.csv 或参数记录。",
+    "候选模型与验证分数": r"TabularX 保存 model\_scores.json；MLJAR 保存 leaderboard.csv 或参数记录。",
     "预处理记录": "两者均提供本次运行可查阅的预处理记录。",
     "特征重要性": "两者均生成特征重要性文件或图。",
     "SHAP": "两者本次均观察到 SHAP 工件；覆盖范围以实际模型目录为准。",
@@ -65,7 +115,7 @@ DESCRIPTIONS = {
     "公平性": "@@FAIRNESS@@",
     "泄露、划分与评估协议审计": "TabularX 将数据风险、划分完整性和测试集访问顺序写入审计证据。",
     "漂移与群体覆盖": "TabularX 检查开发集与外部测试集的分布差异及已声明群体覆盖。",
-    "重载一致性": "TabularX 保存 reload\_check.json，核对持久化前后预测是否一致。",
+    "重载一致性": r"TabularX 保存 reload\_check.json，核对持久化前后预测是否一致。",
     "交付状态与失败原因": "TabularX 保存 delivery.json，区分已生成、失败、缺失、未启用与不适用。",
     "原生 HTML 报告": "TabularX 生成汇总 HTML；MLJAR Explain 本次主要输出逐模型 Markdown 与图片。",
 }
@@ -148,6 +198,14 @@ def render(dataset: str, cfg: dict) -> str:
     output = OUTPUT_ROOT / dataset
     metrics = pd.read_json(output / "external_test_metrics.json")
     artifacts = pd.read_csv(output / "artifact_matrix.csv")
+    summary_path = output / "run_summary.json"
+    if summary_path.exists():
+        summary = pd.read_json(summary_path, typ="series")
+        cfg = dict(cfg)
+        cfg["tbx_model"] = str(summary.get("tabularx_best_model", cfg["tbx_model"]))
+        cfg["mljar_model"] = str(
+            summary.get("mljar_best_model", summary.get("mljar_best_model_type", cfg["mljar_model"]))
+        )
     return f"""% !TeX encoding = UTF-8
 % !TeX program = xelatex
 \\documentclass[degree=bachelor,language=chinese,fontset=fandol]{{thuthesis}}
@@ -169,7 +227,7 @@ def render(dataset: str, cfg: dict) -> str:
   \\vspace{{2.2cm}}
   {{\\zihao{{4}}TabularX 课程项目\\par}}
   \\vfill
-  {{\\zihao{{-4}}实验日期：2026 年 9 月 29 日\\par}}
+  {{\\zihao{{-4}}实验日期：2026 年 9 月 30 日\\par}}
   \\vspace{{1.2cm}}
 \\end{{titlepage}}
 

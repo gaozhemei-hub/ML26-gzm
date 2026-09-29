@@ -1,0 +1,50 @@
+% !TeX encoding = UTF-8
+% !TeX program = xelatex
+\documentclass[degree=bachelor,language=chinese,fontset=fandol]{thuthesis}
+\usepackage{booktabs,longtable,array,xcolor,hyperref,enumitem}
+\hypersetup{colorlinks=true,linkcolor=black,urlcolor=blue}
+\setlist[itemize]{leftmargin=2em,itemsep=0.25em}
+\begin{document}
+\begin{titlepage}\centering\vspace*{2.3cm}
+{\zihao{1}\bfseries MLJAR 与 TabularX 完整工具包对比\par}
+\vspace{1.2cm}{\zihao{3}十数据集综合实验报告\par}
+\vspace{2.2cm}{\zihao{4}TabularX 课程项目\par}
+\vfill{\zihao{-4}实验日期：2026 年 9 月 30 日\par}\vspace{1.2cm}
+\end{titlepage}
+\frontmatter\tableofcontents\mainmatter
+\chapter{实验设计}
+本实验覆盖八个分类任务和两个回归任务。每个数据集按随机种子 42 划分为 80\% 开发集与 20\% 外部测试集；外部测试集仅在模型锁定后评估一次。两种工具使用随机森林、XGBoost、LightGBM 与 CatBoost。
+
+性能指标描述本次固定配置，不构成严格等预算的性能排名。主要比较对象是运行结束后实际生成并能够核对的解释性、审计性与复现性工件。
+
+\chapter{跨数据集工件结果}
+\begin{longtable}{p{0.55\textwidth}cc}
+\toprule 工件 & TabularX & MLJAR \\\\ \midrule\endfirsthead
+\toprule 工件 & TabularX & MLJAR \\\\ \midrule\endhead
+ALE & 0 & 0 \\
+PDF 报告 & 1 & 0 \\
+SHAP & 10 & 10 \\
+交付状态与失败原因 & 10 & 0 \\
+候选模型与验证分数 & 10 & 10 \\
+公平性 & 5 & 5 \\
+原生 HTML 报告 & 10 & 0 \\
+学习曲线或调参轨迹 & 10 & 10 \\
+最佳模型及可重载文件 & 10 & 10 \\
+泄露、划分与评估协议审计 & 10 & 0 \\
+混淆矩阵 & 8 & 8 \\
+漂移与群体覆盖 & 10 & 0 \\
+特征重要性 & 10 & 10 \\
+重载一致性 & 10 & 0 \\
+预处理记录 & 10 & 10 \\
+\bottomrule\end{longtable}
+
+\chapter{结果边界}
+\begin{itemize}
+\item 两种工具的搜索机制与公平性缓解流程并非严格等价，因此不将性能差异解释为工具的普遍优劣。
+\item Adult 与 Titanic 使用具有明确语义的敏感字段；Bank Marketing 与 Credit Scoring 的年龄分组属于预先声明阈值下的探索性审计。
+\item 公平性差异用于描述群体结果，不单独证明模型公平，也不替代场景规范与因果分析。
+\end{itemize}
+
+\chapter{结论}
+两种工具均完成主流模型训练并生成常规解释工件。跨数据集结果显示，TabularX 的主要增量集中在测试隔离、运行审计、模型重载核验以及工件状态与失败原因的统一交付。该结论描述证据交付流程的工程差异，不等同于预测性能优势。
+\end{document}

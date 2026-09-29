@@ -1,0 +1,9 @@
+{
+  "dataset": "California Housing",
+  "tabularx_best_model": "lightgbm",
+  "tabularx_seconds": 17.560269117355347,
+  "mljar_seconds": 14.522051095962524,
+  "tabularx_run_dir": "benchmark-output/california-housing/tabularx/runs/218e1173de914be192e1ecf74f1180ae",
+  "mljar_run_dir": "benchmark-output/california-housing/mljar",
+  "mljar_best_model": "Ensemble"
+}
