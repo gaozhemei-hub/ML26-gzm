@@ -1,0 +1,9 @@
+{
+  "dataset": "Adult Income",
+  "tabularx_best_model": "lightgbm",
+  "tabularx_seconds": 21.552184104919434,
+  "mljar_seconds": 94.73687410354614,
+  "tabularx_run_dir": "benchmark-output/adult/tabularx/runs/49553c222f9d4df997d81dc8730fb8a4",
+  "mljar_run_dir": "benchmark-output/adult/mljar",
+  "mljar_best_model": "Ensemble"
+}

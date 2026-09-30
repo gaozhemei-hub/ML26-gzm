@@ -1,0 +1,9 @@
+{
+  "dataset": "Titanic",
+  "tabularx_best_model": "xgboost",
+  "tabularx_seconds": 2.778878927230835,
+  "mljar_seconds": 13.893213748931885,
+  "tabularx_run_dir": "benchmark-output/titanic/tabularx/runs/4486071443c54db1b4687d864d2c4cb0",
+  "mljar_run_dir": "benchmark-output/titanic/mljar",
+  "mljar_best_model": "Ensemble"
+}

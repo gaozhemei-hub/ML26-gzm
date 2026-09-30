@@ -1,0 +1,9 @@
+{
+  "dataset": "Breast Cancer Wisconsin",
+  "tabularx_best_model": "xgboost",
+  "tabularx_seconds": 12.866257905960083,
+  "mljar_seconds": 12.580878019332886,
+  "tabularx_run_dir": "benchmark-output/breast-cancer/tabularx/runs/fc1f02e4263a43bda767b9318dcb29f2",
+  "mljar_run_dir": "benchmark-output/breast-cancer/mljar",
+  "mljar_best_model": "2_Default_Xgboost"
+}

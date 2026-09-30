@@ -1,0 +1,9 @@
+{
+  "dataset": "Iris",
+  "tabularx_best_model": "random_forest",
+  "tabularx_seconds": 2.431126117706299,
+  "mljar_seconds": 10.115121126174927,
+  "tabularx_run_dir": "benchmark-output/iris/tabularx/runs/60bb3e54f86147f2b8ef1d9234c284c6",
+  "mljar_run_dir": "benchmark-output/iris/mljar",
+  "mljar_best_model": "4_Default_RandomForest"
+}

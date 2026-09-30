@@ -1,0 +1,142 @@
+﻿数据集,任务,工件,TabularX,MLJAR
+Bank Marketing,二分类,最佳模型及可重载文件,生成并核验,生成并核验
+Bank Marketing,二分类,候选模型与验证分数,生成并核验,生成并核验
+Bank Marketing,二分类,预处理记录,生成并核验,生成并核验
+Bank Marketing,二分类,特征重要性,生成并核验,生成并核验
+Bank Marketing,二分类,SHAP,生成并核验,生成并核验
+Bank Marketing,二分类,ALE,未观测,未观测
+Bank Marketing,二分类,学习曲线或调参轨迹,生成并核验,生成并核验
+Bank Marketing,二分类,混淆矩阵,生成并核验,生成并核验
+Bank Marketing,二分类,公平性,生成并核验,生成并核验
+Bank Marketing,二分类,泄露、划分与评估协议审计,生成并核验,未观测
+Bank Marketing,二分类,漂移与群体覆盖,生成并核验,未观测
+Bank Marketing,二分类,重载一致性,生成并核验,未观测
+Bank Marketing,二分类,交付状态与失败原因,生成并核验,未观测
+Bank Marketing,二分类,原生 HTML 报告,生成并核验,未观测
+Bank Marketing,二分类,PDF 报告,生成并核验,未观测
+Credit Scoring,二分类,最佳模型及可重载文件,生成并核验,生成并核验
+Credit Scoring,二分类,候选模型与验证分数,生成并核验,生成并核验
+Credit Scoring,二分类,预处理记录,生成并核验,生成并核验
+Credit Scoring,二分类,特征重要性,生成并核验,生成并核验
+Credit Scoring,二分类,SHAP,生成并核验,生成并核验
+Credit Scoring,二分类,ALE,未观测,未观测
+Credit Scoring,二分类,学习曲线或调参轨迹,生成并核验,生成并核验
+Credit Scoring,二分类,混淆矩阵,生成并核验,生成并核验
+Credit Scoring,二分类,公平性,生成并核验,生成并核验
+Credit Scoring,二分类,泄露、划分与评估协议审计,生成并核验,未观测
+Credit Scoring,二分类,漂移与群体覆盖,生成并核验,未观测
+Credit Scoring,二分类,重载一致性,生成并核验,未观测
+Credit Scoring,二分类,交付状态与失败原因,生成并核验,未观测
+Credit Scoring,二分类,原生 HTML 报告,生成并核验,未观测
+Employee Attrition,二分类,最佳模型及可重载文件,生成并核验,生成并核验
+Employee Attrition,二分类,候选模型与验证分数,生成并核验,生成并核验
+Employee Attrition,二分类,预处理记录,生成并核验,生成并核验
+Employee Attrition,二分类,特征重要性,生成并核验,生成并核验
+Employee Attrition,二分类,SHAP,生成并核验,生成并核验
+Employee Attrition,二分类,ALE,未观测,未观测
+Employee Attrition,二分类,学习曲线或调参轨迹,生成并核验,生成并核验
+Employee Attrition,二分类,混淆矩阵,生成并核验,生成并核验
+Employee Attrition,二分类,公平性,生成并核验,生成并核验
+Employee Attrition,二分类,泄露、划分与评估协议审计,生成并核验,未观测
+Employee Attrition,二分类,漂移与群体覆盖,生成并核验,未观测
+Employee Attrition,二分类,重载一致性,生成并核验,未观测
+Employee Attrition,二分类,交付状态与失败原因,生成并核验,未观测
+Employee Attrition,二分类,原生 HTML 报告,生成并核验,未观测
+Wine,三分类,最佳模型及可重载文件,生成并核验,生成并核验
+Wine,三分类,候选模型与验证分数,生成并核验,生成并核验
+Wine,三分类,预处理记录,生成并核验,生成并核验
+Wine,三分类,特征重要性,生成并核验,生成并核验
+Wine,三分类,SHAP,生成并核验,生成并核验
+Wine,三分类,ALE,未观测,未观测
+Wine,三分类,学习曲线或调参轨迹,生成并核验,生成并核验
+Wine,三分类,混淆矩阵,生成并核验,生成并核验
+Wine,三分类,公平性,不适用,不适用
+Wine,三分类,泄露、划分与评估协议审计,生成并核验,未观测
+Wine,三分类,漂移与群体覆盖,生成并核验,未观测
+Wine,三分类,重载一致性,生成并核验,未观测
+Wine,三分类,交付状态与失败原因,生成并核验,未观测
+Wine,三分类,原生 HTML 报告,生成并核验,未观测
+House Prices,回归,最佳模型及可重载文件,生成并核验,生成并核验
+House Prices,回归,候选模型与验证分数,生成并核验,生成并核验
+House Prices,回归,预处理记录,生成并核验,生成并核验
+House Prices,回归,特征重要性,生成并核验,生成并核验
+House Prices,回归,SHAP,生成并核验,生成并核验
+House Prices,回归,ALE,未观测,未观测
+House Prices,回归,学习曲线或调参轨迹,生成并核验,生成并核验
+House Prices,回归,混淆矩阵,未观测,未观测
+House Prices,回归,公平性,不适用,不适用
+House Prices,回归,泄露、划分与评估协议审计,生成并核验,未观测
+House Prices,回归,漂移与群体覆盖,生成并核验,未观测
+House Prices,回归,重载一致性,生成并核验,未观测
+House Prices,回归,交付状态与失败原因,生成并核验,未观测
+House Prices,回归,原生 HTML 报告,生成并核验,未观测
+Adult Income,二分类,最佳模型及可重载文件,生成并核验,生成并核验
+Adult Income,二分类,候选模型与验证分数,生成并核验,生成并核验
+Adult Income,二分类,预处理记录,生成并核验,生成并核验
+Adult Income,二分类,特征重要性,生成并核验,生成并核验
+Adult Income,二分类,SHAP,生成并核验,生成并核验
+Adult Income,二分类,ALE,未观测,未观测
+Adult Income,二分类,学习曲线或调参轨迹,生成并核验,生成并核验
+Adult Income,二分类,混淆矩阵,生成并核验,生成并核验
+Adult Income,二分类,公平性,生成并核验,生成并核验
+Adult Income,二分类,泄露、划分与评估协议审计,生成并核验,未观测
+Adult Income,二分类,漂移与群体覆盖,生成并核验,未观测
+Adult Income,二分类,重载一致性,生成并核验,未观测
+Adult Income,二分类,交付状态与失败原因,生成并核验,未观测
+Adult Income,二分类,原生 HTML 报告,生成并核验,未观测
+Breast Cancer Wisconsin,二分类,最佳模型及可重载文件,生成并核验,生成并核验
+Breast Cancer Wisconsin,二分类,候选模型与验证分数,生成并核验,生成并核验
+Breast Cancer Wisconsin,二分类,预处理记录,生成并核验,生成并核验
+Breast Cancer Wisconsin,二分类,特征重要性,生成并核验,生成并核验
+Breast Cancer Wisconsin,二分类,SHAP,生成并核验,生成并核验
+Breast Cancer Wisconsin,二分类,ALE,未观测,未观测
+Breast Cancer Wisconsin,二分类,学习曲线或调参轨迹,生成并核验,生成并核验
+Breast Cancer Wisconsin,二分类,混淆矩阵,生成并核验,生成并核验
+Breast Cancer Wisconsin,二分类,公平性,不适用,不适用
+Breast Cancer Wisconsin,二分类,泄露、划分与评估协议审计,生成并核验,未观测
+Breast Cancer Wisconsin,二分类,漂移与群体覆盖,生成并核验,未观测
+Breast Cancer Wisconsin,二分类,重载一致性,生成并核验,未观测
+Breast Cancer Wisconsin,二分类,交付状态与失败原因,生成并核验,未观测
+Breast Cancer Wisconsin,二分类,原生 HTML 报告,生成并核验,未观测
+Titanic,二分类,最佳模型及可重载文件,生成并核验,生成并核验
+Titanic,二分类,候选模型与验证分数,生成并核验,生成并核验
+Titanic,二分类,预处理记录,生成并核验,生成并核验
+Titanic,二分类,特征重要性,生成并核验,生成并核验
+Titanic,二分类,SHAP,生成并核验,生成并核验
+Titanic,二分类,ALE,未观测,未观测
+Titanic,二分类,学习曲线或调参轨迹,生成并核验,生成并核验
+Titanic,二分类,混淆矩阵,生成并核验,生成并核验
+Titanic,二分类,公平性,生成并核验,生成并核验
+Titanic,二分类,泄露、划分与评估协议审计,生成并核验,未观测
+Titanic,二分类,漂移与群体覆盖,生成并核验,未观测
+Titanic,二分类,重载一致性,生成并核验,未观测
+Titanic,二分类,交付状态与失败原因,生成并核验,未观测
+Titanic,二分类,原生 HTML 报告,生成并核验,未观测
+Iris,三分类,最佳模型及可重载文件,生成并核验,生成并核验
+Iris,三分类,候选模型与验证分数,生成并核验,生成并核验
+Iris,三分类,预处理记录,生成并核验,生成并核验
+Iris,三分类,特征重要性,生成并核验,生成并核验
+Iris,三分类,SHAP,生成并核验,生成并核验
+Iris,三分类,ALE,未观测,未观测
+Iris,三分类,学习曲线或调参轨迹,生成并核验,生成并核验
+Iris,三分类,混淆矩阵,生成并核验,生成并核验
+Iris,三分类,公平性,不适用,不适用
+Iris,三分类,泄露、划分与评估协议审计,生成并核验,未观测
+Iris,三分类,漂移与群体覆盖,生成并核验,未观测
+Iris,三分类,重载一致性,生成并核验,未观测
+Iris,三分类,交付状态与失败原因,生成并核验,未观测
+Iris,三分类,原生 HTML 报告,生成并核验,未观测
+California Housing,回归,最佳模型及可重载文件,生成并核验,生成并核验
+California Housing,回归,候选模型与验证分数,生成并核验,生成并核验
+California Housing,回归,预处理记录,生成并核验,生成并核验
+California Housing,回归,特征重要性,生成并核验,生成并核验
+California Housing,回归,SHAP,生成并核验,生成并核验
+California Housing,回归,ALE,未观测,未观测
+California Housing,回归,学习曲线或调参轨迹,生成并核验,生成并核验
+California Housing,回归,混淆矩阵,不适用,不适用
+California Housing,回归,公平性,不适用,不适用
+California Housing,回归,泄露、划分与评估协议审计,生成并核验,未观测
+California Housing,回归,漂移与群体覆盖,生成并核验,未观测
+California Housing,回归,重载一致性,生成并核验,未观测
+California Housing,回归,交付状态与失败原因,生成并核验,未观测
+California Housing,回归,原生 HTML 报告,生成并核验,未观测

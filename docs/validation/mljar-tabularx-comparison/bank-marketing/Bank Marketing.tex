@@ -1,0 +1,134 @@
+% !TeX encoding = UTF-8
+% !TeX program = xelatex
+\documentclass[degree=bachelor,language=chinese,fontset=fandol]{thuthesis}
+
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\hypersetup{colorlinks=true,linkcolor=black,urlcolor=blue}
+\setlist[itemize]{leftmargin=2em,itemsep=0.25em}
+\newcommand{\yes}{\textcolor{green!50!black}{已生成}}
+\newcommand{\no}{\textcolor{red!70!black}{未观察到}}
+
+\begin{document}
+
+\begin{titlepage}
+  \centering
+  \vspace*{2.3cm}
+  {\zihao{1}\bfseries MLJAR 与 TabularX 完整工具包对比\par}
+  \vspace{1.2cm}
+  {\zihao{3}Bank Marketing 数据集实验报告\par}
+  \vspace{2.2cm}
+  {\zihao{4}TabularX 课程项目\par}
+  \vfill
+  {\zihao{-4}实验日期：2026 年 9 月 29 日\par}
+  \vspace{1.2cm}
+\end{titlepage}
+
+\frontmatter
+\tableofcontents
+
+\mainmatter
+\chapter{实验概述}
+
+\section{数据集与任务}
+
+\textbf{数据集：Bank Marketing（OpenML-CC18 task 14965 / dataset 1461，二分类）。}
+Bank Marketing 数据集包含 45,211 条葡萄牙银行电话营销记录和 16 个输入特征，目标是预测客户是否认购定期存款。数据按固定随机种子 42 划分为 80\% 开发集和 20\% 外部测试集，外部测试集共 9,043 条记录。
+
+\section{比较范围与原则}
+
+实验比较 MLJAR 与 TabularX 两个完整工具包，范围包括预处理、模型搜索与选择、解释、公平性适用性、可信审计、模型持久化、报告和证据交付。双方使用同一数据划分，并同时运行 Random Forest、XGBoost、LightGBM 和 CatBoost。外部测试集不参与训练、调参和选模，只在各工具锁定最终模型后评估一次。
+
+性能指标用于描述本次固定配置下的结果，不用于宣称两种工具的普遍性能优劣。主要比较对象是本次运行后实际生成并能够核对的解释性与可信性工件。
+
+\chapter{实验结果}
+
+\section{外部测试集表现}
+
+\begin{table}[htbp]
+  \centering
+  \caption{共同外部测试集上的模型表现}
+  \begin{tabular}{lccccc}
+    \toprule
+    工具 & 最终模型 & Accuracy & Balanced Accuracy & Macro-F1 & ROC-AUC \\
+    \midrule
+    TabularX & LightGBM & 0.9085 & 0.7108 & 0.7430 & 0.9343 \\
+    MLJAR & Ensemble & 0.9113 & 0.7616 & 0.7746 & 0.9337 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+两种工具的 ROC-AUC 基本持平。MLJAR 在本次实验中预测了更多正例，假阴性由 579 降至 459，但假阳性由 248 增至 343，因此 Balanced Accuracy 和 Macro-F1 较高。该差异只描述当前配置，不能替代严格等预算的性能实验。
+
+\section{可解释性与可信性工件盘点}
+
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.27\textwidth}p{0.18\textwidth}p{0.18\textwidth}>{\raggedright\arraybackslash}p{0.27\textwidth}}
+  \caption{本次运行实际观察到的工件}\label{tab:artifacts}\\
+  \toprule
+  工件 & TabularX & MLJAR & 说明 \\
+  \midrule
+  \endfirsthead
+  \toprule
+  工件 & TabularX & MLJAR & 说明 \\
+  \midrule
+  \endhead
+  最佳模型及可重载文件 & \yes & \yes & 两者均保存模型；TabularX 额外核验原始表格重载预测一致性。\\
+  候选模型与验证分数 & \yes & \yes & TabularX 保存 model\_scores.json；MLJAR 保存 leaderboard.csv。\\
+  预处理记录 & \yes & \yes & 两者均提供可查阅的预处理说明。\\
+  特征重要性 & \yes & \yes & 两者均生成重要性文件或图。\\
+  SHAP & \yes & \yes & TabularX 为锁定的 LightGBM 生成；MLJAR 本次只在 Random Forest 目录观察到。\\
+  ALE & \no & \no & 本次配置下两者均未观察到。\\
+  学习曲线或调参轨迹 & \yes & \yes & TabularX 输出 trial trajectory；MLJAR 输出 learning curves。\\
+  混淆矩阵 & \yes & \yes & 两者均生成。\\
+  公平性结果 & \yes & \yes & 年龄分组只用于审计，不作为模型输入。\\
+  泄露、划分与评估协议审计 & \yes & \no & MLJAR 本次运行目录中未找到对应工件。\\
+  漂移与群体覆盖审计 & \yes & \no & MLJAR 本次运行目录中未找到对应工件。\\
+  重载一致性核验 & \yes & \no & TabularX 保存 reload\_check.json。\\
+  交付状态与失败原因 & \yes & \no & TabularX 保存 delivery.json 和 PDF 导出记录。\\
+  HTML 报告 & \yes & \no & MLJAR 本次输出以 Markdown 和图片为主。\\
+  PDF 报告 & \yes & \no & TabularX 在原生导出失败后由 Chrome 兼容导出；MLJAR 未观察到原生 PDF。\\
+  \bottomrule
+\end{longtable}
+
+“未观察到”只表示本次配置和显式调用范围内没有找到对应工件，不外推为软件在任何条件下都不支持。
+
+\chapter{工具优缺点与结果解读}
+
+\section{TabularX}
+
+\textbf{优点：}将测试集隔离、泄露与漂移审计、模型重载核验、报告生成以及交付状态检查放入同一次运行的证据链，能够说明模型分数是否建立在正确的划分和可复核的实验记录上。
+
+\textbf{不足：}本次未观察到 ALE；一个 CatBoost 调参试验发生底层异常；Windows 环境缺少 GTK 动态库时，WeasyPrint 原生 PDF 导出失败，需要使用 Notebook 中的 Chrome 兼容导出。
+
+\section{MLJAR}
+
+\textbf{优点：}Explain 模式能够为多个候选模型生成 Markdown 说明、学习曲线、混淆矩阵和特征重要性，并通过 Ensemble 给出最终模型。
+
+\textbf{不足：}本次只有 Random Forest 目录观察到 SHAP；没有观察到泄露与划分审计、漂移与群体覆盖、重载一致性、交付状态以及原生 HTML/PDF 工件。
+
+\chapter{PDF 生成说明}
+
+TabularX 已生成完整 HTML 报告。其原生 PDF 路径依赖 WeasyPrint；当前 Windows 环境缺少 \texttt{libgobject-2.0-0}，因此原生导出失败。Notebook 现在会检测 \texttt{report.pdf} 是否存在：若不存在，则调用本机 Chrome 将同一份 \texttt{report.html} 打印为 PDF，并把导出方式、原生失败原因和最终文件路径写入 \texttt{evidence/pdf\_export.json}。
+
+这种处理保证最终 PDF 能够交付，同时不把兼容导出误写成 WeasyPrint 原生成功。本文档采用 THUThesis 排版体系生成，作为本次对比实验的正式汇总报告。
+
+\chapter{结论}
+
+本次实验中，MLJAR 和 TabularX 都完成了四类主流模型的训练与常规解释工件生成。MLJAR 的逐模型说明较成熟；TabularX 则在常规模型报告之外补充了可信审计、测试隔离、重载核验和交付状态证据。后续数据集应继续复用相同的数据隔离、工件状态词和结果边界，以形成可横向比较的批量实验。
+
+\backmatter
+\chapter{来源}
+
+\begin{itemize}
+  \item OpenML-CC18：\url{https://www.openml.org/search?type=task&tag=OpenML-CC18}
+  \item UCI Bank Marketing：\url{https://archive.ics.uci.edu/dataset/222/bank+marketing}
+  \item MLJAR supervised：\url{https://github.com/mljar/mljar-supervised}
+  \item THUThesis：\url{https://github.com/tuna/thuthesis}
+\end{itemize}
+
+\end{document}

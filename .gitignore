@@ -13,5 +13,6 @@ __pycache__/
 # 部署
 tabularx.egg-info
 dist/
+benchmark-output/
 # macOS local metadata
 .DS_Store

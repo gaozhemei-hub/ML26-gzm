@@ -1,0 +1,15 @@
+﻿工件,TabularX,MLJAR,TabularX 证据,MLJAR 证据
+最佳模型及可重载文件,生成并核验,生成并核验,pipeline.joblib,1_Default_LightGBM/learner_fold_0.lightgbm；2_Default_Xgboost/learner_fold_0.xgboost.json；3_Default_CatBoost/learner_fold_0.catboost
+候选模型与验证分数,生成并核验,生成并核验,evidence/model_scores.json,leaderboard.csv；params.json
+预处理记录,生成并核验,生成并核验,reports/preprocess.html,1_Default_LightGBM/README.md；2_Default_Xgboost/README.md；3_Default_CatBoost/README.md
+特征重要性,生成并核验,生成并核验,reports/assets/xgboost_shap_importance.png,1_Default_LightGBM/learner_fold_0_importance.csv；1_Default_LightGBM/learner_fold_0_shap_importance.csv；1_Default_LightGBM/permutation_importance.png
+SHAP,生成并核验,生成并核验,reports/assets/xgboost_shap_summary.png,1_Default_LightGBM/learner_fold_0_shap_summary.png；2_Default_Xgboost/learner_fold_0_shap_summary.png；4_Default_RandomForest/learner_fold_0_shap_summary.png
+ALE,未观测,未观测,,
+学习曲线或调参轨迹,生成并核验,生成并核验,reports/assets/catboost_trial_trajectory.png；reports/assets/lightgbm_trial_trajectory.png；reports/assets/random_forest_trial_trajectory.png,1_Default_LightGBM/learning_curves.png；2_Default_Xgboost/learning_curves.png；3_Default_CatBoost/learning_curves.png
+混淆矩阵,生成并核验,生成并核验,reports/assets/xgboost_confusion_matrix.png,1_Default_LightGBM/confusion_matrix.png；1_Default_LightGBM/confusion_matrix_normalized.png；2_Default_Xgboost/confusion_matrix.png
+公平性,不适用,不适用,,
+泄露、划分与评估协议审计,生成并核验,未观测,evidence/audit.json；evidence/model_search_audit.json,
+漂移与群体覆盖,生成并核验,未观测,evidence/audit.json,
+重载一致性,生成并核验,未观测,evidence/reload_check.json,
+交付状态与失败原因,生成并核验,未观测,evidence/delivery.json,
+原生 HTML 报告,生成并核验,未观测,report.html,
