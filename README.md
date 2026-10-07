@@ -44,7 +44,7 @@ python -m pip install xgboost lightgbm catboost
 
 ## 文档
 
-- [文档总览](docs/README.md)：教学示例、API、设计资料和实验验证入口。
+- [功能概览](docs/features/README.md)：了解建模工作流、可信审计、证据交付和能力边界。
 - [API 参考手册](docs/api_reference.md)：公开类、配置参数、结果对象、审计、证据交付和异常接口。
 - [教学 Notebook](docs/demo/)：三个循序渐进的使用示例。
 - [实验验证](docs/validation/README.md)：十个公开表格数据集上的 MLJAR 与 TabularX 工具包对比。

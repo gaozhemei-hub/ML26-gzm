@@ -6,6 +6,7 @@ TabularX 是一个面向可解释性与可复现性的自动化表格建模工�
 
 ## 快速入口
 
+- [功能说明](features/README.md)：按建模流程查看 TabularX 主包的功能介绍。
 - [API 参考手册](api_reference.md)：公开入口、参数配置、结果对象、审计接口、证据交付接口和异常体系。
 - [教学 Notebook](demo/)：通过三个示例逐步了解 TabularX 的基本使用方式。
 - [实验验证](validation/README.md)：MLJAR 与 TabularX 在十个公开表格数据集上的工具包对比结果。
