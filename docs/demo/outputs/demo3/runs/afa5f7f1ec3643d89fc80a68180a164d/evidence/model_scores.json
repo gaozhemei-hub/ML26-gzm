@@ -1,0 +1,82 @@
+{
+  "selection_metric": "roc_auc",
+  "selected_model": "random_forest",
+  "models": [
+    {
+      "model_name": "random_forest",
+      "task_type": "binary",
+      "status": "success",
+      "best_params": {
+        "n_estimators": 350,
+        "max_depth": 24,
+        "min_samples_split": 2,
+        "min_samples_leaf": 10,
+        "max_features": "sqrt",
+        "ccp_alpha": 0.00917022549267169
+      },
+      "n_trials": 2,
+      "optuna_duration_seconds": 0.66,
+      "optuna_trials": [
+        {
+          "trial_number": 0,
+          "params": {
+            "n_estimators": 200,
+            "max_depth": 30,
+            "min_samples_split": 15,
+            "min_samples_leaf": 6,
+            "max_features": "sqrt",
+            "ccp_alpha": 0.04330880728874676
+          },
+          "value": 0.8853615520282186,
+          "state": "COMPLETE",
+          "duration_seconds": 0.25011
+        },
+        {
+          "trial_number": 1,
+          "params": {
+            "n_estimators": 350,
+            "max_depth": 24,
+            "min_samples_split": 2,
+            "min_samples_leaf": 10,
+            "max_features": "sqrt",
+            "ccp_alpha": 0.00917022549267169
+          },
+          "value": 0.9047619047619048,
+          "state": "COMPLETE",
+          "duration_seconds": 0.410402
+        }
+      ],
+      "train_metrics": {
+        "accuracy": 0.8541666666666666,
+        "balanced_accuracy": 0.8480038948393378,
+        "f1": 0.8292682926829268,
+        "f1_macro": 0.8509977827050997,
+        "roc_auc": 0.9515092502434275,
+        "precision": 0.8793103448275862,
+        "recall": 0.7846153846153846
+      },
+      "validation_metrics": {
+        "accuracy": 0.7916666666666666,
+        "balanced_accuracy": 0.7777777777777777,
+        "f1": 0.7368421052631579,
+        "f1_macro": 0.7822141560798548,
+        "roc_auc": 0.9047619047619048,
+        "precision": 0.8235294117647058,
+        "recall": 0.6666666666666666
+      },
+      "test_metrics": {
+        "accuracy": 0.875,
+        "balanced_accuracy": 0.8706293706293706,
+        "f1": 0.8571428571428571,
+        "f1_macro": 0.873015873015873,
+        "roc_auc": 0.93006993006993,
+        "precision": 0.9,
+        "recall": 0.8181818181818182
+      },
+      "model_path": null,
+      "artifact_paths": {},
+      "error": null,
+      "note": null
+    }
+  ]
+}

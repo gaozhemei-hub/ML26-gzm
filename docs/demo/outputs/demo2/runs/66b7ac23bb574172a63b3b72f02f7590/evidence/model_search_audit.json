@@ -1,0 +1,54 @@
+{
+  "risk_level": "info",
+  "high_risk_count": 0,
+  "findings": [],
+  "check_results": [
+    {
+      "code": "validation_selection",
+      "check": "选模依据为验证集主指标",
+      "status": "通过",
+      "result": "f1_macro（maximize）。"
+    },
+    {
+      "code": "selection_lock",
+      "check": "最终测试前锁定单模型",
+      "status": "通过",
+      "result": "锁定模型：xgboost；先于测试评估：True。"
+    },
+    {
+      "code": "candidate_test_metrics",
+      "check": "未锁定候选没有测试指标",
+      "status": "通过",
+      "result": "数量：0。"
+    },
+    {
+      "code": "voting_test_metrics",
+      "check": "Voting 仅用于验证集比较",
+      "status": "通过",
+      "result": "未执行测试评估。"
+    },
+    {
+      "code": "locked_test_metrics",
+      "check": "最终测试评估仅针对锁定模型",
+      "status": "通过",
+      "result": "锁定模型测试指标已生成。"
+    },
+    {
+      "code": "test_access_guard",
+      "check": "候选搜索与 Voting 阻止测试集访问",
+      "status": "通过",
+      "result": "使用运行时访问保护视图。"
+    }
+  ],
+  "model_info_questions": [],
+  "selection_metric": "f1_macro",
+  "selection_direction": "maximize",
+  "locked_model": "xgboost",
+  "locked_before_test_evaluation": true,
+  "candidate_test_metrics_count": 0,
+  "voting_test_metrics_present": false,
+  "locked_model_test_evaluated": true,
+  "selection_guard_enabled": true,
+  "test_evaluation_error": null,
+  "protocol_status": "passed"
+}

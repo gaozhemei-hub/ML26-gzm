@@ -1,0 +1,483 @@
+{
+  "schema_version": "1.0",
+  "run_id": "d3551d9993af4484aace578e5c8d58b4",
+  "task": "regression",
+  "complete": false,
+  "required_count": 12,
+  "generated_required_count": 11,
+  "completeness": 0.9166666666666666,
+  "boundary": "Delivery acceptance only; not scientific validity or reproducibility",
+  "records": {
+    "model": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "best_model.joblib",
+        "pipeline.joblib"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.594675+00:00",
+          "ended_at": "2026-09-22T07:47:08.596855+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "best_model.joblib",
+            "pipeline.joblib"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "reload_check": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "evidence/reload_check.json"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.597418+00:00",
+          "ended_at": "2026-09-22T07:47:08.600012+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "evidence/reload_check.json"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.657975+00:00",
+          "ended_at": "2026-09-22T07:47:08.660619+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "evidence/reload_check.json"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.879319+00:00",
+          "ended_at": "2026-09-22T07:47:08.882153+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "evidence/reload_check.json"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "shap": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "missing",
+      "reason": "Declared output deleted, empty, or invalid after generation",
+      "paths": [
+        "reports/assets/random_forest_shap_summary.png",
+        "reports/assets/random_forest_shap_importance.png",
+        "reports/assets/random_forest_shap_waterfall.png"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.600622+00:00",
+          "ended_at": "2026-09-22T07:47:08.600644+00:00",
+          "status": "failed",
+          "reason": "RuntimeError: 实验注入：解释步骤暂时不可用",
+          "paths": []
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.656884+00:00",
+          "ended_at": "2026-09-22T07:47:08.656898+00:00",
+          "status": "failed",
+          "reason": "RuntimeError: 实验注入：解释步骤仍不可用",
+          "paths": []
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.678320+00:00",
+          "ended_at": "2026-09-22T07:47:08.877855+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/assets/random_forest_shap_summary.png",
+            "reports/assets/random_forest_shap_importance.png",
+            "reports/assets/random_forest_shap_waterfall.png"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "fairness": {
+      "required": false,
+      "applicable": false,
+      "condition": "Sensitive attributes supplied; binary task; labels encoded 0/1",
+      "enabled": false,
+      "status": "not_applicable",
+      "reason": "Current DP/EO producer requires binary 0/1 labels",
+      "paths": [],
+      "attempts": [],
+      "recoverable": true
+    },
+    "model_scores": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "evidence/model_scores.json"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.601221+00:00",
+          "ended_at": "2026-09-22T07:47:08.601482+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "evidence/model_scores.json"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "diagnostics/random_forest": {
+      "required": true,
+      "applicable": false,
+      "condition": "Classification: confusion matrix; binary: also ROC",
+      "enabled": true,
+      "status": "not_applicable",
+      "reason": "Confusion matrix / ROC do not apply to regression",
+      "paths": [],
+      "attempts": [],
+      "recoverable": true
+    },
+    "trials/random_forest": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/assets/random_forest_trial_trajectory.png"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.602194+00:00",
+          "ended_at": "2026-09-22T07:47:08.637767+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/assets/random_forest_trial_trajectory.png"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "profile_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/profile.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.638558+00:00",
+          "ended_at": "2026-09-22T07:47:08.638987+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/profile.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.661782+00:00",
+          "ended_at": "2026-09-22T07:47:08.662118+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/profile.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.883467+00:00",
+          "ended_at": "2026-09-22T07:47:08.883852+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/profile.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "split_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/split.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.639727+00:00",
+          "ended_at": "2026-09-22T07:47:08.639960+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/split.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.663219+00:00",
+          "ended_at": "2026-09-22T07:47:08.663431+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/split.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.885230+00:00",
+          "ended_at": "2026-09-22T07:47:08.885453+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/split.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "preprocess_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/preprocess.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.640723+00:00",
+          "ended_at": "2026-09-22T07:47:08.641585+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/preprocess.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.664522+00:00",
+          "ended_at": "2026-09-22T07:47:08.665319+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/preprocess.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.886792+00:00",
+          "ended_at": "2026-09-22T07:47:08.887607+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/preprocess.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "search_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/model_search.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.642418+00:00",
+          "ended_at": "2026-09-22T07:47:08.642788+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/model_search.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.666624+00:00",
+          "ended_at": "2026-09-22T07:47:08.667000+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/model_search.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.888972+00:00",
+          "ended_at": "2026-09-22T07:47:08.889282+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/model_search.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "model_report/random_forest": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/models/random_forest.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.643719+00:00",
+          "ended_at": "2026-09-22T07:47:08.643974+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/models/random_forest.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.668152+00:00",
+          "ended_at": "2026-09-22T07:47:08.668422+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/models/random_forest.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.890575+00:00",
+          "ended_at": "2026-09-22T07:47:08.890815+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/models/random_forest.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "explanation_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/explanation.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.644955+00:00",
+          "ended_at": "2026-09-22T07:47:08.645170+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/explanation.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.669588+00:00",
+          "ended_at": "2026-09-22T07:47:08.669804+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/explanation.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.892071+00:00",
+          "ended_at": "2026-09-22T07:47:08.892419+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/explanation.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "full_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "report.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.646189+00:00",
+          "ended_at": "2026-09-22T07:47:08.647169+00:00",
+          "status": "failed",
+          "reason": "RuntimeError: 实验注入：报告渲染失败",
+          "paths": []
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.671082+00:00",
+          "ended_at": "2026-09-22T07:47:08.672652+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "report.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.893657+00:00",
+          "ended_at": "2026-09-22T07:47:08.895070+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "report.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "pdf_report": {
+      "required": false,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": false,
+      "status": "not_enabled",
+      "reason": "PDF export not requested",
+      "paths": [],
+      "attempts": [],
+      "recoverable": true
+    }
+  }
+}

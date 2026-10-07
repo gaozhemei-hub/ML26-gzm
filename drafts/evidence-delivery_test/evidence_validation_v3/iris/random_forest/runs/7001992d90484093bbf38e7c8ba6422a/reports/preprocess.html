@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>TabularX 数据预处理报告</title>
+  <style>
+    body { font-family: "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; margin: 2rem; color: #333; line-height: 1.6; }
+    h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: .5rem; }
+    h2 { color: #34495e; margin-top: 2rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ddd; padding: .5rem .75rem; text-align: left; font-size: .9rem; }
+    th { background: #f5f6fa; font-weight: 600; }
+    tr:nth-child(even) td { background: #fafbfc; }
+    .badge { display: inline-block; background: #ecf0f1; border-radius: 3px; padding: .1rem .5rem; margin: .1rem .2rem; font-size: .8rem; }
+    .badge-warn { background: #fef3cd; color: #856404; }
+    .badge-ok { background: #d4edda; color: #155724; }
+    .badge-info { background: #cce5ff; color: #004085; }
+    .badge-drop { background: #f8d7da; color: #721c24; }
+    .summary { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .card { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; min-width: 120px; }
+    .card .num { font-size: 1.5rem; font-weight: 700; color: #2c3e50; }
+    .card .label { font-size: .8rem; color: #7f8c8d; }
+    .conclusion { background: #eaf4fd; border-left: 4px solid #3498db; padding: .75rem 1rem; margin: 1rem 0; border-radius: 4px; }
+    .evidence { background: #f8f9fa; border: 1px solid #eee; border-left: 3px solid #27ae60; padding: .75rem 1rem; margin: .75rem 0; border-radius: 4px; font-size: .9rem; }
+    .evidence .rule { color: #7f8c8d; font-size: .85rem; margin-top: .25rem; }
+    .hint { color: #7f8c8d; font-size: .85rem; }
+    footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #95a5a6; font-size: .85rem; }
+    /* Mermaid 流程图样式 */
+    .mermaid { background: #fff; padding: 1rem; border-radius: 6px; border: 1px solid #eee; }
+    .mermaid-note { background: #f5f6fa; border: 1px dashed #bdc3c7; padding: 1rem; border-radius: 6px; margin: 1rem 0; font-size: .85rem; color: #7f8c8d; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+  </script>
+</head>
+<body>
+  <h1>TabularX 数据预处理报告</h1>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 1 部分：摘要
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>① 摘要</h2>
+
+    <h3>输入 / 输出</h3>
+    <div class="summary">
+      <div class="card"><div class="num">4</div><div class="label">输入特征数</div></div>
+      <div class="card"><div class="num">4</div><div class="label">输出特征数</div></div>
+      <div class="card"><div class="num">0</div><div class="label">丢弃列数</div></div>
+      <div class="card"><div class="num">90</div><div class="label">训练集样本数</div></div>
+      <div class="card"><div class="num">30</div><div class="label">验证集样本数</div></div>
+      <div class="card"><div class="num">30</div><div class="label">测试集样本数</div></div>
+    </div>
+
+    <h3>关键结论</h3>
+    <div class="conclusion">
+      
+        没有列被丢弃。
+      
+      <br>
+      
+        特征数量保持 <b>4</b> 列不变。
+      
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 2 部分：判断流程
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>② 判断流程</h2>
+
+    <div class="mermaid">
+flowchart TD
+  Start([开始：接收 X, y, profile, split_result, config]) --> Slice[阶段 1：切片数据]
+  Slice -->|提取 train/valid/test 索引| ColLoop[阶段 2：逐列处理]
+
+  ColLoop --> EmptyCol{常数列或全空列？}
+  EmptyCol -->|是| Drop[丢弃此列]
+  EmptyCol -->|否| TextCol{文本列？}
+  TextCol -->|是，handle_text=drop| Drop
+  TextCol -->|是，handle_text=keep| TextError[报错：暂不支持 NLP]
+  TextCol -->|否| DtCol{日期列？}
+  DtCol -->|handle_datetime=drop| Drop
+  DtCol -->|handle_datetime=keep| Keep[原样保留]
+  DtCol -->|handle_datetime=extract| DtExtract[提取年/月/日数值特征]
+
+  Drop --> NextCol
+  TextError --> NextCol
+  Keep --> NextCol
+  DtExtract --> NextCol
+
+  DtCol -->|否| NumCol{数值列？}
+  NumCol -->|是| NumImpute[填补缺失值]
+  NumImpute --> ScaleQuery{需要标准化？}
+  ScaleQuery -->|是| SkewQuery1{分布偏斜？}
+  ScaleQuery -->|否| SkewQuery2{分布偏斜？}
+  SkewQuery1 -->|是| YeoJohnson[Yeo-Johnson 变换<br/>兼作标准化]
+  SkewQuery1 -->|否| Scale[标准化]
+  SkewQuery2 -->|是| YeoJohnson2[Yeo-Johnson 变换]
+  SkewQuery2 -->|否| NoOp[无需处理]
+  YeoJohnson --> NextCol
+  Scale --> NextCol
+  YeoJohnson2 --> NextCol
+  NoOp --> NextCol
+
+  NumCol -->|否| BoolCol{布尔列？}
+  BoolCol -->|是| BoolProc["填补缺失 转 int(0/1)"]
+  BoolProc --> NextCol
+  BoolCol -->|否| CateCol{类别列？}
+  CateCol -->|是| CateImpute[填补缺失值]
+  CateImpute --> HighCard{高基数？}
+  HighCard -->|unique > max_onehot_categories| HighEnc{高基数编码}
+  HighEnc -->|target| TargetEncode[目标编码]
+  HighEnc -->|frequency| FreqEncode[频率编码]
+  HighCard -->|否| LowEnc{低基数编码}
+  LowEnc -->|onehot| OneHot[OneHot 编码]
+  LowEnc -->|label| LabelEncode[标签编码]
+  TargetEncode --> NextCol
+  FreqEncode --> NextCol
+  OneHot --> NextCol
+  LabelEncode --> NextCol
+
+  CateCol -->|否| Unknown[未知类型 原样保留]
+  Unknown --> NextCol
+
+  NextCol{还有下一列？}
+  NextCol -->|是| ColLoop
+  NextCol -->|否| Done([完成：输出 PreprocessedData])
+
+  classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
+  classDef decision fill:#fff3cd,stroke:#856404,stroke-width:1px;
+  class Drop,TextError error;
+  class EmptyCol,TextCol,DtCol,NumCol,BoolCol,CateCol,ScaleQuery,SkewQuery1,SkewQuery2,HighCard,HighEnc,LowEnc decision;
+    </div>
+    <div class="mermaid-note">↑ preprocess 阶段决策流程。灰色背景节点为决策分支，红色为错误出口。</div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 3 部分：逐列变换记录
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>③ 逐列变换记录</h2>
+
+    
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+
+    <p class="hint">
+      总计 4 列 · 
+      标准化 4 列 · 填补 0 列 · 编码 0 列 · 丢弃 0 列
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>列名</th>
+          <th>原始 dtype</th>
+          <th>原始唯一值</th>
+          <th>变换动作</th>
+          <th>输出特征数</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td><b>sepal length (cm)</b></td>
+          <td><code>float64</code></td>
+          <td>35</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">standard_scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>sepal width (cm)</b></td>
+          <td><code>float64</code></td>
+          <td>23</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">standard_scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>petal length (cm)</b></td>
+          <td><code>float64</code></td>
+          <td>43</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">standard_scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>petal width (cm)</b></td>
+          <td><code>float64</code></td>
+          <td>22</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">standard_scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 4 部分：列映射关系（变换追踪）
+       ══════════════════════════════════════════════════════════ -->
+  
+  
+  
+    
+  
+    
+  
+    
+  
+    
+  
+
+  
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 5 部分：数据概况（各子集统计）
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>④ 数据概况</h2>
+
+    <h3>输出特征名</h3>
+    <p>
+      
+        <span class="badge badge-info">sepal length (cm)</span>
+      
+        <span class="badge badge-info">sepal width (cm)</span>
+      
+        <span class="badge badge-info">petal length (cm)</span>
+      
+        <span class="badge badge-info">petal width (cm)</span>
+      
+    </p>
+
+    <h3>训练集描述性统计</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>列名</th>
+          <th>均值</th>
+          <th>标准差</th>
+          <th>最小值</th>
+          <th>最大值</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          
+          
+          <tr>
+            <td>sepal length (cm)</td>
+            <td>0.0000</td>
+            <td>1.0056</td>
+            <td>-1.7841</td>
+            <td>2.3955</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>sepal width (cm)</td>
+            <td>0.0000</td>
+            <td>1.0056</td>
+            <td>-2.4478</td>
+            <td>2.1418</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>petal length (cm)</td>
+            <td>-0.0000</td>
+            <td>1.0056</td>
+            <td>-1.5044</td>
+            <td>1.7869</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>petal width (cm)</td>
+            <td>-0.0000</td>
+            <td>1.0056</td>
+            <td>-1.4501</td>
+            <td>1.7202</td>
+          </tr>
+          
+        
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    <p>由 TabularX 自动生成 · Preprocess 报告</p>
+  </footer>
+</body>
+</html>

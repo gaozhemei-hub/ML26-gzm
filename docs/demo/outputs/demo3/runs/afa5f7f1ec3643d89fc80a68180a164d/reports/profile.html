@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>TabularX 数据概况报告</title>
+  <style>
+    body { font-family: "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; margin: 2rem; color: #333; line-height: 1.6; }
+    h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: .5rem; }
+    h2 { color: #34495e; margin-top: 2rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ddd; padding: .5rem .75rem; text-align: left; font-size: .9rem; }
+    th { background: #f5f6fa; font-weight: 600; }
+    tr:nth-child(even) td { background: #fafbfc; }
+    .badge { display: inline-block; background: #ecf0f1; border-radius: 3px; padding: .1rem .5rem; margin: .1rem .2rem; font-size: .8rem; }
+    .badge-warn { background: #fef3cd; color: #856404; }
+    .badge-ok { background: #d4edda; color: #155724; }
+    .badge-info { background: #cce5ff; color: #004085; }
+    .summary { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .card { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; min-width: 140px; }
+    .card .num { font-size: 1.5rem; font-weight: 700; color: #2c3e50; word-break: break-all; }
+    .card .label { font-size: .8rem; color: #7f8c8d; }
+    .conclusion { background: #eaf4fd; border-left: 4px solid #3498db; padding: .75rem 1rem; margin: 1rem 0; border-radius: 4px; }
+    .evidence { background: #f8f9fa; border: 1px solid #eee; border-left: 3px solid #27ae60; padding: .75rem 1rem; margin: .75rem 0; border-radius: 4px; font-size: .9rem; }
+    .evidence .rule { color: #7f8c8d; font-size: .85rem; margin-top: .25rem; }
+    .hint { color: #7f8c8d; font-size: .85rem; }
+    .mermaid-note { background: #f5f6fa; border: 1px dashed #bdc3c7; padding: 1rem; border-radius: 6px; margin: 1rem 0; font-size: .85rem; color: #7f8c8d; }
+    footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #95a5a6; font-size: .85rem; }
+    /* Mermaid 流程图样式 */
+    .mermaid { background: #fff; padding: 1rem; border-radius: 6px; border: 1px solid #eee; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+  </script>
+</head>
+<body>
+  <h1>TabularX 数据概况报告</h1>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 1 部分：摘要（输入 / 输出 / 结论）
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>① 摘要</h2>
+
+    <h3>输入</h3>
+    <div class="summary">
+      <div class="card"><div class="num">240</div><div class="label">样本数（行）</div></div>
+      <div class="card"><div class="num">7</div><div class="label">特征数（列）</div></div>
+      <div class="card"><div class="num" style="font-size:1rem">3d8d1b7c5cbe2b2a</div><div class="label">数据指纹</div></div>
+    </div>
+
+    <h3>输出（结论）</h3>
+    <div class="conclusion">
+      
+        判定为 <b>binary 分类任务</b>，
+        共 2 个类别。
+      
+    </div>
+
+    <h3>关键发现</h3>
+    <ul>
+      
+      
+        
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+        
+      
+      <li>2 列建议标准化（scale_needed）</li>
+      <li>0 列存在缺失值（has_missing）</li>
+      <li>0 列为常数列、0 列为全空列（预处理器将丢弃）</li>
+      <li>0 列为高基数文本列</li>
+      <li>0 列分布偏斜（skewed，建议 log 变换或缩尾）</li>
+      <li>0 列高基数类别（high_cardinality，建议目标编码）</li>
+      <li>6 列疑似标识符（identifier_like，建议排除或作为分组列）</li>
+        
+        <li>
+          静态泄漏预检风险等级：<b>medium</b>
+          
+        </li>
+        
+    </ul>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 2 部分：判断流程与证据（核心解释）
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>② 判断流程与证据</h2>
+
+    <!-- 2.1 判断流程图 -->
+    <h3>2.1 判断流程图</h3>
+    <div class="mermaid">
+flowchart TD
+  Start([开始：接收 X, y]) --> InputCheck{输入类型检查}
+  InputCheck -->|X 不是 DataFrame 或 y 不是 Series| InvalidInput[失败：InvalidDataError]
+  InputCheck -->|类型正确| ShapeCheck{数据非空检查}
+  ShapeCheck -->|X 无行/无列，或 y 无样本| EmptyData[失败：EmptyDataError]
+  ShapeCheck -->|数据非空| AlignCheck{X/y 长度检查}
+  AlignCheck -->|行数不一致| LengthError[失败：MismatchedLengthError]
+  AlignCheck -->|长度一致| TaskCheck{任务类型判断}
+  TaskCheck -->|y 全为空| EmptyTarget[失败：EmptyTargetError]
+  TaskCheck -->|task_type 非法或无法推断| TaskError[失败：TaskTypeError]
+  TaskCheck -->|唯一值 = 2| Binary[二分类任务]
+  TaskCheck -->|唯一值 3~20| Multi[多分类任务]
+  TaskCheck -->|连续值或浮点且唯一值 > 20| Reg[回归任务]
+  Binary --> Imbalance{类别不平衡检测}
+  Multi --> Imbalance
+  Reg --> ColLoop[逐列分析]
+  Imbalance -->|最小类别占比 < 10%| Imbalanced[标记 imbalanced]
+  Imbalance -->|否则| Balanced[类别分布较均衡]
+  Imbalanced --> ColLoop
+  Balanced --> ColLoop
+  ColLoop --> EmptyColCheck{是否全空列？}
+  EmptyColCheck -->|是：非缺失值 = 0| EmptyColumn[标记 empty_column]
+  EmptyColCheck -->|否| ConstantCheck{是否常数列？}
+  ConstantCheck -->|是：唯一值 = 1| ConstantColumn[标记 constant_column]
+  ConstantCheck -->|否| ColType{列类型判断}
+  EmptyColumn --> ColDone[所有列分析完成]
+  ConstantColumn --> ColDone
+  ColType -->|datetime| DateTime[日期时间列]
+  ColType -->|boolean| Boolean[布尔列]
+  ColType -->|整数且唯一值 ≤ 20| Cate[类别列]
+  ColType -->|整数且唯一值 > 20 或浮点| Num[数值列]
+  ColType -->|object/str/category| Cat{唯一值与行唯一率}
+  Cat -->|唯一值 > 200 且 >50% 行唯一| Text[文本列]
+  Cat -->|其他| Cate
+  Cate --> HighCard{基数检测}
+  HighCard -->|unique > 50| HighCardYes[标记 high_cardinality]
+  HighCard -->|unique ≤ 50| LowCard[基数正常]
+  HighCardYes --> Miss{缺失值检查}
+  LowCard --> Miss
+  Num --> Scale{scale 判据}
+  Scale -->|‖mean‖>0.5 或 std>1.5| ScaleYes[标记 scale_needed]
+  Scale -->|否则| ScaleNo[无需标准化]
+  ScaleYes --> Skew{偏度检测}
+  ScaleNo --> Skew
+  Skew -->|‖skew‖ > 1| Skewed[标记 skewed]
+  Skew -->|否则| NoSkew[分布风险较低]
+  Skewed --> Miss{缺失值检查}
+  NoSkew --> Miss
+  DateTime --> Miss
+  Boolean --> Miss
+  Text --> Miss
+  Miss -->|n_missing > 0| MissYes[标记 has_missing]
+  MissYes --> ColDone
+  Miss -->|无缺失| ColDone
+  ColDone --> AuditStart[静态泄漏预检<br/>对 X 与 y 整体扫描]
+  AuditStart --> AuditID{ID / 高唯一性检测}
+  AuditID -->|列名命中 ID 模式，或唯一值比例 ≥ 阈值| AuditIDYes[标记 identifier_like<br/>风险：疑似标识符特征]
+  AuditID -->|否| AuditCopy
+  AuditIDYes --> AuditCopy{目标复制 / 目标代理检测}
+  AuditCopy -->|特征与目标逐行完全一致| CopyHit[严重：目标复制]
+  AuditCopy -->|列名命中后验规则，或单特征判别力 ≥ 阈值| ProxyHit[高危：疑似目标代理特征]
+  AuditCopy -->|否| AuditForbid
+  CopyHit --> AuditForbid{用户禁用特征校验}
+  ProxyHit --> AuditForbid
+  AuditForbid -->|命中 forbidden_features| ForbidHit[严重：声明的禁用特征]
+  AuditForbid -->|否| RiskSum
+  ForbidHit --> RiskSum{汇总预检风险等级}
+  RiskSum -->|critical / high| AuditHigh[预检高风险：给出建议排除列]
+  RiskSum -->|medium| AuditMed[预检中风险：建议人工核验]
+  RiskSum -->|info| AuditClean[预检通过：未发现泄漏特征]
+  AuditHigh --> Done([完成：输出 DataProfile])
+  AuditMed --> Done
+  AuditClean --> Done
+  classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
+  classDef warning fill:#fff3cd,stroke:#856404,stroke-width:1px;
+  classDef audit fill:#e8f4fd,stroke:#2471a3,stroke-width:1px;
+  class InvalidInput,EmptyData,LengthError,EmptyTarget,TaskError,CopyHit,ProxyHit,ForbidHit,AuditHigh error;
+  class EmptyColumn,ConstantColumn,MissYes,ScaleYes,Skewed,HighCardYes,Imbalanced,AuditIDYes,AuditMed warning;
+  class AuditStart,AuditID,AuditCopy,AuditForbid,RiskSum,AuditClean audit;
+    </div>
+    <div class="mermaid-note">↑ profile 阶段完整判断流程：先逐列观测，再对整体做静态泄漏预检（ID / 目标复制 / 目标代理 / 禁用特征），最后按风险等级输出结论。后续阶段：Split → Preprocess → Model Search。</div>
+
+    <!-- 2.2 目标变量判断依据 -->
+    <h3>2.2 目标变量判断依据</h3>
+    <div class="evidence">
+      <b>任务类型：binary</b>
+      <ul style="margin: .5rem 0 0 0;">
+        
+          <li><b>task_type_source</b> = <code>user+auto</code>
+            <span class="hint">— 用户手动指定分类任务；按唯一值数 2 细分为 binary</span>
+          </li>
+        
+      </ul>
+      <div class="rule">规则：唯一值 ≤2 → 二分类；3~20 → 多分类；浮点连续且唯一值 &gt;20 → 回归</div>
+    </div>
+
+    
+
+    <!-- 2.3 特征列判断依据（仅列特殊情况的列） -->
+    <h3>2.3 特征列判断依据（仅列特殊情况）</h3>
+    
+    
+      
+      <div class="evidence">
+        <b>feature_0</b>
+        <span class="badge badge-warn">numeric, identifier_like, scale_needed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>identifier_like</b> = <code>100.00%</code>
+              <span class="hint">— 唯一值占比为 100.00%，唯一率较高</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.1436, std=1.7679，满足判据 → scale_needed</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>feature_1</b>
+        <span class="badge badge-warn">numeric, identifier_like</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>identifier_like</b> = <code>100.00%</code>
+              <span class="hint">— 唯一值占比为 100.00%，唯一率较高</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.4965, std=1.4539，不满足判据 → 无需 scale</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>feature_2</b>
+        <span class="badge badge-warn">numeric, identifier_like</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>identifier_like</b> = <code>100.00%</code>
+              <span class="hint">— 唯一值占比为 100.00%，唯一率较高</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.0113, std=1.4393，不满足判据 → 无需 scale</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>feature_3</b>
+        <span class="badge badge-warn">numeric, identifier_like, scale_needed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>identifier_like</b> = <code>100.00%</code>
+              <span class="hint">— 唯一值占比为 100.00%，唯一率较高</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.6021, std=1.6660，满足判据 → scale_needed</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>feature_4</b>
+        <span class="badge badge-warn">numeric, identifier_like</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>identifier_like</b> = <code>100.00%</code>
+              <span class="hint">— 唯一值占比为 100.00%，唯一率较高</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.1154, std=1.0319，不满足判据 → 无需 scale</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>feature_5</b>
+        <span class="badge badge-warn">numeric, identifier_like</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>identifier_like</b> = <code>100.00%</code>
+              <span class="hint">— 唯一值占比为 100.00%，唯一率较高</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=0.0014, std=1.0295，不满足判据 → 无需 scale</span>
+            </li>
+          
+        </ul>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+    
+    
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 3 部分：详细描述性统计
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>③ 详细描述性统计</h2>
+
+    <h3>目标变量</h3>
+    <table>
+      <tr><th>任务类型</th><td>binary</td></tr>
+      
+        <tr><th>类别数</th><td>2</td></tr>
+        <tr><th>类别分布</th>
+          <td>
+            
+              <span class="badge badge-info">0: 55.0%</span>
+            
+              <span class="badge badge-info">1: 45.0%</span>
+            
+          </td>
+        </tr>
+      
+      <tr><th>缺失率</th><td>0.00%</td></tr>
+    </table>
+
+    <h3>特征列</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>列名</th><th>类型</th><th>dtype</th><th>缺失数</th><th>缺失率</th>
+          <th>唯一值</th><th>标签</th><th>均值</th><th>标准差</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td>feature_0</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>240</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">identifier_like</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+          </td>
+          <td>-0.1436</td>
+          <td>1.7679</td>
+        </tr>
+        
+        <tr>
+          <td>feature_1</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>240</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">identifier_like</span>
+            
+          </td>
+          <td>-0.4965</td>
+          <td>1.4539</td>
+        </tr>
+        
+        <tr>
+          <td>feature_2</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>240</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">identifier_like</span>
+            
+          </td>
+          <td>-0.0113</td>
+          <td>1.4393</td>
+        </tr>
+        
+        <tr>
+          <td>feature_3</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>240</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">identifier_like</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+          </td>
+          <td>-0.6021</td>
+          <td>1.6660</td>
+        </tr>
+        
+        <tr>
+          <td>feature_4</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>240</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">identifier_like</span>
+            
+          </td>
+          <td>0.1154</td>
+          <td>1.0319</td>
+        </tr>
+        
+        <tr>
+          <td>feature_5</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>240</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">identifier_like</span>
+            
+          </td>
+          <td>0.0014</td>
+          <td>1.0295</td>
+        </tr>
+        
+        <tr>
+          <td>group</td>
+          <td>categorical</td>
+          <td>str</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>2</td>
+          <td>
+            
+              <span class="badge ">categorical</span>
+            
+          </td>
+          <td>—</td>
+          <td>—</td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 4 部分：数据安全与可信泄漏预检（TrustGuard Preflight）
+       ══════════════════════════════════════════════════════════ -->
+  
+  <section>
+    <h2>④ 数据安全与泄漏预检</h2>
+    <div class="conclusion" style="border-left-color: #f39c12; background: #fef9e7;">
+      <b>预检风险综合评级：</b>
+      <span class="badge badge-warn" style="font-weight: bold; font-size: 0.95rem;">
+        MEDIUM
+      </span>
+      
+        <span style="color: #27ae60; margin-left: 0.5rem;">未发现严重的数据泄漏或非法特征。</span>
+      
+    </div>
+
+    <h3>4.1 固定检查项清单</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 25%;">检查项目</th>
+          <th style="width: 15%;">状态</th>
+          <th>检查结果与依据</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td><b>目标复制检测</b></td>
+          <td>
+            <span class="badge badge-ok">
+              通过
+            </span>
+          </td>
+          <td>未发现特征与目标逐行一致。</td>
+        </tr>
+        
+        <tr>
+          <td><b>目标代理特征检测</b></td>
+          <td>
+            <span class="badge badge-ok">
+              通过
+            </span>
+          </td>
+          <td>未发现超过阈值的疑似目标代理特征。</td>
+        </tr>
+        
+        <tr>
+          <td><b>ID/高唯一性字段检测</b></td>
+          <td>
+            <span class="badge badge-warn">
+              发现风险
+            </span>
+          </td>
+          <td>发现 6 项：feature_0、feature_1、feature_2、feature_3、feature_4、feature_5。</td>
+        </tr>
+        
+        <tr>
+          <td><b>用户禁用特征校验</b></td>
+          <td>
+            <span class="badge badge-ok">
+              通过
+            </span>
+          </td>
+          <td>未发现包含声明的非法特征。</td>
+        </tr>
+        
+      </tbody>
+    </table>
+
+    
+    <h3>4.2 详细风险与特征发现</h3>
+    
+    <div class="evidence" style="border-left-color: #f39c12;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <b>疑似标识符特征</b>
+        <span class="badge badge-info">medium</span>
+      </div>
+      <p style="margin: 0.3rem 0;"><b>关联列：</b><code>feature_0</code></p>
+      <p style="margin: 0.3rem 0; color: #555;"><b>证据依据：</b>&#39;feature_0&#39; 唯一值比例为 100.0%。</p>
+      <p style="margin: 0.3rem 0; color: #2c3e50;"><b>处置建议：</b>确认预测时是否可得；通常应作为分组列或从模型特征中排除。</p>
+    </div>
+    
+    <div class="evidence" style="border-left-color: #f39c12;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <b>疑似标识符特征</b>
+        <span class="badge badge-info">medium</span>
+      </div>
+      <p style="margin: 0.3rem 0;"><b>关联列：</b><code>feature_1</code></p>
+      <p style="margin: 0.3rem 0; color: #555;"><b>证据依据：</b>&#39;feature_1&#39; 唯一值比例为 100.0%。</p>
+      <p style="margin: 0.3rem 0; color: #2c3e50;"><b>处置建议：</b>确认预测时是否可得；通常应作为分组列或从模型特征中排除。</p>
+    </div>
+    
+    <div class="evidence" style="border-left-color: #f39c12;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <b>疑似标识符特征</b>
+        <span class="badge badge-info">medium</span>
+      </div>
+      <p style="margin: 0.3rem 0;"><b>关联列：</b><code>feature_2</code></p>
+      <p style="margin: 0.3rem 0; color: #555;"><b>证据依据：</b>&#39;feature_2&#39; 唯一值比例为 100.0%。</p>
+      <p style="margin: 0.3rem 0; color: #2c3e50;"><b>处置建议：</b>确认预测时是否可得；通常应作为分组列或从模型特征中排除。</p>
+    </div>
+    
+    <div class="evidence" style="border-left-color: #f39c12;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <b>疑似标识符特征</b>
+        <span class="badge badge-info">medium</span>
+      </div>
+      <p style="margin: 0.3rem 0;"><b>关联列：</b><code>feature_3</code></p>
+      <p style="margin: 0.3rem 0; color: #555;"><b>证据依据：</b>&#39;feature_3&#39; 唯一值比例为 100.0%。</p>
+      <p style="margin: 0.3rem 0; color: #2c3e50;"><b>处置建议：</b>确认预测时是否可得；通常应作为分组列或从模型特征中排除。</p>
+    </div>
+    
+    <div class="evidence" style="border-left-color: #f39c12;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <b>疑似标识符特征</b>
+        <span class="badge badge-info">medium</span>
+      </div>
+      <p style="margin: 0.3rem 0;"><b>关联列：</b><code>feature_4</code></p>
+      <p style="margin: 0.3rem 0; color: #555;"><b>证据依据：</b>&#39;feature_4&#39; 唯一值比例为 100.0%。</p>
+      <p style="margin: 0.3rem 0; color: #2c3e50;"><b>处置建议：</b>确认预测时是否可得；通常应作为分组列或从模型特征中排除。</p>
+    </div>
+    
+    <div class="evidence" style="border-left-color: #f39c12;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <b>疑似标识符特征</b>
+        <span class="badge badge-info">medium</span>
+      </div>
+      <p style="margin: 0.3rem 0;"><b>关联列：</b><code>feature_5</code></p>
+      <p style="margin: 0.3rem 0; color: #555;"><b>证据依据：</b>&#39;feature_5&#39; 唯一值比例为 100.0%。</p>
+      <p style="margin: 0.3rem 0; color: #2c3e50;"><b>处置建议：</b>确认预测时是否可得；通常应作为分组列或从模型特征中排除。</p>
+    </div>
+    
+    
+
+    
+  </section>
+  
+
+  <footer>
+    <p>由 TabularX 自动生成 · 数据指纹 3d8d1b7c5cbe2b2a</p>
+  </footer>
+</body>
+</html>

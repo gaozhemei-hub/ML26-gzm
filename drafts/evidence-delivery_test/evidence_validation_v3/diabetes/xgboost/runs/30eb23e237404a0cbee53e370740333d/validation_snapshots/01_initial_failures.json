@@ -1,0 +1,315 @@
+{
+  "schema_version": "1.0",
+  "run_id": "30eb23e237404a0cbee53e370740333d",
+  "task": "regression",
+  "complete": false,
+  "required_count": 12,
+  "generated_required_count": 10,
+  "completeness": 0.8333333333333334,
+  "boundary": "Delivery acceptance only; not scientific validity or reproducibility",
+  "records": {
+    "model": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "best_model.joblib",
+        "pipeline.joblib"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:09.222267+00:00",
+          "ended_at": "2026-09-22T07:47:09.223428+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "best_model.joblib",
+            "pipeline.joblib"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "reload_check": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "evidence/reload_check.json"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:09.224007+00:00",
+          "ended_at": "2026-09-22T07:47:09.228215+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "evidence/reload_check.json"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "shap": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "failed",
+      "reason": "RuntimeError: 实验注入：解释步骤暂时不可用",
+      "paths": [],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:09.228927+00:00",
+          "ended_at": "2026-09-22T07:47:09.228949+00:00",
+          "status": "failed",
+          "reason": "RuntimeError: 实验注入：解释步骤暂时不可用",
+          "paths": []
+        }
+      ],
+      "recoverable": true
+    },
+    "fairness": {
+      "required": false,
+      "applicable": false,
+      "condition": "Sensitive attributes supplied; binary task; labels encoded 0/1",
+      "enabled": false,
+      "status": "not_applicable",
+      "reason": "Current DP/EO producer requires binary 0/1 labels",
+      "paths": [],
+      "attempts": [],
+      "recoverable": true
+    },
+    "model_scores": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "evidence/model_scores.json"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:09.230368+00:00",
+          "ended_at": "2026-09-22T07:47:09.230708+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "evidence/model_scores.json"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "diagnostics/xgboost": {
+      "required": true,
+      "applicable": false,
+      "condition": "Classification: confusion matrix; binary: also ROC",
+      "enabled": true,
+      "status": "not_applicable",
+      "reason": "Confusion matrix / ROC do not apply to regression",
+      "paths": [],
+      "attempts": [],
+      "recoverable": true
+    },
+    "trials/xgboost": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/assets/xgboost_trial_trajectory.png"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:09.231383+00:00",
+          "ended_at": "2026-09-22T07:47:09.271315+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/assets/xgboost_trial_trajectory.png"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "profile_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/profile.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:09.272259+00:00",
+          "ended_at": "2026-09-22T07:47:09.272931+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/profile.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "split_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/split.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:09.273943+00:00",
+          "ended_at": "2026-09-22T07:47:09.274196+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/split.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "preprocess_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/preprocess.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:09.275079+00:00",
+          "ended_at": "2026-09-22T07:47:09.276012+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/preprocess.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "search_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/model_search.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:09.277008+00:00",
+          "ended_at": "2026-09-22T07:47:09.277372+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/model_search.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "model_report/xgboost": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/models/xgboost.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:09.278496+00:00",
+          "ended_at": "2026-09-22T07:47:09.278768+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/models/xgboost.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "explanation_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/explanation.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:09.279946+00:00",
+          "ended_at": "2026-09-22T07:47:09.280177+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/explanation.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "full_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": true,
+      "status": "failed",
+      "reason": "RuntimeError: 实验注入：报告渲染失败",
+      "paths": [],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:09.281326+00:00",
+          "ended_at": "2026-09-22T07:47:09.282387+00:00",
+          "status": "failed",
+          "reason": "RuntimeError: 实验注入：报告渲染失败",
+          "paths": []
+        }
+      ],
+      "recoverable": true
+    },
+    "pdf_report": {
+      "required": false,
+      "applicable": true,
+      "condition": "Declared for task=regression",
+      "enabled": false,
+      "status": "not_enabled",
+      "reason": "PDF export not requested",
+      "paths": [],
+      "attempts": [],
+      "recoverable": true
+    }
+  }
+}

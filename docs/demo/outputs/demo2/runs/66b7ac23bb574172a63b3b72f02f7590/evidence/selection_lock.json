@@ -1,0 +1,30 @@
+{
+  "model_name": "xgboost",
+  "parameters": {
+    "n_estimators": 200,
+    "max_depth": 15,
+    "learning_rate": 0.06504856968981275,
+    "subsample": 0.7993292420985183,
+    "colsample_bytree": 0.5780093202212182,
+    "min_child_weight": 2,
+    "gamma": 0.2904180608409973,
+    "reg_alpha": 0.6245760287469893,
+    "reg_lambda": 0.002570603566117598
+  },
+  "metric": "f1_macro",
+  "validation_metrics": {
+    "accuracy": 0.9333333333333333,
+    "balanced_accuracy": 0.9333333333333332,
+    "f1": NaN,
+    "f1_macro": 0.9333333333333332,
+    "roc_auc": NaN,
+    "precision": NaN,
+    "recall": NaN
+  },
+  "basis": "validation only; voting is a validation-only diagnostic",
+  "locked_before_test_evaluation": true,
+  "candidate_test_evaluation": "not_run",
+  "voting_test_evaluation": "not_run",
+  "final_test_scope": "locked_model_only",
+  "test_evaluation_succeeded": true
+}

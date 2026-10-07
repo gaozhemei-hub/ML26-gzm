@@ -1,0 +1,40 @@
+{
+  "enabled": true,
+  "sensitive_features": [
+    "group"
+  ],
+  "feature_results": [
+    {
+      "feature_name": "group",
+      "is_dropped": false,
+      "dropped_reason": null,
+      "groups": [
+        {
+          "group_name": "B",
+          "n_samples": 21,
+          "positive_rate": 0.3333333333333333,
+          "accuracy": 0.8571428571428571,
+          "tpr": 0.75,
+          "fpr": 0.07692307692307693,
+          "support": 21
+        },
+        {
+          "group_name": "A",
+          "n_samples": 27,
+          "positive_rate": 0.48148148148148145,
+          "accuracy": 0.8888888888888888,
+          "tpr": 0.8571428571428571,
+          "fpr": 0.07692307692307693,
+          "support": 27
+        }
+      ],
+      "demographic_parity_diff": 0.14814814814814814,
+      "equalized_odds_tpr_diff": 0.1071428571428571,
+      "equalized_odds_fpr_diff": 0.0,
+      "dp_violation": true,
+      "eo_tpr_violation": true,
+      "eo_fpr_violation": false
+    }
+  ],
+  "error": null
+}

@@ -1,0 +1,79 @@
+{
+  "dataset": "Adult Income",
+  "source": "Local cache of OpenML 1590",
+  "rows": 48842,
+  "features": 14,
+  "sensitive_feature": "sex",
+  "sensitive_used_as_predictor": true,
+  "comparability": "New repository implementation and settings; not directly comparable to earlier v0.1 numbers, which excluded sex.",
+  "models": [
+    "random_forest",
+    "xgboost"
+  ],
+  "trials_per_model": 1,
+  "trees": 32,
+  "max_depth": 5,
+  "shap_samples": 24,
+  "selected": "xgboost",
+  "test_metrics": {
+    "accuracy": 0.7606715119254785,
+    "balanced_accuracy": 0.5,
+    "f1": 0.0,
+    "f1_macro": 0.43203488372093024,
+    "roc_auc": 0.9016953405030299,
+    "precision": 0.0,
+    "recall": 0.0
+  },
+  "initial_failure_detected": true,
+  "recovered": true,
+  "recovery_fit_calls": 0,
+  "reload_check": {
+    "passed": true,
+    "samples": 9769,
+    "prediction_equal": true,
+    "probability_equal": true,
+    "scope": "Same environment; raw held-out table; no refitting; not cross-environment reproducibility"
+  },
+  "fairness": {
+    "enabled": true,
+    "sensitive_features": [
+      "sex"
+    ],
+    "feature_results": [
+      {
+        "feature_name": "sex",
+        "is_dropped": false,
+        "dropped_reason": null,
+        "groups": [
+          {
+            "group_name": "Male",
+            "n_samples": 6510,
+            "positive_rate": 0.0,
+            "accuracy": 0.6963133640552995,
+            "tpr": 0.0,
+            "fpr": 0.0,
+            "support": 6510
+          },
+          {
+            "group_name": "Female",
+            "n_samples": 3259,
+            "positive_rate": 0.0,
+            "accuracy": 0.8892298250997238,
+            "tpr": 0.0,
+            "fpr": 0.0,
+            "support": 3259
+          }
+        ],
+        "demographic_parity_diff": 0.0,
+        "equalized_odds_tpr_diff": 0.0,
+        "equalized_odds_fpr_diff": 0.0,
+        "dp_violation": false,
+        "eo_tpr_violation": false,
+        "eo_fpr_violation": false
+      }
+    ],
+    "error": null
+  },
+  "delivery": "runs_adult/runs/8d072ec44cbe40af8b0d9e675af30afa/evidence/delivery.html",
+  "report": "runs_adult/runs/8d072ec44cbe40af8b0d9e675af30afa/report.html"
+}

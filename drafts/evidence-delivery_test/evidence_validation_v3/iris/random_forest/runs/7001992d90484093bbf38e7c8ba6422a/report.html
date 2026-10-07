@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TabularX 实验报告</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+    window.__mermaid = mermaid;
+  </script>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; font-family: "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; color: #333; background: #fff; }
+
+    /* ── 翻页容器 ── */
+    .deck { width: 100vw; height: 100vh; position: relative; overflow: hidden; }
+    .page { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; overflow-y: auto; padding: 5vh 6vw; display: none; }
+    .page.active { display: flex; flex-direction: column; justify-content: flex-start; }
+    .page.cover-active, .page.closing-active { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+
+    /* ── 导航 ── */
+    .nav-arrows { position: fixed; bottom: 2rem; right: 2rem; z-index: 1000; display: flex; gap: .5rem; }
+    .nav-arrows button { width: 44px; height: 44px; border: 1px solid #ccc; border-radius: 50%; background: rgba(255,255,255,.9); cursor: pointer; font-size: 1.2rem; color: #555; transition: all .2s; display: flex; align-items: center; justify-content: center; user-select: none; }
+    .nav-arrows button:hover { background: #3498db; color: #fff; border-color: #3498db; }
+    .nav-arrows button:disabled { opacity: .3; cursor: default; background: rgba(255,255,255,.6); color: #aaa; border-color: #ddd; }
+
+    .page-indicator { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 1000; font-size: .85rem; color: #95a5a6; background: rgba(255,255,255,.85); padding: .3rem 1rem; border-radius: 12px; border: 1px solid #eee; user-select: none; }
+
+    /* ── 进度条 ── */
+    .progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: #3498db; z-index: 1001; transition: width .3s ease; }
+
+    /* ── 点击翻页区 ── */
+    .click-left, .click-right { position: fixed; top: 0; width: 25vw; height: 100vh; z-index: 500; cursor: pointer; }
+    .click-left { left: 0; }
+    .click-right { right: 0; }
+    .click-left:hover::after, .click-right:hover::after { content: ""; position: absolute; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-style: solid; opacity: .15; }
+    .click-left:hover::after { left: 2vw; border-width: 12px 16px 12px 0; border-color: transparent #333 transparent transparent; }
+    .click-right:hover::after { right: 2vw; border-width: 12px 0 12px 16px; border-color: transparent transparent transparent #333; }
+
+    /* ── 页面内容 ── */
+    .page h1 { font-size: 1.6rem; color: #2c3e50; margin-bottom: .75rem; }
+    .page h2 { font-size: 1.3rem; color: #34495e; margin: 1rem 0 .5rem; }
+    .page h3 { font-size: 1.05rem; color: #555; margin: .75rem 0 .4rem; }
+    .page p { margin: .4rem 0; }
+    .page table { border-collapse: collapse; width: 100%; margin: .6rem 0; }
+    .page th, .page td { border: 1px solid #ddd; padding: .35rem .5rem; text-align: left; font-size: .85rem; }
+    .page th { background: #f5f6fa; font-weight: 600; }
+    .page tr:nth-child(even) td { background: #fafbfc; }
+    .page .summary { display: flex; gap: .8rem; flex-wrap: wrap; margin: .5rem 0; }
+    .page .card { border: 1px solid #ddd; border-radius: 6px; padding: .75rem 1rem; min-width: 100px; flex: 1; }
+    .page .card .num { font-size: 1.3rem; font-weight: 700; color: #2c3e50; }
+    .page .card .label { font-size: .78rem; color: #7f8c8d; }
+    .page .badge { display: inline-block; background: #ecf0f1; border-radius: 3px; padding: .1rem .45rem; margin: .1rem .15rem; font-size: .75rem; }
+    .page .badge-warn { background: #fef3cd; color: #856404; }
+    .page .badge-ok { background: #d4edda; color: #155724; }
+    .page .badge-info { background: #cce5ff; color: #004085; }
+    .page .conclusion { background: #eaf4fd; border-left: 4px solid #3498db; padding: .5rem .75rem; margin: .6rem 0; border-radius: 4px; font-size: .9rem; }
+    .page .evidence { background: #f8f9fa; border: 1px solid #eee; border-left: 3px solid #27ae60; padding: .5rem .75rem; margin: .5rem 0; border-radius: 4px; font-size: .85rem; }
+    .page .hint { color: #7f8c8d; font-size: .8rem; }
+    .page img { max-width: 100%; height: auto; border: 1px solid #eee; border-radius: 4px; margin: .5rem 0; }
+    .page ul, .page ol { padding-left: 1.5rem; margin: .4rem 0; }
+    .page li { margin: .2rem 0; font-size: .9rem; }
+
+    /* ── 封面 ── */
+    .page-cover { text-align: center; }
+    .page-cover h1 { font-size: 2.8rem; color: #2c3e50; margin-bottom: .5rem; }
+    .page-cover .subtitle { font-size: 1.2rem; color: #7f8c8d; margin-bottom: 1.5rem; }
+    .page-cover .meta { font-size: .95rem; color: #95a5a6; line-height: 2; }
+
+    /* ── 尾页 ── */
+    .page-closing { text-align: center; }
+    .page-closing h2 { font-size: 1.8rem; color: #2c3e50; margin-bottom: 1rem; }
+    .page-closing p { font-size: 1rem; max-width: 560px; line-height: 1.8; color: #7f8c8d; }
+
+    /* ── 标题页眉 ── */
+    .page-header { font-size: .75rem; color: #bdc3c7; border-bottom: 1px solid #ecf0f1; padding-bottom: .4rem; margin-bottom: .8rem; display: flex; justify-content: space-between; }
+  </style>
+</head>
+<body><p style="padding:12px;background:#fff3cd">本报告生成成功不代表证据包完整。请查看 <a href="evidence/delivery.html">证据交付验收</a>。</p>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- ════════════════════════════════════════════════════════════
+     翻页容器
+     ════════════════════════════════════════════════════════════ -->
+<div class="deck" id="deck">
+
+  <!-- ── 封面 ── -->
+  <div class="page cover-active page-cover" data-index="0">
+    <h1>TabularX 实验报告</h1>
+    <p class="subtitle">面向可解释性与可复现性的自动化表格建模</p>
+    <div class="meta">
+      <p>生成时间：2026-09-22T15:47:07.929981</p>
+      <p>任务类型：multiclass</p>
+      
+        <p>
+          样本数：150 &nbsp;|&nbsp; 
+          特征数：4 &nbsp;|&nbsp; 
+          
+        </p>
+      
+      <p>最佳模型：random_forest</p>
+    </div>
+    <p style="margin-top:2rem;color:#bdc3c7;font-size:.85rem;">← 点击左右两侧或按键盘方向键翻页 →</p>
+  </div>
+
+  <!-- ── 各节 ── -->
+  
+  <div class="page" data-index="1">
+    <div class="page-header">
+      <span>数据概况</span>
+      <span>TabularX</span>
+    </div>
+    
+  <h1>TabularX 数据概况报告</h1>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 1 部分：摘要（输入 / 输出 / 结论）
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>① 摘要</h2>
+
+    <h3>输入</h3>
+    <div class="summary">
+      <div class="card"><div class="num">150</div><div class="label">样本数（行）</div></div>
+      <div class="card"><div class="num">4</div><div class="label">特征数（列）</div></div>
+      <div class="card"><div class="num" style="font-size:1rem">e3bca5965109b73b</div><div class="label">数据指纹</div></div>
+    </div>
+
+    <h3>输出（结论）</h3>
+    <div class="conclusion">
+      
+        判定为 <b>multiclass 分类任务</b>，
+        共 3 个类别。
+      
+    </div>
+
+    <h3>关键发现</h3>
+    <ul>
+      
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+        
+        
+        
+        
+        
+        
+        
+      
+      <li>4 列建议标准化（scale_needed）</li>
+      <li>0 列存在缺失值（has_missing）</li>
+      <li>0 列为常数列、0 列为全空列（预处理器将丢弃）</li>
+      <li>0 列为高基数文本列</li>
+      <li>0 列分布偏斜（skewed，建议 log 变换或缩尾）</li>
+      <li>0 列高基数类别（high_cardinality，建议目标编码）</li>
+    </ul>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 2 部分：判断流程与证据（核心解释）
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>② 判断流程与证据</h2>
+
+    <!-- 2.1 判断流程图 -->
+    <h3>2.1 判断流程图</h3>
+    <div class="mermaid">
+flowchart TD
+  Start([开始：接收 X, y]) --> InputCheck{输入类型检查}
+  InputCheck -->|X 不是 DataFrame 或 y 不是 Series| InvalidInput[失败：InvalidDataError]
+  InputCheck -->|类型正确| ShapeCheck{数据非空检查}
+  ShapeCheck -->|X 无行/无列，或 y 无样本| EmptyData[失败：EmptyDataError]
+  ShapeCheck -->|数据非空| AlignCheck{X/y 长度检查}
+  AlignCheck -->|行数不一致| LengthError[失败：MismatchedLengthError]
+  AlignCheck -->|长度一致| TaskCheck{任务类型判断}
+  TaskCheck -->|y 全为空| EmptyTarget[失败：EmptyTargetError]
+  TaskCheck -->|task_type 非法或无法推断| TaskError[失败：TaskTypeError]
+  TaskCheck -->|唯一值 = 2| Binary[二分类任务]
+  TaskCheck -->|唯一值 3~20| Multi[多分类任务]
+  TaskCheck -->|连续值或浮点且唯一值 > 20| Reg[回归任务]
+  Binary --> Imbalance{类别不平衡检测}
+  Multi --> Imbalance
+  Reg --> ColLoop[逐列分析]
+  Imbalance -->|最小类别占比 < 10%| Imbalanced[标记 imbalanced]
+  Imbalance -->|否则| Balanced[类别分布较均衡]
+  Imbalanced --> ColLoop
+  Balanced --> ColLoop
+  ColLoop --> EmptyColCheck{是否全空列？}
+  EmptyColCheck -->|是：非缺失值 = 0| EmptyColumn[标记 empty_column]
+  EmptyColCheck -->|否| ConstantCheck{是否常数列？}
+  ConstantCheck -->|是：唯一值 = 1| ConstantColumn[标记 constant_column]
+  ConstantCheck -->|否| ColType{列类型判断}
+  EmptyColumn --> Done([完成：输出 DataProfile])
+  ConstantColumn --> Done
+  ColType -->|datetime| DateTime[日期时间列]
+  ColType -->|boolean| Boolean[布尔列]
+  ColType -->|整数且唯一值 ≤ 20| Cate[类别列]
+  ColType -->|整数且唯一值 > 20 或浮点| Num[数值列]
+  ColType -->|object/str/category| Cat{唯一值与行唯一率}
+  Cat -->|唯一值 > 200 且 >50% 行唯一| Text[文本列]
+  Cat -->|其他| Cate
+  Cate --> HighCard{基数检测}
+  HighCard -->|unique > 50| HighCardYes[标记 high_cardinality]
+  HighCard -->|unique ≤ 50| LowCard[基数正常]
+  HighCardYes --> Miss{缺失值检查}
+  LowCard --> Miss
+  Num --> Scale{scale 判据}
+  Scale -->|‖mean‖>0.5 或 std>1.5| ScaleYes[标记 scale_needed]
+  Scale -->|否则| ScaleNo[无需标准化]
+  ScaleYes --> Skew{偏度检测}
+  ScaleNo --> Skew
+  Skew -->|‖skew‖ > 1| Skewed[标记 skewed]
+  Skew -->|否则| NoSkew[分布风险较低]
+  Skewed --> Miss{缺失值检查}
+  NoSkew --> Miss
+  DateTime --> Miss
+  Boolean --> Miss
+  Text --> Miss
+  Miss -->|n_missing > 0| MissYes[标记 has_missing]
+  Miss -->|无缺失| Done
+  MissYes --> Done
+  classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
+  classDef warning fill:#fff3cd,stroke:#856404,stroke-width:1px;
+  class InvalidInput,EmptyData,LengthError,EmptyTarget,TaskError error;
+  class EmptyColumn,ConstantColumn,MissYes,ScaleYes,Skewed,HighCardYes,Imbalanced warning;
+    </div>
+    <div class="mermaid-note">↑ profile 阶段完整判断流程。后续阶段：Split → Preprocess → Model Search。</div>
+
+    <!-- 2.2 目标变量判断依据 -->
+    <h3>2.2 目标变量判断依据</h3>
+    <div class="evidence">
+      <b>任务类型：multiclass</b>
+      <ul style="margin: .5rem 0 0 0;">
+        
+          <li><b>task_type_source</b> = <code>user+auto</code>
+            <span class="hint">— 用户手动指定分类任务；按唯一值数 3 细分为 multiclass</span>
+          </li>
+        
+      </ul>
+      <div class="rule">规则：唯一值 ≤2 → 二分类；3~20 → 多分类；浮点连续且唯一值 &gt;20 → 回归</div>
+    </div>
+
+    
+
+    <!-- 2.3 特征列判断依据（仅列特殊情况的列） -->
+    <h3>2.3 特征列判断依据（仅列特殊情况）</h3>
+    
+    
+      
+      <div class="evidence">
+        <b>sepal length (cm)</b>
+        <span class="badge badge-warn">numeric, scale_needed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=5.8433, std=0.8253，满足判据 → scale_needed</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>sepal width (cm)</b>
+        <span class="badge badge-warn">numeric, scale_needed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=3.0573, std=0.4344，满足判据 → scale_needed</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>petal length (cm)</b>
+        <span class="badge badge-warn">numeric, scale_needed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=3.7580, std=1.7594，满足判据 → scale_needed</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+      
+      <div class="evidence">
+        <b>petal width (cm)</b>
+        <span class="badge badge-warn">numeric, scale_needed</span>
+        <ul style="margin: .5rem 0 0 0;">
+          
+            <li><b>col_type</b> = <code>numeric</code>
+              <span class="hint">— 列类型判定为 numeric</span>
+            </li>
+          
+            <li><b>scale_rule</b> = <code>|mean|&gt;0.5 or std&gt;1.5</code>
+              <span class="hint">— |mean|=1.1993, std=0.7597，满足判据 → scale_needed</span>
+            </li>
+          
+        </ul>
+        
+          <div class="rule">规则：|mean| &gt; 0.5 或 std &gt; 1.5 → 建议标准化</div>
+        
+        
+        
+        
+        
+      </div>
+      
+      
+    
+    
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 3 部分：详细描述性统计
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>③ 详细描述性统计</h2>
+
+    <h3>目标变量</h3>
+    <table>
+      <tr><th>任务类型</th><td>multiclass</td></tr>
+      
+        <tr><th>类别数</th><td>3</td></tr>
+        <tr><th>类别分布</th>
+          <td>
+            
+              <span class="badge badge-info">0: 33.3%</span>
+            
+              <span class="badge badge-info">1: 33.3%</span>
+            
+              <span class="badge badge-info">2: 33.3%</span>
+            
+          </td>
+        </tr>
+      
+      <tr><th>缺失率</th><td>0.00%</td></tr>
+    </table>
+
+    <h3>特征列</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>列名</th><th>类型</th><th>dtype</th><th>缺失数</th><th>缺失率</th>
+          <th>唯一值</th><th>标签</th><th>均值</th><th>标准差</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td>sepal length (cm)</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>35</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+          </td>
+          <td>5.8433</td>
+          <td>0.8253</td>
+        </tr>
+        
+        <tr>
+          <td>sepal width (cm)</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>23</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+          </td>
+          <td>3.0573</td>
+          <td>0.4344</td>
+        </tr>
+        
+        <tr>
+          <td>petal length (cm)</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>43</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+          </td>
+          <td>3.7580</td>
+          <td>1.7594</td>
+        </tr>
+        
+        <tr>
+          <td>petal width (cm)</td>
+          <td>numeric</td>
+          <td>float64</td>
+          <td>0</td>
+          <td>0.00%</td>
+          <td>22</td>
+          <td>
+            
+              <span class="badge badge-ok">numeric</span>
+            
+              <span class="badge badge-warn">scale_needed</span>
+            
+          </td>
+          <td>1.1993</td>
+          <td>0.7597</td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    <p>由 TabularX 自动生成 · 数据指纹 e3bca5965109b73b</p>
+  </footer>
+
+  </div>
+  
+  <div class="page" data-index="2">
+    <div class="page-header">
+      <span>数据划分</span>
+      <span>TabularX</span>
+    </div>
+    
+  <h1>TabularX 数据划分报告</h1>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 1 部分：摘要
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>① 摘要</h2>
+
+    <h3>输入</h3>
+    <div class="summary">
+      <div class="card"><div class="num">150</div><div class="label">原始样本数</div></div>
+      <div class="card"><div class="num">0.2</div><div class="label">test_size 参数</div></div>
+      <div class="card"><div class="num">0.25</div><div class="label">validation_size 参数</div></div>
+    </div>
+
+    <h3>输出</h3>
+    <div class="summary">
+      <div class="card"><div class="num">90</div><div class="label">训练集 (60.0%)</div></div>
+      <div class="card"><div class="num">30</div><div class="label">验证集 (20.0%)</div></div>
+      <div class="card"><div class="num">30</div><div class="label">测试集 (20.0%)</div></div>
+    </div>
+
+    <h3>关键结论</h3>
+    <div class="conclusion">
+      
+        任务为 <b>分类任务</b>，使用了 <b>分层采样</b>（stratified split），
+        保证训练/验证/测试集各类别分布与原数据一致。
+      
+      随机种子：<code>42</code>。
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 2 部分：判断流程与证据
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>② 判断流程与证据</h2>
+
+    <h3>2.1 判断流程图</h3>
+    <div class="mermaid">
+flowchart TD
+  Start([开始：接收 X, y, profile, config]) --> TaskCheck{任务类型判断}
+  TaskCheck -->|binary / multiclass| Stratify[使用分层采样 stratify=y]
+  TaskCheck -->|regression| Random[使用纯随机采样]
+  Stratify --> Phase1[阶段 1：分出测试集]
+  Random --> Phase1
+  Phase1 -->|stratify 失败（类别样本不足）| StratifyFail1[失败：StratifyError]
+  Phase1 -->|成功| Phase2[阶段 2：从剩余部分分验证集]
+  Phase2 -->|stratify 失败| StratifyFail2[失败：StratifyError]
+  Phase2 -->|成功| SizeCheck{子集样本数检查}
+  SizeCheck -->|任一子集 < min_samples_split| SizeFail[失败：InvalidSplitError]
+  SizeCheck -->|全部达标| DistCheck{类别分布对比}
+  DistCheck -->|max_shift < 0.05| Good[分布一致 ✅]
+  DistCheck -->|max_shift ≥ 0.05| Warn[分布差异较大 ⚠️ 记录警告]
+  Good --> Done([完成：输出 SplitResult])
+  Warn --> Done
+  classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
+  classDef warning fill:#fff3cd,stroke:#856404,stroke-width:1px;
+  class StratifyFail1,StratifyFail2,SizeFail error;
+  class Warn warning;
+    </div>
+    <div class="mermaid-note">↑ split 阶段完整判断流程。</div>
+
+    <h3>2.2 判断依据</h3>
+    
+    <div class="evidence">
+      <b>stratify_reason</b> = <code>multiclass</code>
+      <span class="hint">— 目标任务类型为 multiclass，使用分层采样保证各集类别分布一致。</span>
+    </div>
+    
+    <div class="evidence">
+      <b>random_seed</b> = <code>42</code>
+      <span class="hint">— 随机种子 = 42，保证划分可复现。</span>
+    </div>
+    
+    <div class="evidence">
+      <b>train_ratio</b> = <code>0.6</code>
+      <span class="hint">— 训练集 90 样本，占 60.00%</span>
+    </div>
+    
+    <div class="evidence">
+      <b>valid_ratio</b> = <code>0.2</code>
+      <span class="hint">— 验证集 30 样本，占 20.00%</span>
+    </div>
+    
+    <div class="evidence">
+      <b>test_ratio</b> = <code>0.2</code>
+      <span class="hint">— 测试集 30 样本，占 20.00%</span>
+    </div>
+    
+    <div class="evidence">
+      <b>stratify_quality</b> = <code>0.0</code>
+      <span class="hint">— 三集间最大类别比例差异 = 0.0000（差异较小，分布一致 ✅）</span>
+    </div>
+    
+  </section>
+
+  <footer>
+    <p>由 TabularX 自动生成 · 随机种子 42</p>
+  </footer>
+
+  </div>
+  
+  <div class="page" data-index="3">
+    <div class="page-header">
+      <span>数据预处理</span>
+      <span>TabularX</span>
+    </div>
+    
+  <h1>TabularX 数据预处理报告</h1>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 1 部分：摘要
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>① 摘要</h2>
+
+    <h3>输入 / 输出</h3>
+    <div class="summary">
+      <div class="card"><div class="num">4</div><div class="label">输入特征数</div></div>
+      <div class="card"><div class="num">4</div><div class="label">输出特征数</div></div>
+      <div class="card"><div class="num">0</div><div class="label">丢弃列数</div></div>
+      <div class="card"><div class="num">90</div><div class="label">训练集样本数</div></div>
+      <div class="card"><div class="num">30</div><div class="label">验证集样本数</div></div>
+      <div class="card"><div class="num">30</div><div class="label">测试集样本数</div></div>
+    </div>
+
+    <h3>关键结论</h3>
+    <div class="conclusion">
+      
+        没有列被丢弃。
+      
+      <br>
+      
+        特征数量保持 <b>4</b> 列不变。
+      
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 2 部分：判断流程
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>② 判断流程</h2>
+
+    <div class="mermaid">
+flowchart TD
+  Start([开始：接收 X, y, profile, split_result, config]) --> Slice[阶段 1：切片数据]
+  Slice -->|提取 train/valid/test 索引| ColLoop[阶段 2：逐列处理]
+
+  ColLoop --> EmptyCol{常数列或全空列？}
+  EmptyCol -->|是| Drop[丢弃此列]
+  EmptyCol -->|否| TextCol{文本列？}
+  TextCol -->|是，handle_text=drop| Drop
+  TextCol -->|是，handle_text=keep| TextError[报错：暂不支持 NLP]
+  TextCol -->|否| DtCol{日期列？}
+  DtCol -->|handle_datetime=drop| Drop
+  DtCol -->|handle_datetime=keep| Keep[原样保留]
+  DtCol -->|handle_datetime=extract| DtExtract[提取年/月/日数值特征]
+
+  Drop --> NextCol
+  TextError --> NextCol
+  Keep --> NextCol
+  DtExtract --> NextCol
+
+  DtCol -->|否| NumCol{数值列？}
+  NumCol -->|是| NumImpute[填补缺失值]
+  NumImpute --> ScaleQuery{需要标准化？}
+  ScaleQuery -->|是| SkewQuery1{分布偏斜？}
+  ScaleQuery -->|否| SkewQuery2{分布偏斜？}
+  SkewQuery1 -->|是| YeoJohnson[Yeo-Johnson 变换<br/>兼作标准化]
+  SkewQuery1 -->|否| Scale[标准化]
+  SkewQuery2 -->|是| YeoJohnson2[Yeo-Johnson 变换]
+  SkewQuery2 -->|否| NoOp[无需处理]
+  YeoJohnson --> NextCol
+  Scale --> NextCol
+  YeoJohnson2 --> NextCol
+  NoOp --> NextCol
+
+  NumCol -->|否| BoolCol{布尔列？}
+  BoolCol -->|是| BoolProc["填补缺失 转 int(0/1)"]
+  BoolProc --> NextCol
+  BoolCol -->|否| CateCol{类别列？}
+  CateCol -->|是| CateImpute[填补缺失值]
+  CateImpute --> HighCard{高基数？}
+  HighCard -->|unique > max_onehot_categories| HighEnc{高基数编码}
+  HighEnc -->|target| TargetEncode[目标编码]
+  HighEnc -->|frequency| FreqEncode[频率编码]
+  HighCard -->|否| LowEnc{低基数编码}
+  LowEnc -->|onehot| OneHot[OneHot 编码]
+  LowEnc -->|label| LabelEncode[标签编码]
+  TargetEncode --> NextCol
+  FreqEncode --> NextCol
+  OneHot --> NextCol
+  LabelEncode --> NextCol
+
+  CateCol -->|否| Unknown[未知类型 原样保留]
+  Unknown --> NextCol
+
+  NextCol{还有下一列？}
+  NextCol -->|是| ColLoop
+  NextCol -->|否| Done([完成：输出 PreprocessedData])
+
+  classDef error fill:#f8d7da,stroke:#721c24,stroke-width:1px;
+  classDef decision fill:#fff3cd,stroke:#856404,stroke-width:1px;
+  class Drop,TextError error;
+  class EmptyCol,TextCol,DtCol,NumCol,BoolCol,CateCol,ScaleQuery,SkewQuery1,SkewQuery2,HighCard,HighEnc,LowEnc decision;
+    </div>
+    <div class="mermaid-note">↑ preprocess 阶段决策流程。灰色背景节点为决策分支，红色为错误出口。</div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 3 部分：逐列变换记录
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>③ 逐列变换记录</h2>
+
+    
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+    
+
+    <p class="hint">
+      总计 4 列 · 
+      标准化 4 列 · 填补 0 列 · 编码 0 列 · 丢弃 0 列
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>列名</th>
+          <th>原始 dtype</th>
+          <th>原始唯一值</th>
+          <th>变换动作</th>
+          <th>输出特征数</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td><b>sepal length (cm)</b></td>
+          <td><code>float64</code></td>
+          <td>35</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">standard_scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>sepal width (cm)</b></td>
+          <td><code>float64</code></td>
+          <td>23</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">standard_scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>petal length (cm)</b></td>
+          <td><code>float64</code></td>
+          <td>43</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">standard_scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+        <tr>
+          <td><b>petal width (cm)</b></td>
+          <td><code>float64</code></td>
+          <td>22</td>
+          <td>
+            
+              
+                <span class="badge badge-ok">standard_scale</span>
+              
+            
+          </td>
+          <td>1</td>
+          <td class="hint"></td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 4 部分：列映射关系（变换追踪）
+       ══════════════════════════════════════════════════════════ -->
+  
+  
+  
+    
+  
+    
+  
+    
+  
+    
+  
+
+  
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 5 部分：数据概况（各子集统计）
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>④ 数据概况</h2>
+
+    <h3>输出特征名</h3>
+    <p>
+      
+        <span class="badge badge-info">sepal length (cm)</span>
+      
+        <span class="badge badge-info">sepal width (cm)</span>
+      
+        <span class="badge badge-info">petal length (cm)</span>
+      
+        <span class="badge badge-info">petal width (cm)</span>
+      
+    </p>
+
+    <h3>训练集描述性统计</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>列名</th>
+          <th>均值</th>
+          <th>标准差</th>
+          <th>最小值</th>
+          <th>最大值</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          
+          
+          <tr>
+            <td>sepal length (cm)</td>
+            <td>0.0000</td>
+            <td>1.0056</td>
+            <td>-1.7841</td>
+            <td>2.3955</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>sepal width (cm)</td>
+            <td>0.0000</td>
+            <td>1.0056</td>
+            <td>-2.4478</td>
+            <td>2.1418</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>petal length (cm)</td>
+            <td>-0.0000</td>
+            <td>1.0056</td>
+            <td>-1.5044</td>
+            <td>1.7869</td>
+          </tr>
+          
+        
+          
+          
+          <tr>
+            <td>petal width (cm)</td>
+            <td>-0.0000</td>
+            <td>1.0056</td>
+            <td>-1.4501</td>
+            <td>1.7202</td>
+          </tr>
+          
+        
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    <p>由 TabularX 自动生成 · Preprocess 报告</p>
+  </footer>
+
+  </div>
+  
+  <div class="page" data-index="4">
+    <div class="page-header">
+      <span>模型搜索</span>
+      <span>TabularX</span>
+    </div>
+    
+  <h1>TabularX 模型搜索报告</h1>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 1 部分：摘要
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>① 摘要</h2>
+
+    <h3>输入</h3>
+    <div class="summary">
+      <div class="card"><div class="num">1</div><div class="label">尝试模型数</div></div>
+      <div class="card"><div class="num">1</div><div class="label">成功</div></div>
+      <div class="card"><div class="num">0</div><div class="label">失败</div></div>
+    </div>
+
+    <h3>配置</h3>
+    <table>
+      <tr><th>任务类型</th><td>multiclass</td></tr>
+      <tr><th>主指标</th><td>f1_macro</td></tr>
+      <tr><th>优化方向</th><td>maximize</td></tr>
+    </table>
+
+    
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 2 部分：整体流程图（架构总览）
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>② 整体流程图</h2>
+    <div class="mermaid">
+flowchart TB
+  Input([配置 + 预处理后数据]) --> Parse[解析配置<br/>确定模型列表]
+
+  subgraph Tuning[并行调参]
+    M1["模型 1<br/>Optuna x n_trials"]
+    M2["模型 2<br/>Optuna x n_trials"]
+    M3["..."]
+  end
+
+  Parse --> Tuning
+
+  M1 & M2 & M3 --> Retrain["最佳参数重训<br/>(train+valid → test 评估)"]
+  Retrain --> Rank[按 test 主指标排序]
+
+  Rank --> Best[最优单模型]
+  Rank --> Vote["构建 Voting 组合<br/>(Top-K)"]
+  Vote --> VoteEval[评估 Voting<br/>valid + test]
+  Best --> Output[输出 ModelSearchResult]
+  VoteEval --> Output
+  Output --> Report[生成 HTML 报告]
+</div>
+<div class="mermaid-note">模型搜索阶段完整流程。核心：并行调参 → 最佳参数重训 → 排序选出最优 → Voting 组合。</div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 3 部分：最优模型（含详细指标和图）
+       ══════════════════════════════════════════════════════════ -->
+  
+  <section>
+    <h2>③ 最优模型：random_forest</h2>
+
+    <div class="conclusion-best">
+      <b>random_forest</b>
+      <br>
+      验证集 f1_macro = 0.8997
+      
+      <br>
+      测试集 f1_macro = 0.9333
+      
+      <br>
+      <a class="model-link" href="models/random_forest.html">查看详细报告</a>
+    </div>
+
+    <h3>3.1 三集表现</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>数据集</th>
+          
+          <th>accuracy</th>
+          
+          <th>balanced_accuracy</th>
+          
+          <th>f1</th>
+          
+          <th>f1_macro</th>
+          
+          <th>roc_auc</th>
+          
+          <th>precision</th>
+          
+          <th>recall</th>
+          
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>训练集</b></td>
+          
+          <td>
+            
+              0.9889
+            
+          </td>
+          
+          <td>
+            
+              0.9889
+            
+          </td>
+          
+          <td>
+            
+              nan
+            
+          </td>
+          
+          <td>
+            
+              0.9889
+            
+          </td>
+          
+          <td>
+            
+              nan
+            
+          </td>
+          
+          <td>
+            
+              nan
+            
+          </td>
+          
+          <td>
+            
+              nan
+            
+          </td>
+          
+        </tr>
+        <tr style="background: #f0fdf4;">
+          <td><b>验证集</b></td>
+          
+          <td>0.9000</td>
+          
+          <td>0.9000</td>
+          
+          <td>nan</td>
+          
+          <td>0.8997</td>
+          
+          <td>nan</td>
+          
+          <td>nan</td>
+          
+          <td>nan</td>
+          
+        </tr>
+        
+        <tr>
+          <td><b>测试集</b></td>
+          
+          <td>
+            
+              0.9333
+            
+          </td>
+          
+          <td>
+            
+              0.9333
+            
+          </td>
+          
+          <td>
+            
+              nan
+            
+          </td>
+          
+          <td>
+            
+              0.9333
+            
+          </td>
+          
+          <td>
+            
+              nan
+            
+          </td>
+          
+          <td>
+            
+              nan
+            
+          </td>
+          
+          <td>
+            
+              nan
+            
+          </td>
+          
+        </tr>
+        
+      </tbody>
+    </table>
+
+    
+    
+    <h3>3.2 最佳参数</h3>
+    <div class="param-grid">
+      
+      <div class="param-item">
+        <div class="name"><code>min_samples_split</code></div>
+        <div class="value">9</div>
+      </div>
+      
+      <div class="param-item">
+        <div class="name"><code>min_samples_leaf</code></div>
+        <div class="value">10</div>
+      </div>
+      
+      <div class="param-item">
+        <div class="name"><code>max_features</code></div>
+        <div class="value">sqrt</div>
+      </div>
+      
+      <div class="param-item">
+        <div class="name"><code>ccp_alpha</code></div>
+        <div class="value">0.007799726016810133</div>
+      </div>
+      
+      <div class="param-item">
+        <div class="name"><code>n_estimators</code></div>
+        <div class="value">8</div>
+      </div>
+      
+      <div class="param-item">
+        <div class="name"><code>max_depth</code></div>
+        <div class="value">3</div>
+      </div>
+      
+    </div>
+    
+
+    
+    
+    <h3>3.3 分类评估图</h3>
+    <div class="plot-grid">
+      
+      <div class="plot-item">
+        <img src="reports/assets/random_forest_confusion_matrix.png" alt="混淆矩阵">
+        <div class="caption">混淆矩阵（测试集）</div>
+      </div>
+      
+      
+    </div>
+    
+  </section>
+  
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 4 部分：模型排名
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>④ 模型排名</h2>
+
+    <h3>4.1 主指标对比（f1_macro）</h3>
+
+    
+    
+    
+    
+    
+    
+
+    <div class="bar-chart">
+      
+        
+        
+          
+        
+        
+        
+        <div class="bar-row">
+          <div class="bar-label">
+            <a class="model-link" href="models/random_forest.html">random_forest</a>
+          </div>
+          <div class="bar-fill" style="width: 10%; background: #28a745;"></div>
+          <span class="bar-value">0.8997  (最优)</span>
+        </div>
+      
+    </div>
+    
+
+    <h3>4.2 详细排名表</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>排名</th>
+          <th>模型</th>
+          <th>状态</th>
+          <th>f1_macro（训练集）</th>
+          <th>f1_macro（验证集）</th>
+          <th>f1_macro（测试集）</th>
+          <th>调参耗时</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td>1</td>
+          <td>
+            <b>random_forest</b>
+            <span class="badge badge-best">最优</span>
+          </td>
+          <td><span class="badge badge-ok">success</span></td>
+          <td>0.9889</td>
+          <td>0.8997</td>
+          <td>
+            
+              0.9333
+            
+          </td>
+          <td>0.0s</td>
+          <td><a class="model-link" href="models/random_forest.html">详情</a></td>
+        </tr>
+        
+
+        
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 5 部分：失败模型
+       ══════════════════════════════════════════════════════════ -->
+  
+  
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 6 部分：可解释性与公平性
+       ══════════════════════════════════════════════════════════ -->
+  
+  <section>
+    <h2>⑥ 可解释性与公平性</h2>
+    <div class="conclusion">
+      <b>SHAP 可解释性分析</b> — 对最优模型 <b>random_forest</b> 的决策逻辑进行了可视化解构。
+      <br>
+      已生成特征重要性排序、SHAP Summary 图和单样本解释。
+      <br>
+      <a class="model-link" href="explanation.html" style="font-weight: 700;">查看完整可解释性报告 →</a>
+    </div>
+  </section>
+  
+
+  <footer>
+    <p>由 TabularX 自动生成 · 模型搜索报告</p>
+  </footer>
+
+  </div>
+  
+  <div class="page" data-index="5">
+    <div class="page-header">
+      <span>模型：random_forest</span>
+      <span>TabularX</span>
+    </div>
+    
+  <p><a href="../model_search.html" style="color: #2980b9;">← 返回总览</a></p>
+  <h1>模型详情：random_forest</h1>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 1 部分：基本信息
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>① 基本信息</h2>
+    <div class="summary">
+      <div class="card"><div class="num">1</div><div class="label">Trial 次数</div></div>
+      <div class="card"><div class="num">0.0s</div><div class="label">调参耗时</div></div>
+      <div class="card"><div class="num" style="font-size:1.1rem">random_forest</div><div class="label">算法</div></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 2 部分：调参轨迹图（仅成功模型）
+       ══════════════════════════════════════════════════════════ -->
+  
+  <section>
+    <h2>② 调参轨迹</h2>
+    <div class="plot-item">
+      <img src="reports/assets/random_forest_trial_trajectory.png" alt="调参轨迹">
+      <div class="caption">横轴为 Trial 序号，纵轴为主指标（f1_macro）。每个点代表一次 trial 的验证集 f1_macro 值。</div>
+    </div>
+  </section>
+  
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 3 部分：分类评估图（仅分类任务）
+       ══════════════════════════════════════════════════════════ -->
+  
+  
+  <section>
+    <h2>③ 分类评估图</h2>
+    <div class="plot-grid">
+      
+      <div class="plot-item">
+        <img src="reports/assets/random_forest_confusion_matrix.png" alt="混淆矩阵">
+        <div class="caption">混淆矩阵（测试集）</div>
+      </div>
+      
+      
+    </div>
+  </section>
+  
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 4 部分：三集表现对比
+       ══════════════════════════════════════════════════════════ -->
+  
+  <section>
+    <h2>④ 三集表现对比</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>数据集</th>
+          
+          <th>accuracy</th>
+          
+          <th>balanced_accuracy</th>
+          
+          <th>f1</th>
+          
+          <th>f1_macro</th>
+          
+          <th>roc_auc</th>
+          
+          <th>precision</th>
+          
+          <th>recall</th>
+          
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>训练集</b></td>
+          
+          <td>
+            
+              0.9889
+            
+          </td>
+          
+          <td>
+            
+              0.9889
+            
+          </td>
+          
+          <td>
+            
+              nan
+            
+          </td>
+          
+          <td>
+            
+              0.9889
+            
+          </td>
+          
+          <td>
+            
+              nan
+            
+          </td>
+          
+          <td>
+            
+              nan
+            
+          </td>
+          
+          <td>
+            
+              nan
+            
+          </td>
+          
+        </tr>
+        <tr style="background: #f0fdf4;">
+          <td><b>验证集</b></td>
+          
+          <td>0.9000</td>
+          
+          <td>0.9000</td>
+          
+          <td>nan</td>
+          
+          <td>0.8997</td>
+          
+          <td>nan</td>
+          
+          <td>nan</td>
+          
+          <td>nan</td>
+          
+        </tr>
+        
+        <tr>
+          <td><b>测试集</b></td>
+          
+          <td>
+            
+              0.9333
+            
+          </td>
+          
+          <td>
+            
+              0.9333
+            
+          </td>
+          
+          <td>
+            
+              nan
+            
+          </td>
+          
+          <td>
+            
+              0.9333
+            
+          </td>
+          
+          <td>
+            
+              nan
+            
+          </td>
+          
+          <td>
+            
+              nan
+            
+          </td>
+          
+          <td>
+            
+              nan
+            
+          </td>
+          
+        </tr>
+        
+      </tbody>
+    </table>
+
+    <h3>最佳参数</h3>
+    <div class="param-grid">
+      
+      <div class="param-item">
+        <div class="name"><code>min_samples_split</code></div>
+        <div class="value">9</div>
+      </div>
+      
+      <div class="param-item">
+        <div class="name"><code>min_samples_leaf</code></div>
+        <div class="value">10</div>
+      </div>
+      
+      <div class="param-item">
+        <div class="name"><code>max_features</code></div>
+        <div class="value">sqrt</div>
+      </div>
+      
+      <div class="param-item">
+        <div class="name"><code>ccp_alpha</code></div>
+        <div class="value">0.007799726016810133</div>
+      </div>
+      
+      <div class="param-item">
+        <div class="name"><code>n_estimators</code></div>
+        <div class="value">8</div>
+      </div>
+      
+      <div class="param-item">
+        <div class="name"><code>max_depth</code></div>
+        <div class="value">3</div>
+      </div>
+      
+    </div>
+  </section>
+  
+
+  
+
+  <footer>
+    <p>由 TabularX 自动生成 · 模型详情报告</p>
+  </footer>
+
+  </div>
+  
+  <div class="page" data-index="6">
+    <div class="page-header">
+      <span>解释与公平性</span>
+      <span>TabularX</span>
+    </div>
+    
+  <p><a href="model_search.html" class="model-link" style="color: #2980b9;">← 返回模型搜索总览</a></p>
+  <h1>TabularX 可解释性与公平性报告</h1>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 1 部分：摘要
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>① 摘要</h2>
+
+    <h3>输入</h3>
+    <div class="summary">
+      <div class="card"><div class="num">random_forest</div><div class="label">最优模型</div></div>
+      
+      <div class="card"><div class="num">12</div><div class="label">解释样本数</div></div>
+      <div class="card"><div class="num">4</div><div class="label">特征数</div></div>
+      <div class="card"><div class="num">100.0%</div><div class="label">Top-10 累计解释力</div></div>
+      
+      
+    </div>
+
+    <h3>结论</h3>
+    <div class="conclusion">
+      
+        对最优模型 <b>random_forest</b> 执行了 SHAP 可解释性分析。
+        未指定敏感特征，跳过公平性评估。
+      
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 2 部分：整体流程图（架构总览）
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>② 整体流程图</h2>
+    <div class="mermaid">
+flowchart TB
+  Input([模型搜索结果]) --> SHAPBlock[SHAP 可解释性<br/>对最优模型]
+
+  SHAPBlock --> Importance[特征重要性排序<br/>Top-10]
+  SHAPBlock --> Viz[SHAP 可视化<br/>beeswarm / 柱状图 / waterfall]
+  SHAPBlock --> Direction[特征贡献方向分析]
+
+  Input --> FairnessBlock[公平性评估<br/>对每个敏感特征]
+
+  FairnessBlock --> Resolve[查找 column_mappings<br/>解析预处理后列名]
+  Resolve --> Dropped{已被丢弃？}
+  Dropped -->|是| Skip[跳过并提示]
+  Dropped -->|否| Split[按子组拆分测试集]
+  Split --> GroupMetrics[计算各子组指标<br/>正类预测率 / 准确率 / TPR / FPR]
+  GroupMetrics --> Diff[计算公平性差异<br/>Demographic Parity<br/>Equalized Odds TPR/FPR]
+  Diff --> Threshold{超出阈值 0.1？}
+  Threshold -->|是| Warn[标记潜在偏见]
+  Threshold -->|否| Pass[公平性通过]
+
+  SHAPBlock & FairnessBlock --> Report[生成可解释性与公平性报告]
+</div>
+<div class="mermaid-note">可解释性与公平性报告完整流程。SHAP 解释在最优模型上自动执行；公平性评估在用户指定敏感特征后执行。</div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 3 部分：SHAP 可解释性分析
+       ══════════════════════════════════════════════════════════ -->
+  
+  <section>
+    <h2>③ SHAP 可解释性分析</h2>
+
+    <h3>1.1 基本信息</h3>
+    <div class="summary">
+      <div class="card"><div class="num">random_forest</div><div class="label">最优模型</div></div>
+      <div class="card"><div class="num">12</div><div class="label">解释样本数</div></div>
+      <div class="card"><div class="num">4</div><div class="label">特征数</div></div>
+      <div class="card"><div class="num">100.0%</div><div class="label">Top-10 累计解释力</div></div>
+    </div>
+
+    <div class="conclusion">
+      <b>模型决策依据</b>
+      <br>
+      最优模型 <b>random_forest</b> 在 12 个测试样本上进行了 SHAP 解释。
+      前 10 个特征累计解释了约 <b>100.0%</b> 的模型决策，
+      说明模型决策主要受少数关键特征驱动。
+    </div>
+
+    <h3>1.2 特征重要性（Top-10）</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>排名</th>
+          <th>特征</th>
+          <th>平均 |SHAP|</th>
+          <th>解释力占比</th>
+          <th>均值</th>
+          <th>标准差</th>
+          <th>最小值</th>
+          <th>最大值</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        
+        
+        
+        <tr>
+          <td>1</td>
+          <td><b>petal width (cm)</b></td>
+          <td>0.2279</td>
+          <td>51.5%</td>
+          <td>0.2789</td>
+          <td>0.1848</td>
+          <td>-0.1343</td>
+          <td>0.3615</td>
+        </tr>
+        
+        
+        
+        
+        
+        <tr>
+          <td>2</td>
+          <td><b>petal length (cm)</b></td>
+          <td>0.1289</td>
+          <td>29.1%</td>
+          <td>0.1377</td>
+          <td>0.0992</td>
+          <td>-0.0832</td>
+          <td>0.1872</td>
+        </tr>
+        
+        
+        
+        
+        
+        <tr>
+          <td>3</td>
+          <td><b>sepal length (cm)</b></td>
+          <td>0.0812</td>
+          <td>18.4%</td>
+          <td>0.0589</td>
+          <td>0.1066</td>
+          <td>-0.1000</td>
+          <td>0.1377</td>
+        </tr>
+        
+        
+        
+        
+        
+        <tr>
+          <td>4</td>
+          <td><b>sepal width (cm)</b></td>
+          <td>0.0043</td>
+          <td>1.0%</td>
+          <td>0.0019</td>
+          <td>0.0071</td>
+          <td>-0.0122</td>
+          <td>0.0073</td>
+        </tr>
+        
+        
+      </tbody>
+    </table>
+
+    <h3>1.3 SHAP 可视化</h3>
+    <div class="plot-grid">
+      
+      <div class="plot-item">
+        <img src="reports/assets/random_forest_shap_summary.png" alt="SHAP Summary">
+        <div class="caption">SHAP Summary（beeswarm）— 每个点代表一个样本的 SHAP 值</div>
+      </div>
+      
+      
+      <div class="plot-item">
+        <img src="reports/assets/random_forest_shap_importance.png" alt="SHAP 特征重要性">
+        <div class="caption">特征重要性排序（平均 |SHAP| 值）</div>
+      </div>
+      
+      
+      <div class="plot-item">
+        <img src="reports/assets/random_forest_shap_waterfall.png" alt="SHAP Waterfall">
+        <div class="caption">单个样本的 SHAP Waterfall 解释</div>
+      </div>
+      
+    </div>
+
+    <h3>1.4 特征贡献方向摘要</h3>
+    <p class="hint">
+      下表列出 Top-5 特征对预测的总体影响方向。均值 > 0 表示该特征值越高越推动预测向正类（或更高预测值），
+      均值 < 0 表示该特征值越高越推动预测向负类（或更低预测值）。
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>特征</th>
+          <th>平均 SHAP 值</th>
+          <th>主导方向</th>
+          <th>影响描述</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        
+        
+        
+        
+          
+          
+        
+        <tr>
+          <td><b>petal width (cm)</b></td>
+          <td>0.2789</td>
+          <td><span class="badge badge-ok">正向</span></td>
+          <td class="hint">值越大 → 正类概率越高</td>
+        </tr>
+        
+        
+        
+        
+        
+        
+          
+          
+        
+        <tr>
+          <td><b>petal length (cm)</b></td>
+          <td>0.1377</td>
+          <td><span class="badge badge-ok">正向</span></td>
+          <td class="hint">值越大 → 正类概率越高</td>
+        </tr>
+        
+        
+        
+        
+        
+        
+          
+          
+        
+        <tr>
+          <td><b>sepal length (cm)</b></td>
+          <td>0.0589</td>
+          <td><span class="badge badge-ok">正向</span></td>
+          <td class="hint">值越大 → 正类概率越高</td>
+        </tr>
+        
+        
+        
+        
+        
+        
+          
+          
+        
+        <tr>
+          <td><b>sepal width (cm)</b></td>
+          <td>0.0019</td>
+          <td><span class="badge badge-ok">正向</span></td>
+          <td class="hint">值越大 → 正类概率越高</td>
+        </tr>
+        
+        
+      </tbody>
+    </table>
+
+    
+  </section>
+  
+
+  <!-- ══════════════════════════════════════════════════════════
+       第 2 部分：公平性评估
+       ══════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>④ 公平性评估</h2>
+
+    
+    <div class="conclusion" style="background: #f5f6fa; border-left-color: #95a5a6;">
+      <b>未指定敏感特征</b>
+      <br>
+      未指定敏感特征，跳过公平性评估。可通过
+      <code>FairnessConfig(sensitive_features=["列名1", "列名2"])</code>
+      启用公平性审计，自动计算模型在不同子组间的性能差异和公平性指标
+      （Demographic Parity、Equalized Odds）。
+    </div>
+
+    
+  </section>
+
+  <footer>
+    <p>由 TabularX 自动生成 · 可解释性与公平性报告</p>
+  </footer>
+
+  </div>
+  
+
+  <!-- ── 尾页 ── -->
+  <div class="page closing-active page-closing" data-index="7">
+    <h2>报告结束</h2>
+    <p>
+      本报告由 <strong>TabularX</strong> 自动生成。<br>
+      所有模型训练、评估、可解释性分析及公平性审计均在本地执行。<br>
+      如需复现，请保存完整的实验输出目录。
+    </p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     导航控件
+     ════════════════════════════════════════════════════════════ -->
+<div class="click-left" id="clickLeft"></div>
+<div class="click-right" id="clickRight"></div>
+
+<div class="nav-arrows">
+  <button id="prevBtn" title="上一页 (←)">◀</button>
+  <button id="nextBtn" title="下一页 (→)">▶</button>
+</div>
+
+<div class="page-indicator" id="pageIndicator">1 / 1</div>
+
+<script>
+(function() {
+  const pages = document.querySelectorAll('.page');
+  const total = pages.length;
+  let current = 0;
+
+  function showPage(idx) {
+    if (idx < 0 || idx >= total) return;
+    pages.forEach((p, i) => {
+      p.classList.remove('active', 'cover-active', 'closing-active');
+      p.style.display = 'none';
+      if (i === idx) {
+        p.style.display = 'flex';
+        if (i === 0) p.classList.add('cover-active');
+        else if (i === total - 1) p.classList.add('closing-active');
+        else p.classList.add('active');
+      }
+    });
+    current = idx;
+    document.getElementById('prevBtn').disabled = idx === 0;
+    document.getElementById('nextBtn').disabled = idx === total - 1;
+    document.getElementById('pageIndicator').textContent = (idx + 1) + ' / ' + total;
+    document.getElementById('progressBar').style.width = ((idx + 1) / total * 100) + '%';
+
+    // 重新渲染当前页的 Mermaid 流程图（已被隐藏时中断渲染）
+    if (window.__mermaid && window.__mermaid.run) {
+      const currentPage = pages[idx];
+      const mermaidElements = currentPage.querySelectorAll('.mermaid');
+      if (mermaidElements.length > 0) {
+        window.__mermaid.run({ nodes: mermaidElements });
+      }
+    }
+  }
+
+  function nextPage() { if (current < total - 1) showPage(current + 1); }
+  function prevPage() { if (current > 0) showPage(current - 1); }
+
+  // 键盘
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      e.preventDefault(); nextPage();
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault(); prevPage();
+    }
+  });
+
+  // 翻页按钮
+  document.getElementById('nextBtn').addEventListener('click', nextPage);
+  document.getElementById('prevBtn').addEventListener('click', prevPage);
+
+  // 点击左右区域
+  document.getElementById('clickRight').addEventListener('click', nextPage);
+  document.getElementById('clickLeft').addEventListener('click', prevPage);
+
+  // 触摸滑动
+  let touchStartX = 0;
+  document.addEventListener('touchstart', function(e) { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', function(e) {
+    const diff = touchStartX - e.changedTouches[0].screenX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) nextPage(); else prevPage();
+    }
+  });
+
+  showPage(0);
+})();
+</script>
+
+</body>
+</html>

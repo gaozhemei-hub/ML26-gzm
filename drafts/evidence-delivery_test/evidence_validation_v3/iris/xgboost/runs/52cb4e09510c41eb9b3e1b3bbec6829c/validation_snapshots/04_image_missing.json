@@ -1,0 +1,495 @@
+{
+  "schema_version": "1.0",
+  "run_id": "52cb4e09510c41eb9b3e1b3bbec6829c",
+  "task": "multiclass",
+  "complete": false,
+  "required_count": 13,
+  "generated_required_count": 12,
+  "completeness": 0.9230769230769231,
+  "boundary": "Delivery acceptance only; not scientific validity or reproducibility",
+  "records": {
+    "model": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=multiclass",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "best_model.joblib",
+        "pipeline.joblib"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:07.969175+00:00",
+          "ended_at": "2026-09-22T07:47:07.970613+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "best_model.joblib",
+            "pipeline.joblib"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "reload_check": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=multiclass",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "evidence/reload_check.json"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:07.971145+00:00",
+          "ended_at": "2026-09-22T07:47:07.974716+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "evidence/reload_check.json"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.059140+00:00",
+          "ended_at": "2026-09-22T07:47:08.062701+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "evidence/reload_check.json"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.299498+00:00",
+          "ended_at": "2026-09-22T07:47:08.316877+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "evidence/reload_check.json"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "shap": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=multiclass",
+      "enabled": true,
+      "status": "missing",
+      "reason": "Declared output deleted, empty, or invalid after generation",
+      "paths": [
+        "reports/assets/xgboost_shap_summary.png",
+        "reports/assets/xgboost_shap_importance.png",
+        "reports/assets/xgboost_shap_waterfall.png"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:07.975364+00:00",
+          "ended_at": "2026-09-22T07:47:07.975385+00:00",
+          "status": "failed",
+          "reason": "RuntimeError: 实验注入：解释步骤暂时不可用",
+          "paths": []
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.057947+00:00",
+          "ended_at": "2026-09-22T07:47:08.057962+00:00",
+          "status": "failed",
+          "reason": "RuntimeError: 实验注入：解释步骤仍不可用",
+          "paths": []
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.080378+00:00",
+          "ended_at": "2026-09-22T07:47:08.297974+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/assets/xgboost_shap_summary.png",
+            "reports/assets/xgboost_shap_importance.png",
+            "reports/assets/xgboost_shap_waterfall.png"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "fairness": {
+      "required": false,
+      "applicable": false,
+      "condition": "Sensitive attributes supplied; binary task; labels encoded 0/1",
+      "enabled": false,
+      "status": "not_applicable",
+      "reason": "Current DP/EO producer requires binary 0/1 labels",
+      "paths": [],
+      "attempts": [],
+      "recoverable": true
+    },
+    "model_scores": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=multiclass",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "evidence/model_scores.json"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:07.976033+00:00",
+          "ended_at": "2026-09-22T07:47:07.976337+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "evidence/model_scores.json"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "diagnostics/xgboost": {
+      "required": true,
+      "applicable": true,
+      "condition": "Classification: confusion matrix; binary: also ROC",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/assets/xgboost_confusion_matrix.png"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:07.976978+00:00",
+          "ended_at": "2026-09-22T07:47:08.003925+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/assets/xgboost_confusion_matrix.png"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "trials/xgboost": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=multiclass",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/assets/xgboost_trial_trajectory.png"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.004765+00:00",
+          "ended_at": "2026-09-22T07:47:08.039724+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/assets/xgboost_trial_trajectory.png"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "profile_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=multiclass",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/profile.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.040591+00:00",
+          "ended_at": "2026-09-22T07:47:08.040974+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/profile.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.063901+00:00",
+          "ended_at": "2026-09-22T07:47:08.064230+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/profile.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.318287+00:00",
+          "ended_at": "2026-09-22T07:47:08.318641+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/profile.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "split_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=multiclass",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/split.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.041774+00:00",
+          "ended_at": "2026-09-22T07:47:08.042013+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/split.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.065385+00:00",
+          "ended_at": "2026-09-22T07:47:08.065595+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/split.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.319965+00:00",
+          "ended_at": "2026-09-22T07:47:08.320188+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/split.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "preprocess_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=multiclass",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/preprocess.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.042871+00:00",
+          "ended_at": "2026-09-22T07:47:08.043518+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/preprocess.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.066728+00:00",
+          "ended_at": "2026-09-22T07:47:08.067279+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/preprocess.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.321488+00:00",
+          "ended_at": "2026-09-22T07:47:08.322066+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/preprocess.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "search_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=multiclass",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/model_search.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.044508+00:00",
+          "ended_at": "2026-09-22T07:47:08.044860+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/model_search.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.068419+00:00",
+          "ended_at": "2026-09-22T07:47:08.068737+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/model_search.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.323367+00:00",
+          "ended_at": "2026-09-22T07:47:08.323702+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/model_search.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "model_report/xgboost": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=multiclass",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/models/xgboost.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.045872+00:00",
+          "ended_at": "2026-09-22T07:47:08.046218+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/models/xgboost.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.069943+00:00",
+          "ended_at": "2026-09-22T07:47:08.070413+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/models/xgboost.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.325083+00:00",
+          "ended_at": "2026-09-22T07:47:08.325398+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/models/xgboost.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "explanation_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=multiclass",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/explanation.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.047308+00:00",
+          "ended_at": "2026-09-22T07:47:08.047549+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/explanation.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.071731+00:00",
+          "ended_at": "2026-09-22T07:47:08.072001+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/explanation.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.326839+00:00",
+          "ended_at": "2026-09-22T07:47:08.327339+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/explanation.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "full_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=multiclass",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "report.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-09-22T07:47:08.048656+00:00",
+          "ended_at": "2026-09-22T07:47:08.049411+00:00",
+          "status": "failed",
+          "reason": "RuntimeError: 实验注入：报告渲染失败",
+          "paths": []
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.073357+00:00",
+          "ended_at": "2026-09-22T07:47:08.074459+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "report.html"
+          ]
+        },
+        {
+          "started_at": "2026-09-22T07:47:08.328801+00:00",
+          "ended_at": "2026-09-22T07:47:08.329938+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "report.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "pdf_report": {
+      "required": false,
+      "applicable": true,
+      "condition": "Declared for task=multiclass",
+      "enabled": false,
+      "status": "not_enabled",
+      "reason": "PDF export not requested",
+      "paths": [],
+      "attempts": [],
+      "recoverable": true
+    }
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "overall_risk_level": "high",
+  "stages": [
+    {
+      "stage": "画像静态预检",
+      "risk_level": "medium",
+      "summary": "6 项发现，4 项检查"
+    },
+    {
+      "stage": "划分完整性审计",
+      "risk_level": "info",
+      "summary": "0 项发现，重复样本 0，跨集合实体 0"
+    },
+    {
+      "stage": "预处理分布审计",
+      "risk_level": "high",
+      "summary": "7 个特征受检，0 个漂移偏高，排除 0 列"
+    },
+    {
+      "stage": "模型搜索评估协议",
+      "risk_level": "info",
+      "summary": "状态 passed，锁定模型 random_forest，未锁定候选测试指标 0"
+    }
+  ],
+  "findings": [
+    {
+      "stage": "画像",
+      "severity": "medium",
+      "title": "疑似标识符特征",
+      "evidence": "'feature_0' 唯一值比例为 100.0%。",
+      "recommendation": "确认预测时是否可得；通常应作为分组列或从模型特征中排除。",
+      "columns": [
+        "feature_0"
+      ]
+    },
+    {
+      "stage": "画像",
+      "severity": "medium",
+      "title": "疑似标识符特征",
+      "evidence": "'feature_1' 唯一值比例为 100.0%。",
+      "recommendation": "确认预测时是否可得；通常应作为分组列或从模型特征中排除。",
+      "columns": [
+        "feature_1"
+      ]
+    },
+    {
+      "stage": "画像",
+      "severity": "medium",
+      "title": "疑似标识符特征",
+      "evidence": "'feature_2' 唯一值比例为 100.0%。",
+      "recommendation": "确认预测时是否可得；通常应作为分组列或从模型特征中排除。",
+      "columns": [
+        "feature_2"
+      ]
+    },
+    {
+      "stage": "画像",
+      "severity": "medium",
+      "title": "疑似标识符特征",
+      "evidence": "'feature_3' 唯一值比例为 100.0%。",
+      "recommendation": "确认预测时是否可得；通常应作为分组列或从模型特征中排除。",
+      "columns": [
+        "feature_3"
+      ]
+    },
+    {
+      "stage": "画像",
+      "severity": "medium",
+      "title": "疑似标识符特征",
+      "evidence": "'feature_4' 唯一值比例为 100.0%。",
+      "recommendation": "确认预测时是否可得；通常应作为分组列或从模型特征中排除。",
+      "columns": [
+        "feature_4"
+      ]
+    },
+    {
+      "stage": "画像",
+      "severity": "medium",
+      "title": "疑似标识符特征",
+      "evidence": "'feature_5' 唯一值比例为 100.0%。",
+      "recommendation": "确认预测时是否可得；通常应作为分组列或从模型特征中排除。",
+      "columns": [
+        "feature_5"
+      ]
+    },
+    {
+      "stage": "预处理",
+      "severity": "medium",
+      "title": "部分群体样本量偏小",
+      "evidence": "1 个「群体 × 子集」组合样本数低于 20：['group=A@validation']。",
+      "recommendation": "样本量过小会让该群体的指标估计不稳定，解读时需谨慎。",
+      "columns": []
+    }
+  ],
+  "suggested_actions": [],
+  "suggested_drop_columns": [],
+  "model_search_protocol": {
+    "risk_level": "info",
+    "high_risk_count": 0,
+    "findings": [],
+    "check_results": [
+      {
+        "code": "validation_selection",
+        "check": "选模依据为验证集主指标",
+        "status": "通过",
+        "result": "roc_auc（maximize）。"
+      },
+      {
+        "code": "selection_lock",
+        "check": "最终测试前锁定单模型",
+        "status": "通过",
+        "result": "锁定模型：random_forest；先于测试评估：True。"
+      },
+      {
+        "code": "candidate_test_metrics",
+        "check": "未锁定候选没有测试指标",
+        "status": "通过",
+        "result": "数量：0。"
+      },
+      {
+        "code": "voting_test_metrics",
+        "check": "Voting 仅用于验证集比较",
+        "status": "通过",
+        "result": "未执行测试评估。"
+      },
+      {
+        "code": "locked_test_metrics",
+        "check": "最终测试评估仅针对锁定模型",
+        "status": "通过",
+        "result": "锁定模型测试指标已生成。"
+      },
+      {
+        "code": "test_access_guard",
+        "check": "候选搜索与 Voting 阻止测试集访问",
+        "status": "通过",
+        "result": "使用运行时访问保护视图。"
+      }
+    ],
+    "model_info_questions": [],
+    "selection_metric": "roc_auc",
+    "selection_direction": "maximize",
+    "locked_model": "random_forest",
+    "locked_before_test_evaluation": true,
+    "candidate_test_metrics_count": 0,
+    "voting_test_metrics_present": false,
+    "locked_model_test_evaluated": true,
+    "selection_guard_enabled": true,
+    "test_evaluation_error": null,
+    "protocol_status": "passed"
+  }
+}

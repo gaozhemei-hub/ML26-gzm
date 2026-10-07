@@ -1,0 +1,501 @@
+{
+  "schema_version": "1.0",
+  "run_id": "ac956ff9144e422c985bd6c067604849",
+  "task": "binary",
+  "complete": true,
+  "required_count": 18,
+  "generated_required_count": 18,
+  "completeness": 1.0,
+  "boundary": "Delivery acceptance only; not scientific validity or reproducibility",
+  "records": {
+    "selection_lock": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "evidence/selection_lock.json"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:02.003022+00:00",
+          "ended_at": "2026-10-07T14:18:02.004006+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "evidence/selection_lock.json"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "model": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "best_model.joblib",
+        "pipeline.joblib"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:02.007008+00:00",
+          "ended_at": "2026-10-07T14:18:02.022026+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "best_model.joblib",
+            "pipeline.joblib"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "reload_check": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "evidence/reload_check.json"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:02.025540+00:00",
+          "ended_at": "2026-10-07T14:18:02.089687+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "evidence/reload_check.json"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "shap": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/assets/xgboost_shap_summary.png",
+        "reports/assets/xgboost_shap_importance.png",
+        "reports/assets/xgboost_shap_waterfall.png"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:02.094199+00:00",
+          "ended_at": "2026-10-07T14:18:05.729456+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/assets/xgboost_shap_summary.png",
+            "reports/assets/xgboost_shap_importance.png",
+            "reports/assets/xgboost_shap_waterfall.png"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "fairness": {
+      "required": false,
+      "applicable": true,
+      "condition": "Sensitive attributes supplied; binary task; labels encoded 0/1",
+      "enabled": false,
+      "status": "not_enabled",
+      "reason": "Sensitive attributes were not supplied",
+      "paths": [],
+      "attempts": [],
+      "recoverable": true
+    },
+    "model_scores": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "evidence/model_scores.json"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:05.733457+00:00",
+          "ended_at": "2026-10-07T14:18:05.734957+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "evidence/model_scores.json"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "audit": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "evidence/audit.json"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:05.738456+00:00",
+          "ended_at": "2026-10-07T14:18:05.739975+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "evidence/audit.json"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "model_search_audit": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "evidence/model_search_audit.json"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:05.744472+00:00",
+          "ended_at": "2026-10-07T14:18:05.745472+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "evidence/model_search_audit.json"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "diagnostics/random_forest": {
+      "required": true,
+      "applicable": false,
+      "condition": "Classification: confusion matrix; binary: also ROC",
+      "enabled": true,
+      "status": "not_applicable",
+      "reason": "Only the locked selected model receives held-out diagnostics",
+      "paths": [],
+      "attempts": [],
+      "recoverable": false
+    },
+    "trials/random_forest": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/assets/random_forest_trial_trajectory.png"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:05.751474+00:00",
+          "ended_at": "2026-10-07T14:18:05.863039+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/assets/random_forest_trial_trajectory.png"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "diagnostics/xgboost": {
+      "required": true,
+      "applicable": true,
+      "condition": "Classification: confusion matrix; binary: also ROC",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/assets/xgboost_confusion_matrix.png",
+        "reports/assets/xgboost_roc_curve.png"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:05.868087+00:00",
+          "ended_at": "2026-10-07T14:18:06.027007+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/assets/xgboost_confusion_matrix.png",
+            "reports/assets/xgboost_roc_curve.png"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "trials/xgboost": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/assets/xgboost_trial_trajectory.png"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:06.032040+00:00",
+          "ended_at": "2026-10-07T14:18:06.139752+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/assets/xgboost_trial_trajectory.png"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "profile_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/profile.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:06.145259+00:00",
+          "ended_at": "2026-10-07T14:18:06.209325+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/profile.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "split_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/split.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:06.215839+00:00",
+          "ended_at": "2026-10-07T14:18:06.250968+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/split.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "preprocess_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/preprocess.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:06.256968+00:00",
+          "ended_at": "2026-10-07T14:18:06.322434+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/preprocess.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "search_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/model_search.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:06.329884+00:00",
+          "ended_at": "2026-10-07T14:18:06.375406+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/model_search.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "ensemble_diagnostics": {
+      "required": false,
+      "applicable": false,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "not_applicable",
+      "reason": "Voting is compared on validation only; no held-out diagnostics",
+      "paths": [],
+      "attempts": [],
+      "recoverable": false
+    },
+    "ensemble_report": {
+      "required": false,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/models/voting.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:06.381905+00:00",
+          "ended_at": "2026-10-07T14:18:06.415341+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/models/voting.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "model_report/random_forest": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/models/random_forest.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:06.421338+00:00",
+          "ended_at": "2026-10-07T14:18:06.442003+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/models/random_forest.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "model_report/xgboost": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/models/xgboost.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:06.449050+00:00",
+          "ended_at": "2026-10-07T14:18:06.450553+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/models/xgboost.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "explanation_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "reports/explanation.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:06.458554+00:00",
+          "ended_at": "2026-10-07T14:18:06.508792+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "reports/explanation.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "full_report": {
+      "required": true,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": true,
+      "status": "generated",
+      "reason": "Producer completed; declared files present and nonempty",
+      "paths": [
+        "report.html"
+      ],
+      "attempts": [
+        {
+          "started_at": "2026-10-07T14:18:06.516293+00:00",
+          "ended_at": "2026-10-07T14:18:06.585527+00:00",
+          "status": "generated",
+          "reason": "Producer completed; declared files present and nonempty",
+          "paths": [
+            "report.html"
+          ]
+        }
+      ],
+      "recoverable": true
+    },
+    "pdf_report": {
+      "required": false,
+      "applicable": true,
+      "condition": "Declared for task=binary",
+      "enabled": false,
+      "status": "not_enabled",
+      "reason": "PDF export not requested",
+      "paths": [],
+      "attempts": [],
+      "recoverable": true
+    }
+  }
+}
