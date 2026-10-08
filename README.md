@@ -56,6 +56,7 @@ python -m pip install xgboost lightgbm catboost
 TabularX-project/   Python 包源码与项目配置
  tests/             自动化测试
  docs/              API、教学示例、设计文档与实验验证材料
+ introduction/      十数据集实验与专项验证的复现脚本
  drafts/            开发过程中的历史记录和演示材料
 ```
 
