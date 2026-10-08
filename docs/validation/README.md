@@ -1,5 +1,7 @@
 # MLJAR 与 TabularX 十数据集完整工具包对比实验
 
+项目根路径：<https://github.com/gaozhemei-hub/ML26-gzm>。以下相对路径均以该仓库 `develop` 分支的根目录为起点。
+
 本实验在十个公开表格数据集上运行 MLJAR Explain 与 TabularX，比较两种完整工具包在固定配置下的预测结果与实际工件交付。实验覆盖八个分类任务和两个回归任务，以及数值型、类别型、混合型、缺失值、类别不均衡和高维表格等不同数据条件。
 
 每个数据集均使用随机种子 42 划分为 80% 开发集和 20% 外部测试集。两种工具接收相同的开发集与外部测试集，候选算法统一为随机森林、XGBoost、LightGBM 与 CatBoost。外部测试集不参与训练、调参和选模，只在最终模型锁定后评估一次。
@@ -19,16 +21,16 @@
 
 | 数据集 | 任务 | Notebook | 对比报告 | 结构化结果 |
 |---|---|---|---|---|
-| Bank Marketing | 二分类 | [Notebook](../../introduction/benchmarks/bank-marketing/bank_marketing_mljar_vs_tabularx.ipynb) | [PDF](bank-marketing/实验报告-Bank%20Marketing.pdf) · [HTML](bank-marketing/comparison_report.html) · [TeX](bank-marketing/Bank%20Marketing.tex) | [指标](bank-marketing/external_test_metrics.json) · [工件清单](bank-marketing/artifact_matrix.csv) |
-| Credit Scoring | 二分类 | [Notebook](../../introduction/benchmarks/credit-scoring/credit_scoring_mljar_vs_tabularx.ipynb) | [PDF](credit-scoring/实验报告-Credit%20Scoring.pdf) · [HTML](credit-scoring/comparison_report.html) · [TeX](credit-scoring/Credit%20Scoring.tex) | [指标](credit-scoring/external_test_metrics.json) · [工件清单](credit-scoring/artifact_matrix.csv) |
-| Employee Attrition | 二分类 | [Notebook](../../introduction/benchmarks/employee-attrition/employee_attrition_mljar_vs_tabularx.ipynb) | [PDF](employee-attrition/实验报告-Employee%20Attrition.pdf) · [HTML](employee-attrition/comparison_report.html) · [TeX](employee-attrition/Employee%20Attrition.tex) | [指标](employee-attrition/external_test_metrics.json) · [工件清单](employee-attrition/artifact_matrix.csv) |
-| Wine | 三分类 | [Notebook](../../introduction/benchmarks/wine/wine_mljar_vs_tabularx.ipynb) | [PDF](wine/实验报告-Wine.pdf) · [HTML](wine/comparison_report.html) · [TeX](wine/Wine.tex) | [指标](wine/external_test_metrics.json) · [工件清单](wine/artifact_matrix.csv) |
-| House Prices | 回归 | [Notebook](../../introduction/benchmarks/house-prices/house_prices_mljar_vs_tabularx.ipynb) | [PDF](house-prices/实验报告-House%20Prices.pdf) · [HTML](house-prices/comparison_report.html) · [TeX](house-prices/House%20Prices.tex) | [指标](house-prices/external_test_metrics.json) · [工件清单](house-prices/artifact_matrix.csv) |
-| Adult Income | 二分类 | [Notebook](../../introduction/benchmarks/adult/adult_mljar_vs_tabularx.ipynb) | [PDF](adult/对比报告-Adult%20Income.pdf) · [HTML](adult/comparison_report.html) · [学校模板 TeX](adult/Adult%20Income.tex) | [指标](adult/external_test_metrics.json) · [工件清单](adult/artifact_matrix.csv) · [运行摘要](adult/run_summary.json) |
-| Breast Cancer Wisconsin | 二分类 | [Notebook](../../introduction/benchmarks/breast-cancer/breast_cancer_mljar_vs_tabularx.ipynb) | [PDF](breast-cancer/对比报告-Breast%20Cancer%20Wisconsin.pdf) · [HTML](breast-cancer/comparison_report.html) · [学校模板 TeX](breast-cancer/Breast%20Cancer%20Wisconsin.tex) | [指标](breast-cancer/external_test_metrics.json) · [工件清单](breast-cancer/artifact_matrix.csv) · [运行摘要](breast-cancer/run_summary.json) |
-| Titanic | 二分类 | [Notebook](../../introduction/benchmarks/titanic/titanic_mljar_vs_tabularx.ipynb) | [PDF](titanic/对比报告-Titanic.pdf) · [HTML](titanic/comparison_report.html) · [学校模板 TeX](titanic/Titanic.tex) | [指标](titanic/external_test_metrics.json) · [工件清单](titanic/artifact_matrix.csv) · [运行摘要](titanic/run_summary.json) |
-| Iris | 三分类 | [Notebook](../../introduction/benchmarks/iris/iris_mljar_vs_tabularx.ipynb) | [PDF](iris/对比报告-Iris.pdf) · [HTML](iris/comparison_report.html) · [学校模板 TeX](iris/Iris.tex) | [指标](iris/external_test_metrics.json) · [工件清单](iris/artifact_matrix.csv) · [运行摘要](iris/run_summary.json) |
-| California Housing | 回归 | [Notebook](../../introduction/benchmarks/california-housing/california_housing_mljar_vs_tabularx.ipynb) | [PDF](california-housing/对比报告-California%20Housing.pdf) · [HTML](california-housing/comparison_report.html) · [学校模板 TeX](california-housing/California%20Housing.tex) | [指标](california-housing/external_test_metrics.json) · [工件清单](california-housing/artifact_matrix.csv) · [运行摘要](california-housing/run_summary.json) |
+| Bank Marketing | 二分类 | [Notebook](../../drafts/introduction/benchmarks/bank-marketing/bank_marketing_mljar_vs_tabularx.ipynb) | [PDF](bank-marketing/实验报告-Bank%20Marketing.pdf) · [HTML](bank-marketing/comparison_report.html) · [TeX](bank-marketing/Bank%20Marketing.tex) | [指标](bank-marketing/external_test_metrics.json) · [工件清单](bank-marketing/artifact_matrix.csv) |
+| Credit Scoring | 二分类 | [Notebook](../../drafts/introduction/benchmarks/credit-scoring/credit_scoring_mljar_vs_tabularx.ipynb) | [PDF](credit-scoring/实验报告-Credit%20Scoring.pdf) · [HTML](credit-scoring/comparison_report.html) · [TeX](credit-scoring/Credit%20Scoring.tex) | [指标](credit-scoring/external_test_metrics.json) · [工件清单](credit-scoring/artifact_matrix.csv) |
+| Employee Attrition | 二分类 | [Notebook](../../drafts/introduction/benchmarks/employee-attrition/employee_attrition_mljar_vs_tabularx.ipynb) | [PDF](employee-attrition/实验报告-Employee%20Attrition.pdf) · [HTML](employee-attrition/comparison_report.html) · [TeX](employee-attrition/Employee%20Attrition.tex) | [指标](employee-attrition/external_test_metrics.json) · [工件清单](employee-attrition/artifact_matrix.csv) |
+| Wine | 三分类 | [Notebook](../../drafts/introduction/benchmarks/wine/wine_mljar_vs_tabularx.ipynb) | [PDF](wine/实验报告-Wine.pdf) · [HTML](wine/comparison_report.html) · [TeX](wine/Wine.tex) | [指标](wine/external_test_metrics.json) · [工件清单](wine/artifact_matrix.csv) |
+| House Prices | 回归 | [Notebook](../../drafts/introduction/benchmarks/house-prices/house_prices_mljar_vs_tabularx.ipynb) | [PDF](house-prices/实验报告-House%20Prices.pdf) · [HTML](house-prices/comparison_report.html) · [TeX](house-prices/House%20Prices.tex) | [指标](house-prices/external_test_metrics.json) · [工件清单](house-prices/artifact_matrix.csv) |
+| Adult Income | 二分类 | [Notebook](../../drafts/introduction/benchmarks/adult/adult_mljar_vs_tabularx.ipynb) | [PDF](adult/对比报告-Adult%20Income.pdf) · [HTML](adult/comparison_report.html) · [学校模板 TeX](adult/Adult%20Income.tex) | [指标](adult/external_test_metrics.json) · [工件清单](adult/artifact_matrix.csv) · [运行摘要](adult/run_summary.json) |
+| Breast Cancer Wisconsin | 二分类 | [Notebook](../../drafts/introduction/benchmarks/breast-cancer/breast_cancer_mljar_vs_tabularx.ipynb) | [PDF](breast-cancer/对比报告-Breast%20Cancer%20Wisconsin.pdf) · [HTML](breast-cancer/comparison_report.html) · [学校模板 TeX](breast-cancer/Breast%20Cancer%20Wisconsin.tex) | [指标](breast-cancer/external_test_metrics.json) · [工件清单](breast-cancer/artifact_matrix.csv) · [运行摘要](breast-cancer/run_summary.json) |
+| Titanic | 二分类 | [Notebook](../../drafts/introduction/benchmarks/titanic/titanic_mljar_vs_tabularx.ipynb) | [PDF](titanic/对比报告-Titanic.pdf) · [HTML](titanic/comparison_report.html) · [学校模板 TeX](titanic/Titanic.tex) | [指标](titanic/external_test_metrics.json) · [工件清单](titanic/artifact_matrix.csv) · [运行摘要](titanic/run_summary.json) |
+| Iris | 三分类 | [Notebook](../../drafts/introduction/benchmarks/iris/iris_mljar_vs_tabularx.ipynb) | [PDF](iris/对比报告-Iris.pdf) · [HTML](iris/comparison_report.html) · [学校模板 TeX](iris/Iris.tex) | [指标](iris/external_test_metrics.json) · [工件清单](iris/artifact_matrix.csv) · [运行摘要](iris/run_summary.json) |
+| California Housing | 回归 | [Notebook](../../drafts/introduction/benchmarks/california-housing/california_housing_mljar_vs_tabularx.ipynb) | [PDF](california-housing/对比报告-California%20Housing.pdf) · [HTML](california-housing/comparison_report.html) · [学校模板 TeX](california-housing/California%20Housing.tex) | [指标](california-housing/external_test_metrics.json) · [工件清单](california-housing/artifact_matrix.csv) · [运行摘要](california-housing/run_summary.json) |
 
 ## 公平性设置与解释边界
 
@@ -50,11 +52,11 @@ python -m pip install optuna shap joblib xgboost lightgbm catboost openml
 
 macOS和Linux使用 `source .venv/bin/activate` 激活环境；Windows PowerShell使用 `.venv\Scripts\Activate.ps1`。实际依赖版本、公开数据版本和当前提交编号应随复现实验一并记录。
 
-共享运行器位于 [`introduction/benchmarks/run_toolkit_benchmark.py`](../../introduction/benchmarks/run_toolkit_benchmark.py)，当前覆盖 Adult Income、Breast Cancer Wisconsin、Titanic、Iris 和 California Housing 五个数据集。例如：
+共享运行器位于 [`drafts/introduction/benchmarks/run_toolkit_benchmark.py`](../../drafts/introduction/benchmarks/run_toolkit_benchmark.py)，当前覆盖 Adult Income、Breast Cancer Wisconsin、Titanic、Iris 和 California Housing 五个数据集。例如：
 
 ```bash
-python introduction/benchmarks/run_toolkit_benchmark.py adult
-python introduction/benchmarks/run_toolkit_benchmark.py california-housing
+python drafts/introduction/benchmarks/run_toolkit_benchmark.py adult
+python drafts/introduction/benchmarks/run_toolkit_benchmark.py california-housing
 ```
 
 其余五个数据集以及全部十个数据集的逐步流程保存在本页“实验入口”所列 Notebook 中，可使用 `python -m jupyterlab` 打开并依次执行。部分本地数据通过 `TABULARX_DATASETS_ROOT` 指定，OpenML或scikit-learn数据由Notebook按固定编号或接口读取。

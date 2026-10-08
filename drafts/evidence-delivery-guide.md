@@ -119,7 +119,7 @@ status = ae.retry_evidence()
 
 补做复用同一个已拟合模型、数据和配置，不重新搜索或训练。关联报告与重载核对可随补做刷新，因此不应理解为所有已成功项目都永不再执行。改变数据、模型或配置（包括解释预算）会被拒绝，需新建运行。训练失败不属于本模块自动恢复范围。
 
-补做需要原程序会话仍在；程序退出后，仅凭 JSON 清单不能恢复执行。补做状态一致性修复见[合并请求 #2](https://github.com/gaozhemei-hub/ML26-gzm/pulls)：将审计刷新纳入统一流程，避免报告重复刷新以及返回状态与落盘状态不一致。该修复已合并到 `develop`。
+补做需要原程序会话仍在；程序退出后，仅凭 JSON 清单不能恢复执行。补做状态一致性修复见团队上游的[合并请求 #2](https://github.com/gaozhemei-hub/ML26-gzm/pulls)：将审计刷新纳入统一流程，避免报告重复刷新以及返回状态与落盘状态不一致。该修复已合并到 `develop`。
 
 ### 3.3 重载模型进行预测
 
@@ -154,7 +154,7 @@ predictions = pipeline.predict(sample.data.iloc[:5])
 
 ## 5. 验证结果与复跑
 
-完整产物和原始结果见[实验验证索引](validation/evidence-delivery/README.md)。不同批次对应不同代码阶段，不应当作同一版本的重复实验。
+完整产物和原始结果见[实验验证索引](../docs/validation/evidence-delivery/README.md)。不同批次对应不同代码阶段，不应当作同一版本的重复实验。
 
 | 验证范围 | 观测结果 | 结论边界 |
 |---|---|---|
@@ -170,9 +170,9 @@ Adult 的正类测试 F1 为 0、召回率为 0，ROC AUC 约为 0.902，说明�
 
 ```bash
 PYTHONPATH=.:TabularX-project/src python -m pytest tests trustguard/tests -q
-PYTHONPATH=TabularX-project/src python introduction/evidence_validation_suite.py --output outputs/evidence-validation
-PYTHONPATH=TabularX-project/src python introduction/selection_protocol_demo.py --output outputs/selection-protocol
-PYTHONPATH=TabularX-project/src python introduction/adult_evidence_demo.py --data /path/to/adult.arff.gz --output outputs/adult-validation
+PYTHONPATH=TabularX-project/src python drafts/introduction/evidence_validation_suite.py --output outputs/evidence-validation
+PYTHONPATH=TabularX-project/src python drafts/introduction/selection_protocol_demo.py --output outputs/selection-protocol
+PYTHONPATH=TabularX-project/src python drafts/introduction/adult_evidence_demo.py --data /path/to/adult.arff.gz --output outputs/adult-validation
 ```
 
 Adult 数据需自行准备，归档不包含原始数据和虚拟环境。当前代码复跑的产物不保证与历史快照逐字节相同。

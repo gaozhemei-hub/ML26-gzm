@@ -1,13 +1,13 @@
 # 十数据集实验复现入口
 
-本目录保存论文中 MLJAR 与 TabularX 十数据集对比实验的可执行材料。实验结果、结构化指标、工件清单及 PDF/HTML 报告位于 [`docs/validation/`](../../docs/validation/README.md)。
+本目录保存论文中 MLJAR 与 TabularX 十数据集对比实验的可执行材料。实验结果、结构化指标、工件清单及 PDF/HTML 报告位于 [`docs/validation/`](../../../docs/validation/README.md)。
 
 ## 运行方式
 
 共享运行器 `run_toolkit_benchmark.py` 覆盖 Adult Income、Breast Cancer Wisconsin、Titanic、Iris 和 California Housing。其余数据集使用相应子目录中的 Notebook 运行；十个数据集均保留 Notebook，便于检查数据来源、划分方式、模型配置和结果生成过程。
 
 ```bash
-python introduction/benchmarks/run_toolkit_benchmark.py adult
+python drafts/introduction/benchmarks/run_toolkit_benchmark.py adult
 python -m jupyterlab
 ```
 

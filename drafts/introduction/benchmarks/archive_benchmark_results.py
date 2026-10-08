@@ -246,7 +246,7 @@ def build_notebooks() -> None:
                     "source": [
                         "## 重新运行\n",
                         "\n",
-                        f"在项目根目录运行 `python introduction/benchmarks/run_toolkit_benchmark.py {key}`。完整运行会重新训练两种工具并覆盖对应的 `benchmark-output/{key}` 目录。\n",
+                        f"在项目根目录运行 `python drafts/introduction/benchmarks/run_toolkit_benchmark.py {key}`。完整运行会重新训练两种工具并覆盖对应的 `benchmark-output/{key}` 目录。\n",
                     ],
                 },
             ],

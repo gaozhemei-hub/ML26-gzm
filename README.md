@@ -2,6 +2,8 @@
 
 本仓库是课程项目个人提交与复现镜像，派生自团队项目仓库。默认的 `develop` 分支包含完整代码、功能文档、十数据集实验结果和复现材料。
 
+个人提交与复现仓库固定入口：<https://github.com/gaozhemei-hub/ML26-gzm>。
+
 TabularX 是一个面向表格数据的自动化建模 Python 工具包，支持分类和回归任务。项目提供统一的建模入口，并将实验报告、模型和结构化运行记录保存到本地。
 
 项目的研究背景、方法和完整功能贡献请参阅论文。本文档聚焦于项目安装、最小使用示例和文档入口。
@@ -58,8 +60,8 @@ python -m pip install xgboost lightgbm catboost
 TabularX-project/   Python 包源码与项目配置
  tests/             自动化测试
  docs/              API、教学示例、设计文档与实验验证材料
- introduction/      十数据集实验与专项验证的复现脚本
- drafts/            开发过程中的历史记录和演示材料
+ drafts/            开发过程材料
+   introduction/    十数据集实验与专项验证的复现脚本
 ```
 
 ## 开发测试

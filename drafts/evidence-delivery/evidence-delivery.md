@@ -89,7 +89,7 @@ ae.retry_evidence()
 
 ```bash
 PYTHONPATH=TabularX-project/src python -m pytest tests/test_evidence.py -q
-PYTHONPATH=TabularX-project/src python introduction/evidence_recovery_demo.py --output outputs/evidence-demo
+PYTHONPATH=TabularX-project/src python drafts/introduction/evidence_recovery_demo.py --output outputs/evidence-demo
 ```
 
 单元测试覆盖未生成、空文件、旧运行文件、删除、必需项禁用、任务不适用、恢复历史与上下文变更。
@@ -99,10 +99,10 @@ PYTHONPATH=TabularX-project/src python introduction/evidence_recovery_demo.py --
 
 ## 扩展验证（2026-09-22）
 
-新增可重复运行的脚本 `introduction/evidence_validation_suite.py`：
+新增可重复运行的脚本 `drafts/introduction/evidence_validation_suite.py`：
 
 ```bash
-PYTHONPATH=TabularX-project/src python introduction/evidence_validation_suite.py --output outputs/evidence-validation
+PYTHONPATH=TabularX-project/src python drafts/introduction/evidence_validation_suite.py --output outputs/evidence-validation
 ```
 
 依赖除前述基本包外，需要 `xgboost`。本地 macOS 的 XGBoost 需要可用的 OpenMP 动态库；
@@ -166,11 +166,11 @@ predictions = pipeline.predict(raw_dataframe)
 
 新增 `tests/test_selection_protocol.py`：用禁止访问测试属性的代理验证串行/并行搜索和 Voting，
 并以两个候选模型验证 Iris 与 Diabetes 完整运行中的锁定记录、分数归属和诊断范围。
-`introduction/selection_protocol_demo.py --output <目录>` 保留两组真实运行与中文结果页。
+`drafts/introduction/selection_protocol_demo.py --output <目录>` 保留两组真实运行与中文结果页。
 
 边界：profile/类型识别仍读取全量输入；诊断、解释和重载核对会在锁定后使用测试输入。
 这里保证默认搜索阶段不读取测试数据、测试分数不决定候选选择，不宣称不存在任何数据泄露风险。
 独立的旧 `save_voting_plots` 工具仍可被外部显式调用；AutoEstimator 默认流程不再调用它。
 
 
-本周简明使用说明与创新对照见 [历史同步说明](teammate-sync.md)。Adult 完整数据验证脚本为 `introduction/adult_evidence_demo.py`。
+本周简明使用说明与创新对照见 [历史同步说明](teammate-sync.md)。Adult 完整数据验证脚本为 `drafts/introduction/adult_evidence_demo.py`。
