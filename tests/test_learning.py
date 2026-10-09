@@ -593,9 +593,3 @@ class TestFairnessConfig:
             sensitive_features=["gender", "race"],
         )
         assert "gender" in cfg.sensitive_features
-
-
-# ============================================================
-# 运行方式
-# ============================================================
-# PYTHONPATH=TabularX/src /home/frank/pyvenv/machine_learning_course/bin/python -m pytest tests/test_learning.py -v
