@@ -1,18 +1,23 @@
 # 草稿
 .inbox/
 
-# ide
+# IDE
 .cursor/
 
-# 缓存
+# Python 缓存
 __pycache__/
-
-# 测试
 .pytest_cache/
+.venv/
+
+# 测试和运行产物
+benchmark-output/
+outputs/
+docs/demo/outputs/
 
 # 部署
 tabularx.egg-info
 dist/
-benchmark-output/
-# macOS local metadata
+
+# 模型和本机元数据
+*.joblib
 .DS_Store

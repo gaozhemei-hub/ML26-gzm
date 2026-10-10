@@ -8,7 +8,7 @@
 
 原独立 TrustGuard（`feature/trust-audit`）用单独入口完成泄露、评估协议、复现证据、漂移和群体覆盖检查。本周没有把旧目录原样并入主程序，而是将可复用能力拆入 TabularX 的画像、划分、预处理、模型选择和报告流程。
 
-- **先看整合内容与使用边界**：[可信审计整合说明书](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/docs/trust-audit-integration-guide.md)
+- **先看整合内容与使用边界**：[可信审计整合说明书](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/drafts/trust-audit-integration-guide.md)
 - **看画像与划分审计代码**：[画像预检](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/TabularX-project/src/tabularx/core/profile.py) · [划分审计](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/TabularX-project/src/tabularx/core/split.py)
 - **看漂移、群体覆盖与审计排除**：[预处理审计](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/TabularX-project/src/tabularx/core/preprocess.py)
 - **看公共审计结构与报告聚合**：[审计契约](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/TabularX-project/src/tabularx/schema/audit.py) · [总流程接入](https://github.com/gaozhemei-hub/ML26-gzm/blob/develop/TabularX-project/src/tabularx/core/evidence/estimator.py)
@@ -238,4 +238,4 @@
 4. 群体覆盖说明公平性指标的样本基础，不代表模型公平，也不提供偏差缓解算法。
 5. 评估协议保证候选排序不使用测试分数，不代表锁定后的解释、诊断和重载核对不读取测试输入。
 6. 当前复现证据主要验证输入身份、运行隔离和同环境重载一致性，不宣称跨环境完全复现。
-7. 旧版 `trustguard/` 可作为历史实现和对比实验材料；`develop` 主流程应以 `profile/split/preprocess/model-search/evidence` 的整合结果为准。
+7. 旧版 `drafts/trustguard/` 可作为历史实现和对比实验材料；`develop` 主流程应以 `profile/split/preprocess/model-search/evidence` 的整合结果为准。

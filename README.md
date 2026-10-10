@@ -62,6 +62,7 @@ TabularX-project/   Python 包源码与项目配置
  docs/              API、教学示例、设计文档与实验验证材料
  drafts/            开发过程材料
    introduction/    十数据集实验与专项验证的复现脚本
+   trustguard/       可信审计的历史实现与对比实验材料
 ```
 
 ## 开发测试

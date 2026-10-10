@@ -169,7 +169,7 @@ Adult 的正类测试 F1 为 0、召回率为 0，ROC AUC 约为 0.902，说明�
 仓库根目录复跑：
 
 ```bash
-PYTHONPATH=.:TabularX-project/src python -m pytest tests trustguard/tests -q
+PYTHONPATH=.:TabularX-project/src python -m pytest tests drafts/trustguard/tests -q
 PYTHONPATH=TabularX-project/src python drafts/introduction/evidence_validation_suite.py --output outputs/evidence-validation
 PYTHONPATH=TabularX-project/src python drafts/introduction/selection_protocol_demo.py --output outputs/selection-protocol
 PYTHONPATH=TabularX-project/src python drafts/introduction/adult_evidence_demo.py --data /path/to/adult.arff.gz --output outputs/adult-validation
