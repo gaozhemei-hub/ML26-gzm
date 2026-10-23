@@ -8,7 +8,7 @@
 
 本目录保存 HTML、PDF 与 TeX 报告、结构化指标、工件清单和状态汇总。为满足实验复现要求，个人提交仓库另在 `drafts/introduction/` 中保留十个 Notebook、统一运行器和专项验证脚本；正式实验结论仍以本目录的归档结果为准。
 
-十数据集材料由团队按统一协议完成并汇总。其中，高哲美负责 Adult Income、Breast Cancer Wisconsin、Titanic、Iris 和 California Housing 五个数据集的运行、结果核对与归档，并参与十数据集综合指标、工件状态和报告材料的统一整理。
+十数据集材料由团队按统一协议完成并汇总。其中，`gaozhemei-hub` 负责 Adult Income、Breast Cancer Wisconsin、Titanic、Iris 和 California Housing 五个数据集的运行、结果核对与归档，并参与十数据集综合指标、工件状态和报告材料的统一整理。
 
 性能指标仅描述本次固定配置，不构成严格等预算的普遍性能排名。“未观测”表示本次运行目录中没有找到相应工件，不外推为工具在任何配置下均不支持。
 
